@@ -46,7 +46,7 @@ $role = $_SESSION['role'] ?? 'student';
                 <a href="community/reviewer_dashboard.php" class="btn btn-primary">Go to Reviews</a>
             </div>
 
-        <?php elseif (in_array($role, ['alumni', 'senior', 'hod'])): ?>
+        <?php elseif (in_array($role, ['alumni', 'senior', 'hod', 'expert'])): ?>
             <!-- Reviewers -->
             <div class="card module-card">
                 <h2>Community Reviews</h2>

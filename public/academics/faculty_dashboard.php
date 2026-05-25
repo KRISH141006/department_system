@@ -9,12 +9,13 @@ if (!in_array($_SESSION['role'], ['faculty', 'creator'])) {
 
 $faculty_id = (int) $_SESSION['user_id'];
 
-$stmt = $conn->prepare("SELECT name, class_name, semester FROM users WHERE id = ?");
+$stmt = $conn->prepare("SELECT name, class_name, semester, emp_id FROM users WHERE id = ?");
 $stmt->bind_param("i", $faculty_id);
 $stmt->execute();
 $uRow = $stmt->get_result()->fetch_assoc();
 
 $name = $uRow['name'] ?? 'Faculty';
+$emp_id = $uRow['emp_id'] ?? 'N/A';
 $class_name = $uRow['class_name'] ?? 'N/A';
 $semester = $uRow['semester'] ?? 'N/A';
 
@@ -26,7 +27,7 @@ require_once __DIR__ . '/../../app/includes/header.php';
     <div class="dashboard-header" style="margin-bottom: 2rem;">
         <div class="dashboard-title">
             <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem; color: var(--text);">Faculty Dashboard</h1>
-            <p style="color: var(--text-2);">Manage your subjects, feedback, and student interactions.</p>
+            <p style="color: var(--text-2);">Welcome back, <strong><?= htmlspecialchars($name) ?></strong> (ID: <?= htmlspecialchars($emp_id) ?>). Manage your subjects, feedback, and student interactions.</p>
         </div>
     </div>
 
@@ -47,6 +48,12 @@ require_once __DIR__ . '/../../app/includes/header.php';
             <div style="font-size: 32px; margin-bottom: 12px;">📊</div>
             <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600;">Student's Feedback</h3>
             <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">Review consolidated ratings and student comments.</p>
+        </a>
+
+        <a href="select_student.php" class="card" style="text-decoration: none; color: inherit;">
+            <div style="font-size: 32px; margin-bottom: 12px;">🎯</div>
+            <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600;">Syllabus Verification</h3>
+            <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">Assign a student to verify today's covered topics.</p>
         </a>
     </div>
 

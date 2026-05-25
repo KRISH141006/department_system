@@ -2,79 +2,26 @@
 require_once __DIR__ . '/../../app/middleware/auth.php';
 require_once __DIR__ . '/../../app/config/db.php';
 
-$subject = $_GET['subject'] ?? '';
-$unit = $_GET['unit'] ?? '';
+$subject_id = (int) ($_GET['subject_id'] ?? 0);
+$unit_id = (int) ($_GET['unit_id'] ?? 0);
 
-$units = [
-    1 => [
-        "name" => "Internet Basics",
-        "topics" => [
-            "Internet", "World Wide Web", "URL", "Web Server", "Web Browser", "Internet Connectivity",
-            "Internet Network", "Services on Internet", "Current Trends on Internet", "Concept of WWW",
-            "HTTP Response and Request", "Features of Web 2.0"
-        ]
-    ],
-    2 => [
-        "name" => "HTML and CSS",
-        "topics" => [
-            "Basics of HTML", "HTML tags and attributes", "Meta tags", "Character entities", "Hyperlink",
-            "Table", "Lists", "Images", "Forms", "Divs", "XHTML", "Browser Architecture and website structure",
-            "Overview and features of HTML 5", "Need for CSS", "Basic syntax and structure of CSS",
-            "Background images", "Colors and properties", "Manipulating texts", "Fonts", "Borders and boxes",
-            "Margin", "Padding", "Lists in CSS", "Positioning using CSS", "Gradients", "Shadow effects",
-            "Transformation", "Transition and animations", "CSS Flex", "Media queries", "Overview of CSS",
-            "CSS2 and features of CSS3"
-        ]
-    ],
-    3 => [
-        "name" => "JavaScript",
-        "topics" => [
-            "Client-side scripting with JavaScript", "Variables", "Functions", "Conditions", "Loops and repetition",
-            "Pop up boxes", "JavaScript and objects", "JavaScript own objects", "DOM and web browser environments",
-            "Manipulation using DOM", "Forms and validations", "DHTML", "Combining HTML, CSS and JavaScript",
-            "Events and buttons", "Introduction to jQuery", "jQuery syntax", "Selectors", "Events", "Effects",
-            "jQuery HTML", "Access / Manipulate web browser elements using jQuery"
-        ]
-    ],
-    4 => [
-        "name" => "XML",
-        "topics" => [
-            "Introduction to XML", "Uses of XML", "Simple XML", "XML key components", "DTD and Schemas",
-            "Using XML with application", "Transforming XML using XSL and XSLT"
-        ]
-    ],
-    5 => [
-        "name" => "PHP",
-        "topics" => [
-            "Introduction and basic syntax of PHP", "Decision and looping with examples", "PHP and HTML",
-            "Arrays", "Functions", "Browser control and detection", "String", "Form processing", "Files",
-            "Cookies and Sessions", "Object Oriented Programming with PHP"
-        ]
-    ],
-    6 => [
-        "name" => "PHP and MySQL",
-        "topics" => [
-            "Basic commands with PHP examples", "Connection to server", "Creating database", "Selecting a database",
-            "Listing database", "Listing table names", "Creating a table", "Inserting data", "Altering tables",
-            "Queries", "Deleting database", "Deleting data and tables", "PHPMyAdmin", "Database bugs"
-        ]
-    ],
-    7 => [
-        "name" => "Latest Trends in PHP",
-        "topics" => [
-            "Overview of Laravel", "Laravel Application Structure", "Introduction to WordPress",
-            "WordPress Dashboard", "Overview of Joomla", "Joomla Architecture", "Application of Joomla"
-        ]
-    ]
-];
-
-if ($subject != "IWT") {
-    $page_title = "Error";
-    require_once __DIR__ . '/../../app/includes/header.php';
-    echo "<div class='wrapper' style='padding:2rem;'><div class='alert alert-error'>Syllabus for $subject is not yet uploaded.</div><a href='student_dashboard.php' class='btn btn-primary'>Back</a></div>";
-    require_once __DIR__ . '/../../app/includes/footer.php';
+if (!$subject_id) {
+    header("Location: student_dashboard.php");
     exit();
 }
+
+// Fetch subject info
+$stmt = $conn->prepare("SELECT subject_name FROM faculty_subjects WHERE id = ?");
+$stmt->bind_param("i", $subject_id);
+$stmt->execute();
+$subject = $stmt->get_result()->fetch_assoc();
+
+if (!$subject) {
+    header("Location: student_dashboard.php");
+    exit();
+}
+
+$subject_name = $subject['subject_name'];
 
 $canGiveFeedback = false;
 $student_id = (int) $_SESSION['user_id'];
@@ -86,48 +33,75 @@ if ($feedChk->get_result()->num_rows > 0) {
     $canGiveFeedback = true;
 }
 
-$page_title = "$subject Syllabus";
+$page_title = "$subject_name Syllabus";
 require_once __DIR__ . '/../../app/includes/header.php';
 ?>
 
 <div class="wrapper" style="padding: 2rem;">
     <div class="dashboard-header" style="margin-bottom: 2rem;">
         <div class="dashboard-title">
-            <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem; color: var(--text);"><?php echo htmlspecialchars($subject); ?> Syllabus</h1>
+            <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem; color: var(--text);"><?php echo htmlspecialchars($subject_name); ?> Syllabus</h1>
             <p style="color: var(--text-2);">Select a unit to view or track covered topics.</p>
         </div>
         <div class="dashboard-actions">
-            <a href="student_dashboard.php" class="btn btn-secondary">Back to Academics</a>
+            <?php if (isset($_GET['from']) && $_GET['from'] == 'feedback') { ?>
+                <a href="lecture_feedback.php" class="btn btn-secondary">Back to Feedback</a>
+            <?php } else { ?>
+                <a href="student_dashboard.php" class="btn btn-secondary">Back to Academics</a>
+            <?php } ?>
         </div>
     </div>
 
-    <?php if ($unit == '') { ?>
+    <?php if ($unit_id == 0) { ?>
         <div class="grid-2">
-            <?php foreach ($units as $number => $data) { ?>
-                <a href="units.php?subject=<?php echo urlencode($subject); ?>&unit=<?php echo $number; ?>" class="card" style="text-decoration: none; color: inherit;">
+            <?php 
+            $uStmt = $conn->prepare("SELECT id, unit_no, unit_name FROM faculty_units WHERE subject_id = ? ORDER BY unit_no ASC");
+            $uStmt->bind_param("i", $subject_id);
+            $uStmt->execute();
+            $unitsRes = $uStmt->get_result();
+            
+            $from_param = isset($_GET['from']) ? '&from=' . urlencode($_GET['from']) : '';
+            
+            while ($u = $unitsRes->fetch_assoc()) {
+                // Count topics
+                $tCountStmt = $conn->prepare("SELECT COUNT(*) as count FROM faculty_topics WHERE unit_id = ?");
+                $tCountStmt->bind_param("i", $u['id']);
+                $tCountStmt->execute();
+                $tCount = $tCountStmt->get_result()->fetch_assoc()['count'];
+            ?>
+                <a href="units.php?subject_id=<?php echo $subject_id; ?>&unit_id=<?php echo $u['id']; ?><?php echo $from_param; ?>" class="card" style="text-decoration: none; color: inherit;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                         <div>
-                            <p style="color: var(--accent); font-weight: 700; font-size: 13px;">UNIT <?php echo $number; ?></p>
-                            <h3 style="margin-top: 4px;"><?php echo htmlspecialchars($data['name']); ?></h3>
+                            <p style="color: var(--accent); font-weight: 700; font-size: 13px;">UNIT <?php echo $u['unit_no']; ?></p>
+                            <h3 style="margin-top: 4px;"><?php echo htmlspecialchars($u['unit_name']); ?></h3>
                         </div>
-                        <span class="badge badge-success"><?php echo count($data['topics']); ?> Topics</span>
+                        <span class="badge badge-success"><?php echo $tCount; ?> Topics</span>
                     </div>
                 </a>
             <?php } ?>
         </div>
-    <?php } else { ?>
+    <?php } else { 
+        $uInfoStmt = $conn->prepare("SELECT unit_no, unit_name FROM faculty_units WHERE id = ?");
+        $uInfoStmt->bind_param("i", $unit_id);
+        $uInfoStmt->execute();
+        $unit_info = $uInfoStmt->get_result()->fetch_assoc();
+    ?>
         <div class="card">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
                 <div>
-                    <p style="color: var(--accent); font-weight: 700; font-size: 13px;">UNIT <?php echo $unit; ?></p>
-                    <h1 style="font-family: 'DM Serif Display', serif;"><?php echo htmlspecialchars($units[$unit]['name']); ?></h1>
+                    <p style="color: var(--accent); font-weight: 700; font-size: 13px;">UNIT <?php echo $unit_info['unit_no']; ?></p>
+                    <h1 style="font-family: 'DM Serif Display', serif;"><?php echo htmlspecialchars($unit_info['unit_name']); ?></h1>
                 </div>
-                <a href="units.php?subject=<?php echo urlencode($subject); ?>" class="btn btn-secondary">All Units</a>
+                <?php $from_param = isset($_GET['from']) ? '&from=' . urlencode($_GET['from']) : ''; ?>
+                <a href="units.php?subject_id=<?php echo $subject_id; ?><?php echo $from_param; ?>" class="btn btn-secondary">All Units</a>
             </div>
 
             <form action="../../app/actions/academics/save_topics.php" method="POST">
-                <input type="hidden" name="subject" value="<?php echo htmlspecialchars($subject); ?>">
-                <input type="hidden" name="unit_no" value="<?php echo $unit; ?>">
+                <input type="hidden" name="subject_id" value="<?php echo $subject_id; ?>">
+                <input type="hidden" name="unit_id" value="<?php echo $unit_id; ?>">
+                <?php if (isset($_GET['from'])) { ?>
+                    <input type="hidden" name="from" value="<?php echo htmlspecialchars($_GET['from']); ?>">
+                <?php } ?>
                 
                 <table class="table-minimal" style="width: 100%; border-collapse: collapse; margin-top: 1rem;">
                     <thead>
@@ -137,10 +111,20 @@ require_once __DIR__ . '/../../app/includes/header.php';
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($units[$unit]['topics'] as $topic) { 
+                        <?php 
+                        $tStmt = $conn->prepare("SELECT topic_name FROM faculty_topics WHERE unit_id = ?");
+                        $tStmt->bind_param("i", $unit_id);
+                        $tStmt->execute();
+                        $topicsRes = $tStmt->get_result();
+
+                        while ($t = $topicsRes->fetch_assoc()) { 
+                            $topic = $t['topic_name'];
                             $covered = 0;
+                            // Note: we still use subject name and unit_no in topic_progress for now as per schema
+                            // but it's better to use subject_id and unit_id. I'll stick to subject name for compatibility 
+                            // with topic_progress table as it's already there.
                             $checkTopic = $conn->prepare("SELECT is_covered FROM topic_progress WHERE subject=? AND unit_no=? AND topic_name=?");
-                            $checkTopic->bind_param("sis", $subject, $unit, $topic);
+                            $checkTopic->bind_param("sis", $subject_name, $unit_info['unit_no'], $topic);
                             $checkTopic->execute();
                             $res = $checkTopic->get_result();
                             if ($res->num_rows > 0) {

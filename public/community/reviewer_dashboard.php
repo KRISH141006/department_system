@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../../app/middleware/auth.php';
 require_once __DIR__ . '/../../app/config/db.php';
 
-$allowed_roles = ['senior', 'faculty', 'hod'];
+$allowed_roles = ['senior', 'faculty', 'hod', 'expert'];
 if (!in_array($_SESSION['role'], $allowed_roles)) {
     header("Location: ../dashboard.php");
     exit;

@@ -27,5 +27,6 @@ for ($i = 1; $i <= 5; $i++) {
     }
 }
 
-echo "<script>alert('Feedback Form launched successfully'); window.location.href='../../../public/academics/faculty_dashboard.php';</script>";
+$_SESSION['msg_success'] = "Feedback Form launched successfully";
+header("Location: ../../../public/academics/faculty_dashboard.php");
 ?>

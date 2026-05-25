@@ -13,20 +13,22 @@ $form_id = $_POST['form_id'];
 // CHECK DUPLICATE
 $check = $conn->query("SELECT 1 FROM student_faculty_feedback WHERE form_id = $form_id AND student_id = $student_id LIMIT 1");
 if ($check->num_rows > 0) {
-    echo "<script>alert('Feedback already submitted'); window.location.href='../../../public/academics/student_dashboard.php';</script>";
+    $_SESSION['msg_error'] = "Feedback already submitted";
+    header("Location: ../../../public/academics/student_dashboard.php");
     exit();
 }
 
-foreach ($_POST as $key => $value) {
-    if (strpos($key, 'rating_') === 0) {
-        $q_id = str_replace('rating_', '', $key);
-        $rating = $value;
-        
-        $stmt = $conn->prepare("INSERT INTO student_faculty_feedback (form_id, question_id, student_id, rating) VALUES (?, ?, ?, ?)");
-        $stmt->bind_param("iiii", $form_id, $q_id, $student_id, $rating);
-        $stmt->execute();
-    }
+$ratings = $_POST['rating'] ?? [];
+
+foreach ($ratings as $q_id => $rating) {
+    $q_id = (int)$q_id;
+    $rating = (int)$rating;
+
+    $stmt = $conn->prepare("INSERT INTO student_faculty_feedback (form_id, question_id, student_id, rating) VALUES (?, ?, ?, ?)");
+    $stmt->bind_param("iiii", $form_id, $q_id, $student_id, $rating);
+    $stmt->execute();
 }
 
-echo "<script>alert('Faculty feedback submitted!'); window.location.href='../../../public/academics/student_dashboard.php';</script>";
+$_SESSION['msg_success'] = "Faculty feedback submitted!";
+header("Location: ../../../public/academics/student_dashboard.php");
 ?>

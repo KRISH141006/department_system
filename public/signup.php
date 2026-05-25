@@ -60,6 +60,7 @@
             <option value="student">Student</option>
             <option value="faculty">Faculty</option>
             <option value="alumni">Alumni</option>
+            <option value="expert">Industry Expert</option>
           </select>
         </div>
 

@@ -32,11 +32,19 @@ require_once __DIR__ . '/../../app/includes/header.php';
 
     <div class="grid-2">
         <?php 
-        $subjects = ["IWT", "DBMS", "JAVA", "COA", "MATHS", "DE"];
-        foreach ($subjects as $sub) {
+        $subQuery = $conn->prepare("SELECT id, subject_name FROM faculty_subjects WHERE class_name = ? AND semester = ?");
+        $subQuery->bind_param("ss", $class_name, $semester);
+        $subQuery->execute();
+        $subjects = $subQuery->get_result();
+
+        if ($subjects->num_rows === 0) {
+            echo "<p style='color: var(--text-2);'>No subjects found for your class and semester.</p>";
+        }
+
+        while ($sub = $subjects->fetch_assoc()) {
         ?>
-            <a href="units.php?subject=<?php echo urlencode($sub); ?>" class="card" style="text-decoration: none; color: inherit;">
-                <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600;"><?php echo htmlspecialchars($sub); ?></h3>
+            <a href="units.php?subject_id=<?php echo $sub['id']; ?>" class="card" style="text-decoration: none; color: inherit;">
+                <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600;"><?php echo htmlspecialchars($sub['subject_name']); ?></h3>
                 <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">View Syllabus & Progress</p>
                 <div style="margin-top: 16px; display: flex; align-items: center; gap: 8px;">
                     <span class="badge badge-success">Syllabus</span>
@@ -64,7 +72,7 @@ require_once __DIR__ . '/../../app/includes/header.php';
                             <h3 style="font-size: 1.1rem;">Today's Lecture Feedback</h3>
                             <p style="color: var(--text-2); font-size: 14px;">You have been selected to provide feedback for today's sessions.</p>
                         </div>
-                        <a href="lecture_feedback.php" class="btn btn-primary">Provide Feedback</a>
+                        <a href="lecture_feedback.php?from=feedback" class="btn btn-primary">Provide Feedback</a>
                     </div>
                 </div>
             <?php } ?>

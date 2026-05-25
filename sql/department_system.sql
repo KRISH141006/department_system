@@ -12,11 +12,12 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(120) UNIQUE NOT NULL,
     phone VARCHAR(20),
     password VARCHAR(255) NOT NULL,
-    role ENUM('student','faculty','alumni','senior','hod','creator') NOT NULL,
+    role ENUM('student','faculty','alumni','senior','hod','creator','expert') NOT NULL,
     class_name VARCHAR(50),
     semester VARCHAR(20),
     batch VARCHAR(30),
     roll_no VARCHAR(50),
+    emp_id VARCHAR(50),
     linkedin_url VARCHAR(255),
     is_verified TINYINT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -30,6 +31,10 @@ CREATE TABLE IF NOT EXISTS profiles (
     user_id INT UNIQUE NOT NULL,
     branch VARCHAR(100),
     skills TEXT,
+    expertise_area TEXT,
+    company VARCHAR(255),
+    designation VARCHAR(255),
+    bio TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );

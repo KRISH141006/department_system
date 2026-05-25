@@ -26,8 +26,9 @@ $base_path = rtrim($base_path, '/');
     <?php if ($show_nav && $user_id): ?>
     <nav class="header-nav">
       <a href="<?= $base_path ?>/public/dashboard.php" class="nav-link">Dashboard</a>
+      <a href="<?= $base_path ?>/public/community/profile.php" class="nav-link">Profile</a>
       <?php if ($nav_role === 'student'): ?>
-        <a href="<?= $base_path ?>/public/community/profile.php" class="nav-link">Profile</a>
+        <!-- Student specific links if any -->
       <?php endif; ?>
       <?php if (in_array($nav_role, ['senior','faculty','hod'])): ?>
         <a href="<?= $base_path ?>/public/community/reviewer_dashboard.php" class="nav-link">Review Requests</a>
@@ -41,3 +42,14 @@ $base_path = rtrim($base_path, '/');
   </div>
 </header>
 <main class="main-content">
+  <div class="wrapper" style="padding-top: 1rem; padding-bottom: 0;">
+    <?php if (isset($_SESSION['msg_success'])): ?>
+      <div class="alert alert-success" style="margin-bottom: 1rem;"><?= $_SESSION['msg_success'] ?></div>
+      <?php unset($_SESSION['msg_success']); ?>
+    <?php endif; ?>
+
+    <?php if (isset($_SESSION['msg_error'])): ?>
+      <div class="alert alert-error" style="margin-bottom: 1rem;"><?= $_SESSION['msg_error'] ?></div>
+      <?php unset($_SESSION['msg_error']); ?>
+    <?php endif; ?>
+  </div>
