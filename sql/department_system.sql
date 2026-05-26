@@ -106,12 +106,14 @@ CREATE TABLE IF NOT EXISTS student_faculty_feedback (
 CREATE TABLE IF NOT EXISTS lecture_feedback (
     id INT AUTO_INCREMENT PRIMARY KEY,
     student_id INT NOT NULL,
+    subject_id INT,
     lecture_start_time TIME NOT NULL,
     lecture_end_time TIME NOT NULL,
     topic_type VARCHAR(100),
     assignment TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (subject_id) REFERENCES faculty_subjects(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS feedback_selector (
@@ -158,4 +160,3 @@ CREATE TABLE IF NOT EXISTS reviews (
     FOREIGN KEY (reviewer_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-SELECT * FROM users;
