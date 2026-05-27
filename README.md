@@ -14,7 +14,7 @@ A comprehensive web application for managing academic activities, student produc
   - User profiles with skill sets.
   - Peer-to-peer skill review requests and mark-based evaluations.
 - **Authentication**: 
-  - Role-based access control (Student, Faculty, Alumni, Senior, HOD, Creator).
+  - Role-based access control (Student, Faculty, Expert, Admin).
   - OTP-based verification (via PHPMailer).
 
 ## Tech Stack

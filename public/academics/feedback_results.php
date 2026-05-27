@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../../app/middleware/auth.php';
 require_once __DIR__ . '/../../app/config/db.php';
 
-if ($_SESSION['role'] != 'faculty' && $_SESSION['role'] != 'creator') {
+if ($_SESSION['role'] != 'faculty' && $_SESSION['role'] != 'admin') {
     header("Location: ../dashboard.php");
     exit();
 }

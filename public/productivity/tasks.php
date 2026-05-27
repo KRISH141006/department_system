@@ -200,6 +200,7 @@ $stmt->execute();
 $userName = htmlspecialchars($stmt->get_result()->fetch_assoc()['name'] ?? 'User');
 ?>
 
+<<<<<<< HEAD
 <style>
     :root {
         --bulb-off: #cbd5e0;
@@ -208,6 +209,15 @@ $userName = htmlspecialchars($stmt->get_result()->fetch_assoc()['name'] ?? 'User
         --clay-bg: #ffffff;
         --clay-border: #1a1a1a;
     }
+=======
+<div class="wrapper" style="padding: 2rem;">
+    <div style="margin-bottom: 1rem;">
+        <a href="index.php" style="text-decoration: none; color: var(--text-2); font-size: 0.9rem; display: inline-flex; align-items: center; gap: 5px; background: var(--border); padding: 5px 15px; border-radius: 20px;">
+            ← Back to Productivity
+        </a>
+    </div>
+    <h1>Welcome, <?php echo $userName; ?></h1>
+>>>>>>> d372500425377a8d51258631dce6afd6278f51dd
 
     /* Common Components */
     .neo-card {

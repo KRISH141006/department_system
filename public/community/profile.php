@@ -72,14 +72,14 @@ include __DIR__ . '/../../app/includes/header.php';
                     </div>
                 <?php endif; ?>
 
-                <?php if (in_array($role, ['faculty', 'hod', 'creator'])): ?>
+                <?php if (in_array($role, ['faculty', 'admin'])): ?>
                     <div class="form-group">
                         <label>Faculty ID / Employee ID</label>
                         <input type="text" name="emp_id" value="<?= htmlspecialchars($user_data['emp_id'] ?? '') ?>" placeholder="e.g. EMP123">
                     </div>
                 <?php endif; ?>
 
-                <?php if (in_array($role, ['alumni', 'senior', 'expert'])): ?>
+                <?php if ($role === 'expert'): ?>
                     <div class="grid-2">
                         <div class="form-group">
                             <label>Current Company</label>
@@ -113,4 +113,4 @@ include __DIR__ . '/../../app/includes/header.php';
         </div>
     </div>
 </div>
-<?php require_once __DIR__ . '/../../app/includes/header.php'; ?>
+<?php require_once __DIR__ . '/../../app/includes/footer.php'; ?>

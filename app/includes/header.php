@@ -30,10 +30,10 @@ $base_path = rtrim($base_path, '/');
       <?php if ($nav_role === 'student'): ?>
         <!-- Student specific links if any -->
       <?php endif; ?>
-      <?php if (in_array($nav_role, ['senior','faculty','hod'])): ?>
+      <?php if (in_array($nav_role, ['expert', 'admin'])): ?>
         <a href="<?= $base_path ?>/public/community/reviewer_dashboard.php" class="nav-link">Review Requests</a>
       <?php endif; ?>
-      <?php if (in_array($nav_role, ['faculty','creator'])): ?>
+      <?php if (in_array($nav_role, ['faculty', 'admin'])): ?>
         <a href="<?= $base_path ?>/public/academics/manage_subjects.php" class="nav-link">Academics</a>
       <?php endif; ?>
       <a href="<?= $base_path ?>/app/auth/logout.php" class="nav-link">Logout</a>

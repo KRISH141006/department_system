@@ -12,14 +12,17 @@ $role = $_SESSION['role'] ?? 'student';
 
     <div class="dashboard-modules" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
         
-        <?php if ($role === 'student'): ?>
-            <!-- Student view: Tasks, Academics, Skills -->
+        <?php if ($role === 'student' || $role === 'admin'): ?>
+            <!-- Productivity view -->
             <div class="card module-card">
                 <h2>Productivity</h2>
                 <p>Manage your daily tasks and revision reminders.</p>
                 <a href="productivity/index.php" class="btn btn-primary">Go to Tasks</a>
             </div>
-            
+        <?php endif; ?>
+
+        <?php if ($role === 'student'): ?>
+            <!-- Student view: Academics, Skills -->
             <div class="card module-card">
                 <h2>Academics</h2>
                 <p>Track lectures, subjects, and submit feedback.</p>
@@ -32,22 +35,24 @@ $role = $_SESSION['role'] ?? 'student';
                 <a href="community/request.php" class="btn btn-primary">Skill Validation</a>
             </div>
             
-        <?php elseif (in_array($role, ['faculty', 'creator'])): ?>
-            <!-- Faculty/Creator view -->
+        <?php elseif ($role === 'faculty' || $role === 'admin'): ?>
+            <!-- Faculty/Admin view -->
             <div class="card module-card">
                 <h2>Academics Management</h2>
                 <p>Manage subjects, lectures, and view student feedback.</p>
                 <a href="academics/faculty_dashboard.php" class="btn btn-primary">Go to Academics</a>
             </div>
             
+            <?php if ($role === 'admin'): ?>
             <div class="card module-card">
                 <h2>Community Reviews</h2>
                 <p>Review student skills and assignments.</p>
                 <a href="community/reviewer_dashboard.php" class="btn btn-primary">Go to Reviews</a>
             </div>
+            <?php endif; ?>
 
-        <?php elseif (in_array($role, ['alumni', 'senior', 'hod', 'expert'])): ?>
-            <!-- Reviewers -->
+        <?php elseif ($role === 'expert'): ?>
+            <!-- Expert view -->
             <div class="card module-card">
                 <h2>Community Reviews</h2>
                 <p>Review and validate student skills.</p>

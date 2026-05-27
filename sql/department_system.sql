@@ -1,6 +1,7 @@
 -- Unified Database Schema for Department Community & Academic Management System
 
-CREATE DATABASE IF NOT EXISTS department_system;
+DROP DATABASE IF EXISTS department_system;
+CREATE DATABASE department_system;
 USE department_system;
 
 -- ======================
@@ -12,19 +13,19 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(120) UNIQUE NOT NULL,
     phone VARCHAR(20),
     password VARCHAR(255) NOT NULL,
-    role ENUM('student','faculty','alumni','senior','hod','creator','expert') NOT NULL,
+    role ENUM('student','faculty','expert','admin') NOT NULL,
     class_name VARCHAR(50),
     semester VARCHAR(20),
     batch VARCHAR(30),
     roll_no VARCHAR(50),
     emp_id VARCHAR(50),
     linkedin_url VARCHAR(255),
-    is_verified TINYINT DEFAULT 0,
+    is_verified TINYINT DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ======================
--- PROFILES TABLE (from Module 3)
+-- PROFILES TABLE
 -- ======================
 CREATE TABLE IF NOT EXISTS profiles (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -182,4 +183,75 @@ CREATE TABLE IF NOT EXISTS reviews (
     FOREIGN KEY (reviewer_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-SELECT * FROM users;
+-- ======================
+-- SEED DATA
+-- ======================
+
+-- Passwords are '1234'
+INSERT INTO users (id, name, email, password, role, is_verified) VALUES
+(1, 'System Admin', 'admin@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'admin', 1),
+(2, 'Faculty One', 'faculty1@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'faculty', 1),
+(3, 'Faculty Two', 'faculty2@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'faculty', 1),
+(4, 'Student One', 'student1@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'student', 1),
+(5, 'Student Two', 'student2@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'student', 1),
+(6, 'Student Three', 'student3@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'student', 1),
+(7, 'Expert One', 'expert1@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'expert', 1),
+(8, 'Expert Two', 'expert2@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'expert', 1);
+
+-- Profiles
+INSERT INTO profiles (user_id, branch, skills, bio) VALUES
+(1, 'ICT', 'Management, Security', 'System administrator for the ICT department.'),
+(2, 'ICT', 'Web Development, PHP', 'Assistant Professor in ICT Department.'),
+(3, 'ICT', 'Database Management, SQL', 'Associate Professor in ICT Department.'),
+(4, 'ICT', 'HTML, CSS, JS', '3rd year student interested in Full Stack.'),
+(5, 'ICT', 'Python, Data Science', '3rd year student specializing in AI.'),
+(6, 'ICT', 'Networking, Cisco', '3rd year student focusing on infrastructure.'),
+(7, 'Industry', 'System Architecture', 'Senior Architect at Tech Corp.'),
+(8, 'Industry', 'Product Management', 'Expert in Agile and Scrum.');
+
+-- Academics Seed
+INSERT INTO faculty_subjects (id, faculty_id, subject_name, class_name, semester) VALUES
+(1, 2, 'Web Programming', 'ICT-A', 'Sem-6'),
+(2, 3, 'Database Systems', 'ICT-B', 'Sem-6');
+
+INSERT INTO faculty_units (id, subject_id, unit_no, unit_name) VALUES
+(1, 1, 1, 'Introduction to PHP'),
+(2, 1, 2, 'Working with MySQL'),
+(3, 2, 1, 'Relational Model'),
+(4, 2, 2, 'SQL Queries');
+
+INSERT INTO faculty_topics (unit_id, topic_name) VALUES
+(1, 'PHP Syntax'),
+(1, 'Variables and Data Types'),
+(2, 'Connecting to DB'),
+(2, 'CRUD Operations'),
+(3, 'Entity Relationship Diagram'),
+(3, 'Normal Forms'),
+(4, 'SELECT Statements'),
+(4, 'Joins and Unions');
+
+-- Productivity Seed
+INSERT INTO task_categories (id, user_id, name) VALUES
+(1, 4, 'Studies'),
+(2, 4, 'Personal');
+
+INSERT INTO task_priorities (id, user_id, name, color) VALUES
+(1, 4, 'High', '#ff0000'),
+(2, 4, 'Medium', '#ffaa00');
+
+INSERT INTO tasks (user_id, task, category_id, priority_id) VALUES
+(4, 'Complete PHP Project', 1, 1),
+(4, 'Buy groceries', 2, 2);
+
+-- Community Seed
+INSERT INTO requests (id, user_id, skill, status, reviewer_id) VALUES
+(1, 4, 'PHP Development', 'pending', NULL),
+(2, 5, 'Python Scripting', 'accepted', 7);
+
+INSERT INTO reviews (request_id, reviewer_id, marks, comment) VALUES
+(2, 7, 85, 'Excellent understanding of Python basics.');
+
+INSERT INTO faculty_feedback_forms (id, faculty_id, is_active) VALUES (1, 2, 1);
+INSERT INTO faculty_feedback_questions (form_id, question_text) VALUES 
+(1, 'How clear are the instructor explanations?'),
+(1, 'Is the course material up to date?');
