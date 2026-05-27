@@ -28,6 +28,11 @@ if ($nameResult && $nameResult->num_rows > 0) {
 ?>
 
 <div class="wrapper" style="padding: 2rem;">
+    <div style="margin-bottom: 1rem;">
+        <a href="index.php" style="text-decoration: none; color: var(--text-2); font-size: 0.9rem; display: inline-flex; align-items: center; gap: 5px; background: var(--border); padding: 5px 15px; border-radius: 20px;">
+            ← Back to Productivity
+        </a>
+    </div>
     <h1>Welcome, <?php echo $userName; ?></h1>
 
     <div class="card" style="margin-top: 1.5rem; margin-bottom: 2rem; padding: 1.5rem;">
