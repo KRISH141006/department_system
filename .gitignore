@@ -3,6 +3,7 @@
 
 # Configuration
 .env
+GEMINI.md
 
 # IDE / Editor
 .vscode/
