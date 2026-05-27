@@ -59,8 +59,7 @@
           <select name="role">
             <option value="student">Student</option>
             <option value="faculty">Faculty</option>
-            <option value="alumni">Alumni</option>
-            <option value="expert">Industry Expert</option>
+            <option value="expert">Expert</option>
           </select>
         </div>
 
