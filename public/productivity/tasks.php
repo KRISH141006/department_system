@@ -15,17 +15,17 @@ require_once __DIR__ . '/../../app/includes/header.php';
         box-shadow: 10px 10px 0px #1a1a1a !important;
         border-radius: 0px !important;
         padding: 0 !important;
-        width: 315px !important; 
+        width: 315px !important;
         z-index: 9999 !important;
     }
     .flatpickr-days { width: 315px !important; }
-    .dayContainer { 
-        width: 315px !important; 
-        min-width: 315px !important; 
-        max-width: 315px !important; 
+    .dayContainer {
+        width: 315px !important;
+        min-width: 315px !important;
+        max-width: 315px !important;
     }
     .flatpickr-day {
-        height: 40px !important; 
+        height: 40px !important;
         line-height: 40px !important;
         flex-basis: 45px !important;
         max-width: 45px !important;
@@ -179,14 +179,14 @@ if ($total_tasks > 0 && $view === 'list') {
     elseif ($sort_by === 'priority') $order_by = "ORDER BY p.sort_order ASC, t.created_at DESC";
     else $order_by = "ORDER BY t.created_at DESC";
 
-    $pending_sql = "SELECT t.*, c.name as category_name, p.name as priority_name, p.color as priority_color 
-                    FROM tasks t LEFT JOIN task_categories c ON t.category_id = c.id 
+    $pending_sql = "SELECT t.*, c.name as category_name, p.name as priority_name, p.color as priority_color
+                    FROM tasks t LEFT JOIN task_categories c ON t.category_id = c.id
                     LEFT JOIN task_priorities p ON t.priority_id = p.id
                     $where_clause AND t.is_completed = 0 $order_by";
     $pending_result = mysqli_query($conn, $pending_sql);
 
-    $completed_sql = "SELECT t.*, c.name as category_name, p.name as priority_name, p.color as priority_color 
-                      FROM tasks t LEFT JOIN task_categories c ON t.category_id = c.id 
+    $completed_sql = "SELECT t.*, c.name as category_name, p.name as priority_name, p.color as priority_color
+                      FROM tasks t LEFT JOIN task_categories c ON t.category_id = c.id
                       LEFT JOIN task_priorities p ON t.priority_id = p.id
                       $where_clause AND t.is_completed = 1 $order_by";
     $completed_result = mysqli_query($conn, $completed_sql);
@@ -200,7 +200,6 @@ $stmt->execute();
 $userName = htmlspecialchars($stmt->get_result()->fetch_assoc()['name'] ?? 'User');
 ?>
 
-<<<<<<< HEAD
 <style>
     :root {
         --bulb-off: #cbd5e0;
@@ -209,15 +208,6 @@ $userName = htmlspecialchars($stmt->get_result()->fetch_assoc()['name'] ?? 'User
         --clay-bg: #ffffff;
         --clay-border: #1a1a1a;
     }
-=======
-<div class="wrapper" style="padding: 2rem;">
-    <div style="margin-bottom: 1rem;">
-        <a href="index.php" style="text-decoration: none; color: var(--text-2); font-size: 0.9rem; display: inline-flex; align-items: center; gap: 5px; background: var(--border); padding: 5px 15px; border-radius: 20px;">
-            ← Back to Productivity
-        </a>
-    </div>
-    <h1>Welcome, <?php echo $userName; ?></h1>
->>>>>>> d372500425377a8d51258631dce6afd6278f51dd
 
     /* Common Components */
     .neo-card {
@@ -315,7 +305,7 @@ $userName = htmlspecialchars($stmt->get_result()->fetch_assoc()['name'] ?? 'User
     }
     .task-strip:hover { transform: translate(-3px, -3px); box-shadow: 6px 6px 0px #1a1a1a; }
     .task-strip.completed { background: #f8fafc; border-color: #cbd5e0; box-shadow: none; }
-    
+
     .custom-input {
         border: 2px solid #1a1a1a !important;
         background: #fff !important;
@@ -339,12 +329,12 @@ $userName = htmlspecialchars($stmt->get_result()->fetch_assoc()['name'] ?? 'User
         align-items: center;
         gap: 8px;
     }
-    .btn-create:hover { background: #fbbf24; color: #1a1a1a; transform: translate(-3px, -3px); box-shadow: 5px 5px 0px #1a1a1a; }
+    .btn-create:hover { background: #fbbf24; color: #1a1a1a; transform: translate(-3px, -3px); box-shadow: 5px 5px 0px #1a1a1a; }        
 
     .bulb-svg { width: 28px; height: 28px; transition: all 0.3s; }
     .bulb-off { fill: var(--bulb-off); }
     .bulb-on { fill: var(--bulb-on); filter: drop-shadow(0 0 8px var(--bulb-glow)); }
-    
+
     .priority-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #1a1a1a; }
     .creative-pill { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; padding: 2px 10px; border: 2px solid #1a1a1a; border-radius: 20px; background: #fff; }
 </style>
@@ -378,10 +368,10 @@ $userName = htmlspecialchars($stmt->get_result()->fetch_assoc()['name'] ?? 'User
                     </div>
                     <div class="form-group">
                         <label style="font-weight: 800;">Deadline</label>
-                        <input type="text" name="deadline" id="deadlinePicker" class="custom-input" placeholder="Pick date & time">
+                        <input type="text" name="deadline" id="deadlinePicker" class="custom-input" placeholder="Pick date & time">      
                     </div>
                 </div>
-                
+
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
                     <div class="form-group">
                         <label style="font-weight: 800;">Category</label>
@@ -400,7 +390,7 @@ $userName = htmlspecialchars($stmt->get_result()->fetch_assoc()['name'] ?? 'User
                         <label style="font-weight: 800;">Priority</label>
                         <select name="priority_id" class="custom-input">
                             <?php foreach ($priorities as $prio): ?>
-                                <option value="<?php echo $prio['id']; ?>"><?php echo htmlspecialchars($prio['name']); ?></option>
+                                <option value="<?php echo $prio['id']; ?>"><?php echo htmlspecialchars($prio['name']); ?></option>       
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -469,18 +459,18 @@ $userName = htmlspecialchars($stmt->get_result()->fetch_assoc()['name'] ?? 'User
                     🌑 STILL IN DARK (<?php echo $pending_count; ?>)
                 </h2>
                 <?php while ($row = mysqli_fetch_assoc($pending_result)): ?>
-                    <?php 
+                    <?php
                         $is_overdue = $row['deadline'] && strtotime($row['deadline']) < time();
                     ?>
                     <div class="task-strip">
-                        <a href="../../app/actions/productivity/complete_task.php?id=<?php echo $row['id']; ?>" class="bulb-container">
+                        <a href="../../app/actions/productivity/complete_task.php?id=<?php echo $row['id']; ?>" class="bulb-container">  
                             <svg class="bulb-svg bulb-off" viewBox="0 0 24 24"><path d="M9 21h6v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1l-.85.6V16h-4v-2.3l-.85-.6C8.67 12.05 8 10.58 8 9c0-2.21 1.79-4 4-4s4 1.79 4 4c0 1.58-.67 3.05-2.15 4.1z"/></svg>
                         </a>
                         <div style="flex:1;">
                             <div style="font-weight: 700;"><?php echo htmlspecialchars($row['task']); ?></div>
                             <div style="display:flex; align-items:center; gap: 8px; margin-top: 4px;">
                                 <div class="priority-dot" style="background: <?php echo $row['priority_color']; ?>;"></div>
-                                <span class="creative-pill"><?php echo htmlspecialchars($row['category_name'] ?: 'None'); ?></span>
+                                <span class="creative-pill"><?php echo htmlspecialchars($row['category_name'] ?: 'None'); ?></span>      
                             </div>
                         </div>
                         <?php if($row['deadline']): ?>
@@ -500,7 +490,7 @@ $userName = htmlspecialchars($stmt->get_result()->fetch_assoc()['name'] ?? 'User
                 </h2>
                 <?php while ($row = mysqli_fetch_assoc($completed_result)): ?>
                     <div class="task-strip completed">
-                        <a href="../../app/actions/productivity/undo_task.php?id=<?php echo $row['id']; ?>" class="bulb-container">
+                        <a href="../../app/actions/productivity/undo_task.php?id=<?php echo $row['id']; ?>" class="bulb-container">      
                             <svg class="bulb-svg bulb-on" viewBox="0 0 24 24"><path d="M9 21h6v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/></svg>
                         </a>
                         <div style="flex:1;">
