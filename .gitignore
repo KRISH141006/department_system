@@ -3,6 +3,8 @@
 
 # Configuration
 .env
+*.phar
+GEMINI.md
 
 # IDE / Editor
 .vscode/

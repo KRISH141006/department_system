@@ -124,13 +124,37 @@ CREATE TABLE IF NOT EXISTS feedback_selector (
 -- ======================
 -- MODULE 2: PRODUCTIVITY
 -- ======================
+
+CREATE TABLE IF NOT EXISTS task_categories (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    name VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS task_priorities (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    name VARCHAR(50) NOT NULL,
+    color VARCHAR(20) DEFAULT '#000000',
+    sort_order INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS tasks (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     task TEXT NOT NULL,
+    deadline DATETIME NULL,
+    category_id INT NULL,
+    priority_id INT NULL,
     is_completed TINYINT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (category_id) REFERENCES task_categories(id) ON DELETE SET NULL,
+    FOREIGN KEY (priority_id) REFERENCES task_priorities(id) ON DELETE SET NULL
 );
 
 -- ======================

@@ -17,7 +17,7 @@ $role = $_SESSION['role'] ?? 'student';
             <div class="card module-card">
                 <h2>Productivity</h2>
                 <p>Manage your daily tasks and revision reminders.</p>
-                <a href="productivity/tasks.php" class="btn btn-primary">Go to Tasks</a>
+                <a href="productivity/index.php" class="btn btn-primary">Go to Tasks</a>
             </div>
             
             <div class="card module-card">
