@@ -4,6 +4,7 @@
 # Configuration
 .env
 GEMINI.md
+composer.phar
 
 # IDE / Editor
 .vscode/
