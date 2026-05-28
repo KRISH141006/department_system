@@ -141,6 +141,16 @@ CREATE TABLE IF NOT EXISTS feedback_selector (
     FOREIGN KEY (subject_id) REFERENCES faculty_subjects(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS continuous_feedback (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    faculty_id INT NOT NULL,
+    subject_id INT NULL,
+    feedback_text TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (faculty_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (subject_id) REFERENCES faculty_subjects(id) ON DELETE CASCADE
+);
+
 -- ======================
 -- MODULE 2: PRODUCTIVITY
 -- ======================
