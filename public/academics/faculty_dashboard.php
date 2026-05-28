@@ -24,7 +24,7 @@ $page_title = "Faculty Dashboard";
 require_once __DIR__ . '/../../app/includes/header.php';
 ?>
 
-<div class="wrapper" style="padding: 2rem;">
+<div class="wrapper" style="padding: 2rem; margin-bottom: 4rem;">
     <div class="dashboard-header" style="margin-bottom: 2rem;">
         <div class="dashboard-title">
             <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem; color: var(--text);">Faculty Dashboard</h1>
@@ -66,6 +66,29 @@ require_once __DIR__ . '/../../app/includes/header.php';
             </div>
             <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600;">Syllabus Verification</h3>
             <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">Assign a student to verify today's covered topics.</p>
+        </a>
+
+        <a href="syllabus_verification.php" class="card" style="text-decoration: none; color: inherit; border-top: 4px solid var(--accent);">
+            <?php 
+            // Count today's updates for faculty's subjects (only unverified)
+            $updStmt = $conn->prepare("
+                SELECT COUNT(*) as count 
+                FROM topic_progress tp
+                JOIN faculty_subjects fs ON fs.subject_name = tp.subject
+                WHERE fs.faculty_id = ? AND DATE(tp.updated_at) = ? AND tp.is_covered = 1 AND tp.is_verified = 0
+            ");
+            $updStmt->bind_param("is", $faculty_id, $today);
+            $updStmt->execute();
+            $updCount = $updStmt->get_result()->fetch_assoc()['count'] ?? 0;
+            ?>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div style="font-size: 32px; margin-bottom: 12px;">🔍</div>
+                <?php if ($updCount > 0): ?>
+                    <span class="badge badge-warning"><?= $updCount ?> Updates</span>
+                <?php endif; ?>
+            </div>
+            <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600;">Progress Review</h3>
+            <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">Monitor and correct today's syllabus updates from students.</p>
         </a>
     </div>
 

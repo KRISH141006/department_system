@@ -236,7 +236,10 @@ require_once __DIR__ . '/../../app/includes/header.php';
                                         }
                                         foreach ($availableSubjects as $fs): 
                                         ?>
-                                            <option value="<?= $fs['id'] ?>"><?= htmlspecialchars($fs['subject_name']) ?> (<?= htmlspecialchars($fs['class_name']) ?>)</option>
+                                            <option value="<?= $fs['id'] ?>">
+                                                <?= htmlspecialchars($fs['subject_name']) ?> 
+                                                <?= !empty($fs['class_name']) ? "(".htmlspecialchars($fs['class_name']).")" : "" ?>
+                                            </option>
                                         <?php endforeach; ?>
                                     </select>
                                     <input type="hidden" name="student_id" value="<?= $s['id'] ?>">

@@ -87,6 +87,7 @@ CREATE TABLE IF NOT EXISTS topic_progress (
     unit_no INT NOT NULL,
     topic_name VARCHAR(255) NOT NULL,
     is_covered TINYINT DEFAULT 0,
+    is_verified TINYINT DEFAULT 0,
     updated_by INT,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
