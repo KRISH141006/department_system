@@ -150,11 +150,11 @@ require_once __DIR__ . '/../../app/includes/header.php';
                 <label>Semester</label>
                 <select name="semester">
                     <option value="">-- All Semesters --</option>
-                    <?php foreach($semesters as $s): ?>
-                        <option value="<?= htmlspecialchars($s) ?>" <?= $target_semester == $s ? 'selected' : '' ?>>
-                            <?= htmlspecialchars($s) ?>
+                    <?php for($i=1; $i<=8; $i++): ?>
+                        <option value="<?= $i ?>" <?= $target_semester == $i ? 'selected' : '' ?>>
+                            <?= $i ?>
                         </option>
-                    <?php endforeach; ?>
+                    <?php endfor; ?>
                 </select>
             </div>
             <button type="submit" class="btn btn-primary" style="height: 42px;">Filter Students</button>

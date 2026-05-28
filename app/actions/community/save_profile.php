@@ -11,11 +11,29 @@ $user_id = (int) $_SESSION['user_id'];
 $role = $_SESSION['role'];
 
 // --- User table fields ---
-$class_name   = trim($_POST['class_name']   ?? '');
-$semester     = trim($_POST['semester']     ?? '');
-$roll_no       = trim($_POST['roll_no']      ?? '');
-$emp_id        = trim($_POST['emp_id']       ?? '');
+$class_name   = strtoupper(trim($_POST['class_name']   ?? ''));
+$semester     = (int) ($_POST['semester']     ?? 0);
+$roll_no       = strtoupper(trim($_POST['roll_no']      ?? ''));
+$emp_id        = strtoupper(trim($_POST['emp_id']       ?? ''));
 $linkedin_url  = trim($_POST['linkedin_url'] ?? '');
+
+// --- CC Fields ---
+$cc_class           = strtoupper(trim($_POST['cc_class']           ?? ''));
+$cc_semester        = (int) ($_POST['cc_semester']        ?? 0);
+
+// Check if student is trying to change class/semester when it's already set
+if ($role === 'student') {
+    $checkStmt = $conn->prepare("SELECT class_name, semester FROM users WHERE id = ?");
+    $checkStmt->bind_param("i", $user_id);
+    $checkStmt->execute();
+    $current = $checkStmt->get_result()->fetch_assoc();
+
+    if (!empty($current['class_name']) && !empty($current['semester'])) {
+        // Prevent changing these fields
+        $class_name = $current['class_name'];
+        $semester = $current['semester'];
+    }
+}
 
 // --- Profile table fields (Common) ---
 $branch         = trim($_POST['branch']         ?? '');
@@ -33,8 +51,6 @@ $target_role    = trim($_POST['target_role']    ?? '');
 $designation        = trim($_POST['designation']        ?? '');
 $teaching_interests = trim($_POST['teaching_interests'] ?? '');
 $is_cc              = isset($_POST['is_cc']) ? 1 : 0;
-$cc_class           = trim($_POST['cc_class']           ?? '');
-$cc_semester        = trim($_POST['cc_semester']        ?? '');
 
 // --- Expert Specific ---
 $is_alumni          = isset($_POST['is_alumni']) ? 1 : 0;

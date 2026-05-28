@@ -74,14 +74,31 @@ include __DIR__ . '/../../app/includes/header.php';
 
                     <?php if ($role === 'student'): ?>
                         <!-- STUDENT FIELDS -->
+                        <?php 
+                        $is_class_set = !empty($user_data['class_name']) && !empty($user_data['semester']);
+                        ?>
                         <div class="grid-2">
                             <div class="form-group">
                                 <label>Class Name <span style="color:red;">*</span></label>
-                                <input type="text" name="class_name" value="<?= htmlspecialchars($user_data['class_name'] ?? '') ?>" required placeholder="e.g. ICT-A">
+                                <?php if ($is_class_set): ?>
+                                    <input type="text" name="class_name" value="<?= htmlspecialchars($user_data['class_name']) ?>" readonly style="background: var(--bg-2);">
+                                    <small style="color: var(--text-2);">Contact CC to change class</small>
+                                <?php else: ?>
+                                    <input type="text" name="class_name" value="<?= htmlspecialchars($user_data['class_name'] ?? '') ?>" required placeholder="e.g. 4EK1">
+                                <?php endif; ?>
                             </div>
                             <div class="form-group">
                                 <label>Semester <span style="color:red;">*</span></label>
-                                <input type="text" name="semester" value="<?= htmlspecialchars($user_data['semester'] ?? '') ?>" required placeholder="e.g. Sem-6">
+                                <?php if ($is_class_set): ?>
+                                    <input type="text" name="semester" value="<?= htmlspecialchars($user_data['semester']) ?>" readonly style="background: var(--bg-2);">
+                                <?php else: ?>
+                                    <select name="semester" required>
+                                        <option value="">-- Select Semester --</option>
+                                        <?php for($i=1; $i<=8; $i++): ?>
+                                            <option value="<?= $i ?>" <?= ($user_data['semester'] ?? '') == $i ? 'selected' : '' ?>><?= $i ?></option>
+                                        <?php endfor; ?>
+                                    </select>
+                                <?php endif; ?>
                             </div>
                         </div>
                         <div class="grid-2">
@@ -149,7 +166,12 @@ include __DIR__ . '/../../app/includes/header.php';
                                 </div>
                                 <div class="form-group" style="margin-bottom: 0;">
                                     <label>CC for Semester</label>
-                                    <input type="text" name="cc_semester" value="<?= htmlspecialchars($profile_data['cc_semester'] ?? '') ?>" placeholder="e.g. Sem-6">
+                                    <select name="cc_semester">
+                                        <option value="">-- Select Semester --</option>
+                                        <?php for($i=1; $i<=8; $i++): ?>
+                                            <option value="<?= $i ?>" <?= ($profile_data['cc_semester'] ?? '') == $i ? 'selected' : '' ?>><?= $i ?></option>
+                                        <?php endfor; ?>
+                                    </select>
                                 </div>
                             </div>
                         </div>

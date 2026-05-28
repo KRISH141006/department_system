@@ -37,12 +37,23 @@ require_once __DIR__ . '/../../app/includes/header.php';
             ");
             $assignStmt->bind_param("is", $student_id, $today);
             $assignStmt->execute();
-            $assignedSubjects = $assignStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+            $assignedRes = $assignStmt->get_result();
+            $assignedSubjects = $assignedRes->fetch_all(MYSQLI_ASSOC);
             $is_assigned = count($assignedSubjects) > 0;
 
+            // Create a simple array of assigned subject IDs for JS
+            $assignedIds = array_column($assignedSubjects, 'subject_id');
+            ?>
+
+            <script>
+                // Store assigned subject IDs for client-side check
+                const assignedSubjectIds = <?= json_encode($assignedIds) ?>;
+            </script>
+
+            <?php
             // Fetch all subjects for this class (if not assigned, or to allow selection)
             $subQuery = $conn->prepare("SELECT id, subject_name FROM faculty_subjects WHERE class_name = ? AND semester = ?");
-            $subQuery->bind_param("ss", $class_name, $semester);
+            $subQuery->bind_param("si", $class_name, $semester);
             $subQuery->execute();
             $allSubjects = $subQuery->get_result()->fetch_all(MYSQLI_ASSOC);
             ?>
@@ -138,6 +149,13 @@ require_once __DIR__ . '/../../app/includes/header.php';
         const unitSelectorContainer = document.getElementById('unitSelectorContainer');
         
         if (!subId) {
+            wrapper.style.display = 'none';
+            return;
+        }
+
+        // Check if student is assigned to this specific subject
+        // assignedSubjectIds is populated from PHP
+        if (!assignedSubjectIds.includes(subId.toString()) && !assignedSubjectIds.includes(parseInt(subId))) {
             wrapper.style.display = 'none';
             return;
         }

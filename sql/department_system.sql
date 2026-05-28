@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
     password VARCHAR(255) NOT NULL,
     role ENUM('student','faculty','expert','admin') NOT NULL,
     class_name VARCHAR(50),
-    semester VARCHAR(20),
+    semester INT,
     batch VARCHAR(30),
     roll_no VARCHAR(50),
     emp_id VARCHAR(50),
@@ -49,7 +49,7 @@ CREATE TABLE IF NOT EXISTS profiles (
     teaching_interests TEXT,
     is_cc TINYINT DEFAULT 0,
     cc_class VARCHAR(50),
-    cc_semester VARCHAR(20),
+    cc_semester INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
@@ -61,8 +61,9 @@ CREATE TABLE IF NOT EXISTS faculty_subjects (
     id INT AUTO_INCREMENT PRIMARY KEY,
     faculty_id INT NOT NULL,
     subject_name VARCHAR(100) NOT NULL,
+    branch VARCHAR(100),
     class_name VARCHAR(50),
-    semester VARCHAR(20),
+    semester INT,
     FOREIGN KEY (faculty_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
@@ -221,9 +222,9 @@ INSERT INTO users (id, name, email, password, role, class_name, semester, roll_n
 (1, 'System Admin', 'admin@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'admin', NULL, NULL, NULL, 1),
 (2, 'Faculty One', 'faculty1@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'faculty', NULL, NULL, NULL, 1),
 (3, 'Faculty Two', 'faculty2@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'faculty', NULL, NULL, NULL, 1),
-(4, 'Student One', 'student1@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'student', 'ICT-A', 'Sem-6', '21IT001', 1),
-(5, 'Student Two', 'student2@ict.com', '$2y$12$ xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'student', 'ICT-B', 'Sem-6', '21IT002', 1),
-(6, 'Student Three', 'student3@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'student', 'ICT-A', 'Sem-6', '21IT003', 1),
+(4, 'Student One', 'student1@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'student', '4EK1', 4, '21IT001', 1),
+(5, 'Student Two', 'student2@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'student', '6EK1', 6, '21IT002', 1),
+(6, 'Student Three', 'student3@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'student', '6EK2', 6, '21IT003', 1),
 (7, 'Expert One', 'expert1@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'expert', NULL, NULL, NULL, 1),
 (8, 'Expert Two', 'expert2@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'expert', NULL, NULL, NULL, 1),
 
@@ -428,7 +429,7 @@ INSERT INTO users (id, name, email, password, role, class_name, semester, roll_n
 -- Profiles
 INSERT INTO profiles (user_id, branch, skills, bio, is_cc, cc_class, cc_semester) VALUES
 (1, 'ICT', 'Management, Security', 'System administrator for the ICT department.', 0, NULL, NULL),
-(2, 'ICT', 'Web Development, PHP', 'Assistant Professor in ICT Department.', 0, NULL, NULL),
+(2, 'ICT', 'Web Development, PHP', 'Assistant Professor in ICT Department.', 1, '4EK1', 4),
 (3, 'ICT', 'Database Management, SQL', 'Associate Professor in ICT Department.', 0, NULL, NULL),
 (4, 'ICT', 'HTML, CSS, JS', '3rd year student interested in Full Stack.', 0, NULL, NULL),
 (5, 'ICT', 'Python, Data Science', '3rd year student specializing in AI.', 0, NULL, NULL),
@@ -636,8 +637,8 @@ INSERT INTO profiles (user_id, branch, skills, bio, is_cc, cc_class, cc_semester
 
 -- Academics Seed
 INSERT INTO faculty_subjects (id, faculty_id, subject_name, class_name, semester) VALUES
-(1, 2, 'Web Programming', 'ICT-A', 'Sem-6'),
-(2, 3, 'Database Systems', 'ICT-B', 'Sem-6');
+(1, 2, 'Web Programming', '6EK1', 6),
+(2, 3, 'Database Systems', '6EK2', 6);
 
 INSERT INTO faculty_units (id, subject_id, unit_no, unit_name) VALUES
 (1, 1, 1, 'Introduction to PHP'),
