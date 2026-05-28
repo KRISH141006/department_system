@@ -52,18 +52,18 @@ if ($stmt->execute()) {
             if ($uRes->num_rows > 0) {
                 $unit_no = $uRes->fetch_assoc()['unit_no'];
 
-                // Update or Insert into topic_progress
+                // Update or Insert into topic_progress anonymously
                 $check = $conn->prepare("SELECT id FROM topic_progress WHERE subject=? AND unit_no=? AND topic_name=?");
                 $check->bind_param("sis", $subject_name, $unit_no, $topic);
                 $check->execute();
                 
                 if ($check->get_result()->num_rows > 0) {
-                    $upd = $conn->prepare("UPDATE topic_progress SET is_covered=1, updated_by=? WHERE subject=? AND unit_no=? AND topic_name=?");
-                    $upd->bind_param("isis", $student_id, $subject_name, $unit_no, $topic);
+                    $upd = $conn->prepare("UPDATE topic_progress SET is_covered=1, verification_count = verification_count + 1 WHERE subject=? AND unit_no=? AND topic_name=?");
+                    $upd->bind_param("sis", $subject_name, $unit_no, $topic);
                     $upd->execute();
                 } else {
-                    $ins = $conn->prepare("INSERT INTO topic_progress (subject, unit_no, topic_name, is_covered, updated_by) VALUES (?, ?, ?, 1, ?)");
-                    $ins->bind_param("sisi", $subject_name, $unit_no, $topic, $student_id);
+                    $ins = $conn->prepare("INSERT INTO topic_progress (subject, unit_no, topic_name, is_covered, verification_count) VALUES (?, ?, ?, 1, 1)");
+                    $ins->bind_param("sis", $subject_name, $unit_no, $topic);
                     $ins->execute();
                 }
             }
@@ -77,7 +77,7 @@ if ($stmt->execute()) {
         $del->execute();
     }
     
-    $_SESSION['msg_success'] = "Feedback submitted successfully.";
+    $_SESSION['msg_success'] = "Feedback submitted anonymously. Thank you for your review.";
     header("Location: ../../../public/academics/student_dashboard.php");
 } else {
     $_SESSION['msg_error'] = "Error submitting feedback: " . $conn->error;

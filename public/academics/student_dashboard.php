@@ -61,18 +61,26 @@ require_once __DIR__ . '/../../app/includes/header.php';
             <?php 
             // Check if selected for daily feedback
             $today = date('Y-m-d');
-            $feedChk = $conn->prepare("SELECT 1 FROM feedback_selector WHERE selected_student_id = ? AND selected_date = ?");
+            $feedChk = $conn->prepare("SELECT subject_id FROM feedback_selector WHERE selected_student_id = ? AND selected_date = ?");
             $feedChk->bind_param("is", $student_id, $today);
             $feedChk->execute();
-            if ($feedChk->get_result()->num_rows > 0) { 
+            $feedRes = $feedChk->get_result();
+            if ($feedRes->num_rows > 0) {
+                $assigned_subject_id = $feedRes->fetch_assoc()['subject_id'];
             ?>
                 <div class="card" style="border-left: 4px solid var(--accent);">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
                         <div>
                             <h3 style="font-size: 1.1rem;">Today's Lecture Feedback</h3>
-                            <p style="color: var(--text-2); font-size: 14px;">You have been selected to provide feedback for today's sessions.</p>
+                            <p style="color: var(--text-2); font-size: 14px;">You have been randomly selected to provide anonymous feedback for today's sessions.</p>
                         </div>
-                        <a href="lecture_feedback.php?from=feedback" class="btn btn-primary">Provide Feedback</a>
+                        <div style="display: flex; gap: 10px;">
+                            <form action="../../app/actions/academics/skip_feedback.php" method="POST" onsubmit="return confirm('Are you sure you want to skip this review? You should only do this if you were absent.');">
+                                <input type="hidden" name="subject_id" value="<?php echo $assigned_subject_id; ?>">
+                                <button type="submit" class="btn btn-secondary" style="border: 1px solid var(--border);">I was absent - Skip Review</button>
+                            </form>
+                            <a href="lecture_feedback.php?from=feedback" class="btn btn-primary">Provide Feedback</a>
+                        </div>
                     </div>
                 </div>
             <?php } ?>
