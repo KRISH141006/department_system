@@ -34,6 +34,12 @@ $role = $_SESSION['role'] ?? 'student';
                 <p>Request skill validation and build your reputation.</p>
                 <a href="community/request.php" class="btn btn-primary">Skill Validation</a>
             </div>
+
+            <div class="card module-card" style="border-top: 4px solid var(--warning);">
+                <h2>Anonymous Feedback Box</h2>
+                <p>Submit honest, private feedback about any faculty or subject.</p>
+                <a href="academics/continuous_feedback.php" class="btn btn-secondary">Open Feedback Box</a>
+            </div>
             
         <?php elseif ($role === 'faculty' || $role === 'admin'): ?>
             <!-- Faculty/Admin view -->
@@ -48,6 +54,14 @@ $role = $_SESSION['role'] ?? 'student';
                 <p>Review student skills and assignments.</p>
                 <a href="community/reviewer_dashboard.php" class="btn btn-primary">Go to Reviews</a>
             </div>
+
+            <?php if ($role === 'admin'): ?>
+                <div class="card module-card" style="border-top: 4px solid var(--error);">
+                    <h2>Anonymous Feedback Panel</h2>
+                    <p>Review all anonymous submissions from the student feedback box.</p>
+                    <a href="academics/admin_feedback_panel.php" class="btn btn-primary">Review Feedbacks</a>
+                </div>
+            <?php endif; ?>
 
         <?php elseif ($role === 'expert'): ?>
             <!-- Expert view -->
