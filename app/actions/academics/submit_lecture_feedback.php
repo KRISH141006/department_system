@@ -17,10 +17,10 @@ $selectedTopics = $_POST['topics'] ?? [];
 
 // Insert Lecture Feedback
 $stmt = $conn->prepare("INSERT INTO lecture_feedback 
-(student_id, lecture_start_time, lecture_end_time, topic_type, assignment) 
-VALUES (?, ?, ?, ?, ?)");
+(student_id, subject_id, lecture_start_time, lecture_end_time, topic_type, assignment) 
+VALUES (?, ?, ?, ?, ?, ?)");
 
-$stmt->bind_param("issss", $student_id, $start, $end, $topic_type, $assignment);
+$stmt->bind_param("iissss", $student_id, $subject_id, $start, $end, $topic_type, $assignment);
 
 if ($stmt->execute()) {
     // 1. Update Topic Progress
@@ -65,9 +65,11 @@ if ($stmt->execute()) {
 
     // 2. Remove from selector
     $today = date('Y-m-d');
-    $del = $conn->prepare("DELETE FROM feedback_selector WHERE selected_student_id = ? AND selected_date = ?");
-    $del->bind_param("is", $student_id, $today);
-    $del->execute();
+    $del = $conn->prepare("DELETE FROM feedback_selector WHERE selected_student_id = ? AND selected_date = ? AND subject_id = ?");
+    if ($del) {
+        $del->bind_param("isi", $student_id, $today, $subject_id);
+        $del->execute();
+    }
     
     $_SESSION['msg_success'] = "Feedback submitted successfully.";
     header("Location: ../../../public/academics/student_dashboard.php");

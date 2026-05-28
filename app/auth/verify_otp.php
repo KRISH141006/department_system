@@ -50,9 +50,8 @@ try {
     $phone    = $data['phone']        ?? '';
     $password = $data['password']     ?? '';
     $role     = $data['role']         ?? '';
-    $linkedin = $data['linkedin_url'] ?? '';
 
-    if (!$name || !$email || !$phone || !$password || !$role || !$linkedin) {
+    if (!$name || !$email || !$phone || !$password || !$role) {
         ob_clean();
         echo json_encode(["status" => "error", "message" => "Missing session data. Please sign up again."]);
         exit;
@@ -80,13 +79,13 @@ try {
 
     // Insert user
     $stmt = $conn->prepare("
-        INSERT INTO users (name, email, phone, password, role, linkedin_url, is_verified)
-        VALUES (?, ?, ?, ?, ?, ?, 1)
+        INSERT INTO users (name, email, phone, password, role, is_verified)
+        VALUES (?, ?, ?, ?, ?, 1)
     ");
     if (!$stmt) {
         throw new Exception("DB Error (insert): " . $conn->error);
     }
-    $stmt->bind_param("ssssss", $name, $email, $phone, $hashed_password, $role, $linkedin);
+    $stmt->bind_param("sssss", $name, $email, $phone, $hashed_password, $role);
 
     if ($stmt->execute()) {
         $new_user_id = $conn->insert_id;

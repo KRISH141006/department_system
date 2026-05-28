@@ -43,13 +43,11 @@ $role = $_SESSION['role'] ?? 'student';
                 <a href="academics/faculty_dashboard.php" class="btn btn-primary">Go to Academics</a>
             </div>
             
-            <?php if ($role === 'admin'): ?>
             <div class="card module-card">
                 <h2>Community Reviews</h2>
                 <p>Review student skills and assignments.</p>
                 <a href="community/reviewer_dashboard.php" class="btn btn-primary">Go to Reviews</a>
             </div>
-            <?php endif; ?>
 
         <?php elseif ($role === 'expert'): ?>
             <!-- Expert view -->

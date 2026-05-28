@@ -19,6 +19,8 @@ require_once __DIR__ . '/../../app/includes/header.php';
             <?php
             // Get student's class and semester
             $student_id = $_SESSION['user_id'];
+            $today = date('Y-m-d');
+
             $uStmt = $conn->prepare("SELECT class_name, semester FROM users WHERE id = ?");
             $uStmt->bind_param("i", $student_id);
             $uStmt->execute();
@@ -26,21 +28,49 @@ require_once __DIR__ . '/../../app/includes/header.php';
             $class_name = $uRow['class_name'] ?? '';
             $semester = $uRow['semester'] ?? '';
 
-            // Fetch subjects
+            // Check if student is assigned for any subject today for verification
+            $assignStmt = $conn->prepare("
+                SELECT s.subject_id, fs.subject_name 
+                FROM feedback_selector s
+                JOIN faculty_subjects fs ON fs.id = s.subject_id
+                WHERE s.selected_student_id = ? AND s.selected_date = ?
+            ");
+            $assignStmt->bind_param("is", $student_id, $today);
+            $assignStmt->execute();
+            $assignedSubjects = $assignStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+            $is_assigned = count($assignedSubjects) > 0;
+
+            // Fetch all subjects for this class (if not assigned, or to allow selection)
             $subQuery = $conn->prepare("SELECT id, subject_name FROM faculty_subjects WHERE class_name = ? AND semester = ?");
             $subQuery->bind_param("ss", $class_name, $semester);
             $subQuery->execute();
-            $subjects = $subQuery->get_result();
+            $allSubjects = $subQuery->get_result()->fetch_all(MYSQLI_ASSOC);
             ?>
             
             <div class="grid-2">
                 <div class="form-group">
                     <label>Select Subject:</label>
                     <select name="subject_id" id="subjectSelect" required onchange="loadTopics()">
-                        <option value="">-- Choose Subject --</option>
-                        <?php while ($sub = $subjects->fetch_assoc()) { ?>
-                            <option value="<?php echo $sub['id']; ?>"><?php echo htmlspecialchars($sub['subject_name']); ?></option>
-                        <?php } ?>
+                        <?php if ($is_assigned): ?>
+                            <option value="">-- Assigned Subjects --</option>
+                            <?php foreach ($assignedSubjects as $sub): ?>
+                                <option value="<?= $sub['subject_id'] ?>" selected><?= htmlspecialchars($sub['subject_name']) ?> (Assigned)</option>
+                            <?php endforeach; ?>
+                            <hr>
+                            <option value="">-- Other Subjects --</option>
+                        <?php else: ?>
+                            <option value="">-- Choose Subject --</option>
+                        <?php endif; ?>
+                        
+                        <?php foreach ($allSubjects as $sub): ?>
+                            <?php 
+                            // Skip if already in assigned list to avoid duplicates
+                            $is_already_shown = false;
+                            foreach($assignedSubjects as $as) if($as['subject_id'] == $sub['id']) $is_already_shown = true;
+                            if($is_already_shown) continue;
+                            ?>
+                            <option value="<?= $sub['id'] ?>"><?= htmlspecialchars($sub['subject_name']) ?></option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
                 <div class="form-group">
@@ -52,6 +82,16 @@ require_once __DIR__ . '/../../app/includes/header.php';
                     </select>
                 </div>
             </div>
+
+            <script>
+                // Auto-load topics if a subject is already selected (e.g., when assigned)
+                window.addEventListener('DOMContentLoaded', (event) => {
+                    const select = document.getElementById('subjectSelect');
+                    if (select.value) {
+                        loadTopics();
+                    }
+                });
+            </script>
 
             <div class="grid-2">
                 <div class="form-group">
@@ -173,4 +213,4 @@ require_once __DIR__ . '/../../app/includes/header.php';
     }
 </script>
 
-<?php require_once __DIR__ . '/../../app/includes/footer.php'; ?>
+<?php require_once __DIR__ . '/../../app/includes/header.php'; ?>
