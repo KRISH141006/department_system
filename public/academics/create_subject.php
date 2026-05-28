@@ -43,7 +43,7 @@ require_once __DIR__ . '/../../app/includes/header.php';
                     <label>Target Semester</label>
                     <select name="semester" required>
                         <option value="">-- Select Semester --</option>
-                        <?php for($i=1; $i<=8; $i++) echo "<option value='{$i}th'>{$i}th Semester</option>"; ?>
+                        <?php for($i=1; $i<=8; $i++) echo "<option value='Sem-{$i}'>Semester {$i}</option>"; ?>
                     </select>
                 </div>
             </div>
