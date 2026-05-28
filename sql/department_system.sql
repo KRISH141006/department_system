@@ -106,6 +106,8 @@ CREATE TABLE IF NOT EXISTS faculty_feedback_questions (
     id INT AUTO_INCREMENT PRIMARY KEY,
     form_id INT NOT NULL,
     question_text TEXT NOT NULL,
+    question_type ENUM('rating', 'mcq', 'text') DEFAULT 'rating',
+    options TEXT NULL,
     FOREIGN KEY (form_id) REFERENCES faculty_feedback_forms(id) ON DELETE CASCADE
 );
 
@@ -114,7 +116,8 @@ CREATE TABLE IF NOT EXISTS student_faculty_feedback (
     form_id INT NOT NULL,
     question_id INT NOT NULL,
     student_id INT NOT NULL,
-    rating INT NOT NULL,
+    rating INT NULL,
+    answer_text TEXT NULL,
     FOREIGN KEY (form_id) REFERENCES faculty_feedback_forms(id) ON DELETE CASCADE,
     FOREIGN KEY (question_id) REFERENCES faculty_feedback_questions(id) ON DELETE CASCADE,
     FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE

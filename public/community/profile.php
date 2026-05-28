@@ -11,6 +11,7 @@ $uStmt->bind_param("i", $user_id);
 $uStmt->execute();
 $user_data = $uStmt->get_result()->fetch_assoc();
 
+
 // Fetch from profiles table (Updated with all new columns)
 $pStmt = $conn->prepare("
     SELECT branch, skills, expertise_area, company, designation, bio, 
