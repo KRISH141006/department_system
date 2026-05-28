@@ -81,7 +81,7 @@ include __DIR__ . '/../../app/includes/header.php';
                             </div>
                             <div class="form-group">
                                 <label>Semester <span style="color:red;">*</span></label>
-                                <input type="text" name="semester" value="<?= htmlspecialchars($user_data['semester'] ?? '') ?>" required placeholder="e.g. 6th">
+                                <input type="text" name="semester" value="<?= htmlspecialchars($user_data['semester'] ?? '') ?>" required placeholder="e.g. Sem-6">
                             </div>
                         </div>
                         <div class="grid-2">
@@ -149,7 +149,7 @@ include __DIR__ . '/../../app/includes/header.php';
                                 </div>
                                 <div class="form-group" style="margin-bottom: 0;">
                                     <label>CC for Semester</label>
-                                    <input type="text" name="cc_semester" value="<?= htmlspecialchars($profile_data['cc_semester'] ?? '') ?>" placeholder="e.g. 6th">
+                                    <input type="text" name="cc_semester" value="<?= htmlspecialchars($profile_data['cc_semester'] ?? '') ?>" placeholder="e.g. Sem-6">
                                 </div>
                             </div>
                         </div>
