@@ -8,14 +8,34 @@ if (!in_array($_SESSION['role'], ['faculty', 'admin'])) {
 }
 
 $faculty_id = $_SESSION['user_id'];
+$subject_id = (int) ($_POST['subject_id'] ?? 0);
 $subject_name = $_POST['subject_name'];
-$class_name = $_POST['class_name'] ?? 'N/A';
-$semester = $_POST['semester'] ?? 'N/A';
+$branch = $_POST['branch'] ?? '';
+$class_name = strtoupper(trim($_POST['class_name'] ?? 'N/A'));
+$semester = (int) ($_POST['semester'] ?? 0);
 
-$stmt = $conn->prepare("INSERT INTO faculty_subjects (faculty_id, subject_name, class_name, semester) VALUES (?, ?, ?, ?)");
-$stmt->bind_param("isss", $faculty_id, $subject_name, $class_name, $semester);
-$stmt->execute();
-$subject_id = $conn->insert_id;
+if ($subject_id > 0) {
+    // Update existing subject
+    $stmt = $conn->prepare("UPDATE faculty_subjects SET subject_name = ?, branch = ?, class_name = ?, semester = ? WHERE id = ? AND faculty_id = ?");
+    $stmt->bind_param("sssiii", $subject_name, $branch, $class_name, $semester, $subject_id, $faculty_id);
+    $stmt->execute();
+
+    // Delete old units and topics to refresh them
+    // Topics will be deleted via CASCADE if the DB is set up that way, 
+    // but let's be explicit if not sure.
+    // Based on schema: faculty_units has FOREIGN KEY (subject_id) REFERENCES faculty_subjects(id) ON DELETE CASCADE
+    // And faculty_topics has FOREIGN KEY (unit_id) REFERENCES faculty_units(id) ON DELETE CASCADE
+    // So deleting units should be enough.
+    $delUnits = $conn->prepare("DELETE FROM faculty_units WHERE subject_id = ?");
+    $delUnits->bind_param("i", $subject_id);
+    $delUnits->execute();
+} else {
+    // Create new subject
+    $stmt = $conn->prepare("INSERT INTO faculty_subjects (faculty_id, subject_name, branch, class_name, semester) VALUES (?, ?, ?, ?, ?)");
+    $stmt->bind_param("isssi", $faculty_id, $subject_name, $branch, $class_name, $semester);
+    $stmt->execute();
+    $subject_id = $conn->insert_id;
+}
 
 $unit_names = $_POST['unit_names'] ?? [];
 $unit_topics = $_POST['unit_topics'] ?? [];
@@ -43,6 +63,6 @@ foreach ($unit_names as $index => $unit_name) {
     }
 }
 
-$_SESSION['msg_success'] = "Subject created successfully";
+$_SESSION['msg_success'] = ($subject_id > 0 && isset($_POST['subject_id'])) ? "Subject updated successfully" : "Subject created successfully";
 header("Location: ../../../public/academics/faculty_dashboard.php");
 ?>

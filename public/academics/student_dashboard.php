@@ -33,7 +33,7 @@ require_once __DIR__ . '/../../app/includes/header.php';
     <div class="grid-2">
         <?php 
         $subQuery = $conn->prepare("SELECT id, subject_name FROM faculty_subjects WHERE class_name = ? AND semester = ?");
-        $subQuery->bind_param("ss", $class_name, $semester);
+        $subQuery->bind_param("si", $class_name, $semester);
         $subQuery->execute();
         $subjects = $subQuery->get_result();
 

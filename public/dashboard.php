@@ -49,6 +49,16 @@ $role = $_SESSION['role'] ?? 'student';
                 <a href="community/reviewer_dashboard.php" class="btn btn-primary">Go to Reviews</a>
             </div>
 
+            <?php if ($role === 'admin'): ?>
+                <div class="card module-card" style="border: 2px solid var(--accent);">
+                    <h2 style="color: var(--accent);">Semester Management</h2>
+                    <p>Announce the end of the current semester and move all students to the next semester.</p>
+                    <form action="../app/actions/admin/semester_done.php" method="POST" onsubmit="return confirm('Are you sure you want to end the current semester? All students will be moved to the next semester and their class names will be updated.')">
+                        <button type="submit" class="btn" style="background: var(--accent); color: white;">Announce Semester Done</button>
+                    </form>
+                </div>
+            <?php endif; ?>
+
         <?php elseif ($role === 'expert'): ?>
             <!-- Expert view -->
             <div class="card module-card">

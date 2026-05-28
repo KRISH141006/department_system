@@ -23,8 +23,15 @@ VALUES (?, ?, ?, ?, ?, ?)");
 $stmt->bind_param("iissss", $student_id, $subject_id, $start, $end, $topic_type, $assignment);
 
 if ($stmt->execute()) {
-    // 1. Update Topic Progress
-    if (!empty($selectedTopics)) {
+    // 1. Check if student was assigned for verification today
+    $today = date('Y-m-d');
+    $checkAssign = $conn->prepare("SELECT id FROM feedback_selector WHERE selected_student_id = ? AND selected_date = ? AND subject_id = ?");
+    $checkAssign->bind_param("isi", $student_id, $today, $subject_id);
+    $checkAssign->execute();
+    $is_assigned = $checkAssign->get_result()->num_rows > 0;
+
+    // 2. Update Topic Progress (ONLY IF ASSIGNED)
+    if ($is_assigned && !empty($selectedTopics)) {
         // Get subject name
         $sStmt = $conn->prepare("SELECT subject_name FROM faculty_subjects WHERE id = ?");
         $sStmt->bind_param("i", $subject_id);
@@ -63,8 +70,7 @@ if ($stmt->execute()) {
         }
     }
 
-    // 2. Remove from selector
-    $today = date('Y-m-d');
+    // 3. Remove from selector (assignment completed)
     $del = $conn->prepare("DELETE FROM feedback_selector WHERE selected_student_id = ? AND selected_date = ? AND subject_id = ?");
     if ($del) {
         $del->bind_param("isi", $student_id, $today, $subject_id);
