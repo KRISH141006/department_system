@@ -50,9 +50,8 @@ try {
     $phone    = $_POST['phone']        ?? '';
     $password = $_POST['password']     ?? '';
     $role     = $_POST['role']         ?? '';
-    $linkedin = $_POST['linkedin_url'] ?? '';
 
-    if (!$name || !$email || !$phone || !$password || !$role || !$linkedin) {
+    if (!$name || !$email || !$phone || !$password || !$role) {
         ob_clean();
         echo json_encode(["status" => "error", "message" => "All fields are required"]);
         exit;
@@ -79,7 +78,7 @@ try {
     $_SESSION['otp'] = (string) $otp;
     $_SESSION['user_data'] = [
         'name' => $name, 'email' => $email, 'phone' => $phone, 
-        'password' => $password, 'role' => $role, 'linkedin_url' => $linkedin
+        'password' => $password, 'role' => $role
     ];
 
     // PHPMailer logic

@@ -36,6 +36,20 @@ CREATE TABLE IF NOT EXISTS profiles (
     company VARCHAR(255),
     designation VARCHAR(255),
     bio TEXT,
+    github_url VARCHAR(255),
+    leetcode_url VARCHAR(255),
+    portfolio_url VARCHAR(255),
+    hobbies TEXT,
+    target_role VARCHAR(100),
+    is_alumni TINYINT DEFAULT 0,
+    college_name VARCHAR(255),
+    graduation_year VARCHAR(10),
+    degree VARCHAR(100),
+    experience_years INT,
+    teaching_interests TEXT,
+    is_cc TINYINT DEFAULT 0,
+    cc_class VARCHAR(50),
+    cc_semester VARCHAR(20),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
@@ -73,6 +87,7 @@ CREATE TABLE IF NOT EXISTS topic_progress (
     unit_no INT NOT NULL,
     topic_name VARCHAR(255) NOT NULL,
     is_covered TINYINT DEFAULT 0,
+    is_verified TINYINT DEFAULT 0,
     updated_by INT,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
@@ -107,19 +122,23 @@ CREATE TABLE IF NOT EXISTS student_faculty_feedback (
 CREATE TABLE IF NOT EXISTS lecture_feedback (
     id INT AUTO_INCREMENT PRIMARY KEY,
     student_id INT NOT NULL,
+    subject_id INT NOT NULL,
     lecture_start_time TIME NOT NULL,
     lecture_end_time TIME NOT NULL,
     topic_type VARCHAR(100),
     assignment TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (subject_id) REFERENCES faculty_subjects(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS feedback_selector (
     id INT AUTO_INCREMENT PRIMARY KEY,
     selected_student_id INT NOT NULL,
     selected_date DATE NOT NULL,
-    FOREIGN KEY (selected_student_id) REFERENCES users(id) ON DELETE CASCADE
+    subject_id INT NOT NULL,
+    FOREIGN KEY (selected_student_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (subject_id) REFERENCES faculty_subjects(id) ON DELETE CASCADE
 );
 
 -- ======================
@@ -188,15 +207,15 @@ CREATE TABLE IF NOT EXISTS reviews (
 -- ======================
 
 -- Passwords are '1234'
-INSERT INTO users (id, name, email, password, role, is_verified) VALUES
-(1, 'System Admin', 'admin@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'admin', 1),
-(2, 'Faculty One', 'faculty1@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'faculty', 1),
-(3, 'Faculty Two', 'faculty2@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'faculty', 1),
-(4, 'Student One', 'student1@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'student', 1),
-(5, 'Student Two', 'student2@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'student', 1),
-(6, 'Student Three', 'student3@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'student', 1),
-(7, 'Expert One', 'expert1@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'expert', 1),
-(8, 'Expert Two', 'expert2@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'expert', 1);
+INSERT INTO users (id, name, email, password, role, class_name, semester, roll_no, is_verified) VALUES
+(1, 'System Admin', 'admin@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'admin', NULL, NULL, NULL, 1),
+(2, 'Faculty One', 'faculty1@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'faculty', NULL, NULL, NULL, 1),
+(3, 'Faculty Two', 'faculty2@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'faculty', NULL, NULL, NULL, 1),
+(4, 'Student One', 'student1@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'student', 'ICT-A', 'Sem-6', '21IT001', 1),
+(5, 'Student Two', 'student2@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'student', 'ICT-B', 'Sem-6', '21IT002', 1),
+(6, 'Student Three', 'student3@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'student', 'ICT-A', 'Sem-6', '21IT003', 1),
+(7, 'Expert One', 'expert1@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'expert', NULL, NULL, NULL, 1),
+(8, 'Expert Two', 'expert2@ict.com', '$2y$12$xDPwZaUnIN7U86h9oDzJl.7aC2.2upxBdCVL7eJdI.o5VR0mjH9.u', 'expert', NULL, NULL, NULL, 1);
 
 -- Profiles
 INSERT INTO profiles (user_id, branch, skills, bio) VALUES

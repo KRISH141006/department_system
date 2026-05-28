@@ -42,14 +42,16 @@ $base_path = rtrim($base_path, '/');
   </div>
 </header>
 <main class="main-content">
-  <div class="wrapper" style="padding-top: 1rem; padding-bottom: 0;">
     <?php if (isset($_SESSION['msg_success'])): ?>
-      <div class="alert alert-success" style="margin-bottom: 1rem;"><?= $_SESSION['msg_success'] ?></div>
-      <?php unset($_SESSION['msg_success']); ?>
+      <div class="page-wrap" style="padding-top: 1rem; padding-bottom: 0;">
+        <div class="alert alert-success" style="margin-bottom: 1rem;"><?= $_SESSION['msg_success'] ?></div>
+        <?php unset($_SESSION['msg_success']); ?>
+      </div>
     <?php endif; ?>
 
     <?php if (isset($_SESSION['msg_error'])): ?>
-      <div class="alert alert-error" style="margin-bottom: 1rem;"><?= $_SESSION['msg_error'] ?></div>
-      <?php unset($_SESSION['msg_error']); ?>
+      <div class="page-wrap" style="padding-top: 1rem; padding-bottom: 0;">
+        <div class="alert alert-error" style="margin-bottom: 1rem;"><?= $_SESSION['msg_error'] ?></div>
+        <?php unset($_SESSION['msg_error']); ?>
+      </div>
     <?php endif; ?>
-  </div>
