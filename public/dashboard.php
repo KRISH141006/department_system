@@ -63,6 +63,12 @@ $role = $_SESSION['role'] ?? 'student';
                         <button type="submit" class="btn" style="background: var(--accent); color: white;">Announce Semester Done</button>
                     </form>
                 </div>
+
+                <div class="card module-card" style="border-top: 4px solid var(--error);">
+                    <h2>Anonymous Feedback Panel</h2>
+                    <p>Review all anonymous submissions from the student feedback box.</p>
+                    <a href="academics/admin_feedback_panel.php" class="btn btn-primary">Review Feedbacks</a>
+                </div>
             <?php endif; ?>
 
         <?php elseif ($role === 'expert'): ?>
