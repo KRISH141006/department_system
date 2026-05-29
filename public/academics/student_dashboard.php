@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../../app/middleware/auth.php';
 require_once __DIR__ . '/../../app/config/db.php';
 
-if ($_SESSION['role'] !== 'student') {
+if (!has_permission('view_student_dashboard')) {
     header("Location: ../dashboard.php");
     exit();
 }
@@ -58,6 +58,33 @@ require_once __DIR__ . '/../../app/includes/header.php';
         <h2 style="margin-bottom: 24px;">Action Required</h2>
         
         <div style="display: grid; gap: 16px;">
+            <?php
+            // Check for pending electives
+            $elec_check = $conn->prepare("SELECT id FROM faculty_subjects WHERE semester = ? AND is_elective = 1");
+            $elec_check->bind_param("i", $semester);
+            $elec_check->execute();
+            $has_electives = $elec_check->get_result()->num_rows > 0;
+
+            if ($has_electives) {
+                $sel_check = $conn->prepare("SELECT 1 FROM student_electives WHERE student_id = ? AND semester = ? LIMIT 1");
+                $sel_check->bind_param("ii", $student_id, $semester);
+                $sel_check->execute();
+                if ($sel_check->get_result()->num_rows === 0) {
+            ?>
+                <div class="card" style="border-left: 4px solid var(--primary);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                        <div>
+                            <h3 style="font-size: 1.1rem;">Choose Your Electives</h3>
+                            <p style="color: var(--text-2); font-size: 14px;">You haven't selected your elective subjects for this semester yet.</p>
+                        </div>
+                        <a href="select_electives.php" class="btn btn-primary">Select Electives</a>
+                    </div>
+                </div>
+            <?php 
+                }
+            }
+            ?>
+
             <?php 
             // Check if selected for daily feedback
             $today = date('Y-m-d');

@@ -44,6 +44,16 @@ try {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['role']    = $user['role'];
 
+            // Fetch Permissions for the role
+            $perm_stmt = $conn->prepare("SELECT p.permission_name FROM permissions p JOIN role_permissions rp ON p.id = rp.permission_id WHERE rp.role = ?");
+            $perm_stmt->bind_param("s", $user['role']);
+            $perm_stmt->execute();
+            $perm_res = $perm_stmt->get_result();
+            $_SESSION['permissions'] = [];
+            while ($p_row = $perm_res->fetch_assoc()) {
+                $_SESSION['permissions'][] = $p_row['permission_name'];
+            }
+
             // Check if profile exists
             $ps = $conn->prepare("SELECT id FROM profiles WHERE user_id = ?");
             if (!$ps) {

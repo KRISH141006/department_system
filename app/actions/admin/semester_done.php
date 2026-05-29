@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../../middleware/auth.php';
 require_once __DIR__ . '/../../config/db.php';
 
-if ($_SESSION['role'] !== 'admin') {
+if (!has_permission('view_admin_dashboard')) {
     header("Location: ../../../public/dashboard.php");
     exit();
 }

@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS profiles (
     is_cc TINYINT DEFAULT 0,
     cc_class VARCHAR(50),
     cc_semester INT,
+    community_score INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
@@ -65,7 +66,40 @@ CREATE TABLE IF NOT EXISTS faculty_subjects (
     branch VARCHAR(100),
     class_name VARCHAR(50),
     semester INT,
+    is_elective TINYINT DEFAULT 0,
     FOREIGN KEY (faculty_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS student_electives (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_id INT NOT NULL,
+    subject_id INT NOT NULL,
+    semester INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (subject_id) REFERENCES faculty_subjects(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS permissions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    permission_name VARCHAR(100) UNIQUE NOT NULL,
+    description TEXT
+);
+
+CREATE TABLE IF NOT EXISTS role_permissions (
+    role ENUM('student','faculty','expert','admin') NOT NULL,
+    permission_id INT NOT NULL,
+    PRIMARY KEY (role, permission_id),
+    FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS student_badges (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    student_id INT NOT NULL,
+    badge_name VARCHAR(100) NOT NULL,
+    icon_class VARCHAR(50) DEFAULT 'fa-star',
+    awarded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS faculty_units (
@@ -220,6 +254,40 @@ CREATE TABLE IF NOT EXISTS reviews (
 -- ======================
 -- SEED DATA
 -- ======================
+
+-- Base Permissions
+INSERT INTO permissions (permission_name, description) VALUES
+('view_student_dashboard', 'Access to student main dashboard'),
+('view_faculty_dashboard', 'Access to faculty main dashboard'),
+('view_expert_dashboard', 'Access to expert/reviewer dashboard'),
+('view_admin_dashboard', 'Access to system admin panel'),
+('submit_feedback', 'Permission to submit anonymous/faculty feedback'),
+('manage_subjects', 'Permission to create/edit subjects and units'),
+('manage_tasks', 'Permission to manage personal productivity tasks'),
+('request_validation', 'Permission to create community validation requests'),
+('review_requests', 'Permission to review and mark community requests'),
+('manage_users', 'Full user management access'),
+('select_electives', 'Access to elective subject selection interface');
+
+-- Role-Permission Mapping
+-- Admin
+INSERT INTO role_permissions (role, permission_id) 
+SELECT 'admin', id FROM permissions;
+
+-- Faculty
+INSERT INTO role_permissions (role, permission_id)
+SELECT 'faculty', id FROM permissions WHERE permission_name IN 
+('view_faculty_dashboard', 'submit_feedback', 'manage_subjects', 'review_requests');
+
+-- Student
+INSERT INTO role_permissions (role, permission_id)
+SELECT 'student', id FROM permissions WHERE permission_name IN 
+('view_student_dashboard', 'submit_feedback', 'manage_tasks', 'request_validation', 'select_electives');
+
+-- Expert
+INSERT INTO role_permissions (role, permission_id)
+SELECT 'expert', id FROM permissions WHERE permission_name IN 
+('view_expert_dashboard', 'review_requests');
 
 -- Password for all users is: 1234
 -- Classes changed to odd semesters: 1, 3, 5, 7
@@ -499,11 +567,13 @@ INSERT INTO faculty_subjects (faculty_id, subject_name, branch, class_name, seme
 (2,'Web Technology','ICT','4ek-1',4);
 
 -- SEMESTER 5 SUBJECTS
-INSERT INTO faculty_subjects (faculty_id, subject_name, branch, class_name, semester) VALUES
-(3,'Computer Networks','ICT','5ek-1',5),
-(4,'Software Engineering','ICT','5ek-2',5),
-(5,'Theory of Computation','ICT','5ek-3',5),
-(6,'Python Programming','ICT','5ek-1',5);
+INSERT INTO faculty_subjects (faculty_id, subject_name, branch, class_name, semester, is_elective) VALUES
+(3,'Computer Networks','ICT','5ek-1',5, 0),
+(4,'Software Engineering','ICT','5ek-2',5, 0),
+(5,'Theory of Computation','ICT','5ek-3',5, 0),
+(6,'Python Programming','ICT','5ek-1',5, 0),
+(12,'Mobile App Dev (Elective)','ICT','5ek-1',5, 1),
+(13,'Cloud Computing (Elective)','ICT','5ek-2',5, 1);
 
 -- SEMESTER 6 SUBJECTS
 INSERT INTO faculty_subjects (faculty_id, subject_name, branch, class_name, semester) VALUES

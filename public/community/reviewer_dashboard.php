@@ -2,8 +2,7 @@
 require_once __DIR__ . '/../../app/middleware/auth.php';
 require_once __DIR__ . '/../../app/config/db.php';
 
-$allowed_roles = ['expert', 'faculty', 'admin'];
-if (!in_array($_SESSION['role'], $allowed_roles)) {
+if (!has_permission('view_expert_dashboard')) {
     header("Location: ../dashboard.php");
     exit;
 }

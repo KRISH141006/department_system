@@ -7,7 +7,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit();
 }
 
-if ($_SESSION['role'] !== 'student') {
+if (!has_permission('view_student_dashboard')) {
     header("Location: ../../../public/dashboard.php");
     exit();
 }

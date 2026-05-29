@@ -27,13 +27,11 @@ $base_path = rtrim($base_path, '/');
     <nav class="header-nav">
       <a href="<?= $base_path ?>/public/dashboard.php" class="nav-link">Dashboard</a>
       <a href="<?= $base_path ?>/public/community/profile.php" class="nav-link">Profile</a>
-      <?php if ($nav_role === 'student'): ?>
-        <!-- Student specific links if any -->
-      <?php endif; ?>
-      <?php if (in_array($nav_role, ['expert', 'admin'])): ?>
+      <a href="<?= $base_path ?>/public/community/leaderboard.php" class="nav-link">Leaderboard</a>
+      <?php if (has_permission('view_expert_dashboard')): ?>
         <a href="<?= $base_path ?>/public/community/reviewer_dashboard.php" class="nav-link">Review Requests</a>
       <?php endif; ?>
-      <?php if (in_array($nav_role, ['faculty', 'admin'])): ?>
+      <?php if (has_permission('view_faculty_dashboard')): ?>
         <a href="<?= $base_path ?>/public/academics/manage_subjects.php" class="nav-link">Academics</a>
       <?php endif; ?>
       <a href="<?= $base_path ?>/app/auth/logout.php" class="nav-link">Logout</a>
