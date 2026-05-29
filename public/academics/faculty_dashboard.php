@@ -66,6 +66,30 @@ require_once __DIR__ . '/../../app/includes/header.php';
             <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">Review consolidated ratings and student comments.</p>
         </a>
 
+        <a href="assign_task.php" class="card" style="text-decoration: none; color: inherit; border-left: 4px solid var(--accent);">
+            <div style="font-size: 32px; margin-bottom: 12px;">📋</div>
+            <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600;">Assign Task</h3>
+            <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">Assign academic or productivity tasks to your students based on class, semester, and PAC category.</p>
+        </a>
+
+        <a href="host_meeting.php" class="card" style="text-decoration: none; color: inherit; border-left: 4px solid #ef4444;">
+            <div style="font-size: 32px; margin-bottom: 12px;">🎥</div>
+            <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600; color: #ef4444;">Host Live Class</h3>
+            <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">Start a Zoom-like video class for your students with screen sharing and chat.</p>
+        </a>
+
+        <a href="submissions.php" class="card" style="text-decoration: none; color: inherit; border-left: 4px solid #22c55e;">
+            <div style="font-size: 32px; margin-bottom: 12px;">📤</div>
+            <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600;">Submissions</h3>
+            <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">Review, download, and grade assignments submitted by your students.</p>
+        </a>
+
+        <a href="assigned_tasks_history.php" class="card" style="text-decoration: none; color: inherit; border-left: 4px solid var(--primary);">
+            <div style="font-size: 32px; margin-bottom: 12px;">📜</div>
+            <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600;">Task History</h3>
+            <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">Review and manage tasks you have previously assigned to students.</p>
+        </a>
+
         <a href="select_student.php" class="card" style="text-decoration: none; color: inherit;">
             <?php 
             $countStmt = $conn->prepare("SELECT COUNT(*) as count FROM feedback_selector WHERE selected_date = ? AND subject_id IN (SELECT id FROM faculty_subjects WHERE faculty_id = ?)");

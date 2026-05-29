@@ -171,7 +171,7 @@ if ($total_tasks > 0 && $view === 'list') {
     $filter_priority = isset($_GET['priority']) ? $_GET['priority'] : 'all';
     $sort_by = isset($_GET['sort']) ? $_GET['sort'] : 'newest';
 
-    $where_clause = "WHERE t.user_id='$user_id'";
+    $where_clause = "WHERE t.user_id='$user_id' AND t.faculty_assignment_id IS NULL";
     if ($filter_category !== 'all') $where_clause .= " AND t.category_id = " . intval($filter_category);
     if ($filter_priority !== 'all') $where_clause .= " AND t.priority_id = " . intval($filter_priority);
 
@@ -179,15 +179,21 @@ if ($total_tasks > 0 && $view === 'list') {
     elseif ($sort_by === 'priority') $order_by = "ORDER BY p.sort_order ASC, t.created_at DESC";
     else $order_by = "ORDER BY t.created_at DESC";
 
-    $pending_sql = "SELECT t.*, c.name as category_name, p.name as priority_name, p.color as priority_color
+    $pending_sql = "SELECT t.*, c.name as category_name, p.name as priority_name, p.color as priority_color,
+                    fu.name as faculty_name
                     FROM tasks t LEFT JOIN task_categories c ON t.category_id = c.id
                     LEFT JOIN task_priorities p ON t.priority_id = p.id
+                    LEFT JOIN faculty_assignments fa ON t.faculty_assignment_id = fa.id
+                    LEFT JOIN users fu ON fa.faculty_id = fu.id
                     $where_clause AND t.is_completed = 0 $order_by";
     $pending_result = mysqli_query($conn, $pending_sql);
 
-    $completed_sql = "SELECT t.*, c.name as category_name, p.name as priority_name, p.color as priority_color
+    $completed_sql = "SELECT t.*, c.name as category_name, p.name as priority_name, p.color as priority_color,
+                      fu.name as faculty_name
                       FROM tasks t LEFT JOIN task_categories c ON t.category_id = c.id
                       LEFT JOIN task_priorities p ON t.priority_id = p.id
+                      LEFT JOIN faculty_assignments fa ON t.faculty_assignment_id = fa.id
+                      LEFT JOIN users fu ON fa.faculty_id = fu.id
                       $where_clause AND t.is_completed = 1 $order_by";
     $completed_result = mysqli_query($conn, $completed_sql);
     $pending_count = mysqli_num_rows($pending_result);
@@ -462,24 +468,43 @@ $userName = htmlspecialchars($stmt->get_result()->fetch_assoc()['name'] ?? 'User
                     <?php
                         $is_overdue = $row['deadline'] && strtotime($row['deadline']) < time();
                     ?>
-                    <div class="task-strip">
-                        <a href="../../app/actions/productivity/complete_task.php?id=<?php echo $row['id']; ?>" class="bulb-container">  
-                            <svg class="bulb-svg bulb-off" viewBox="0 0 24 24"><path d="M9 21h6v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1l-.85.6V16h-4v-2.3l-.85-.6C8.67 12.05 8 10.58 8 9c0-2.21 1.79-4 4-4s4 1.79 4 4c0 1.58-.67 3.05-2.15 4.1z"/></svg>
-                        </a>
-                        <div style="flex:1;">
-                            <div style="font-weight: 700;"><?php echo htmlspecialchars($row['task']); ?></div>
-                            <div style="display:flex; align-items:center; gap: 8px; margin-top: 4px;">
-                                <div class="priority-dot" style="background: <?php echo $row['priority_color']; ?>;"></div>
-                                <span class="creative-pill"><?php echo htmlspecialchars($row['category_name'] ?: 'None'); ?></span>      
+                    <div class="task-strip" style="display: block; padding: 1.5rem;">
+                        <div style="display: flex; align-items: flex-start; gap: 1.25rem;">
+                            <a href="../../app/actions/productivity/complete_task.php?id=<?php echo $row['id']; ?>" class="bulb-container">  
+                                <svg class="bulb-svg bulb-off" viewBox="0 0 24 24"><path d="M9 21h6v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1l-.85.6V16h-4v-2.3l-.85-.6C8.67 12.05 8 10.58 8 9c0-2.21 1.79-4 4-4s4 1.79 4 4c0 1.58-.67 3.05-2.15 4.1z"/></svg>
+                            </a>
+                            <div style="flex:1;">
+                                <div style="font-weight: 700; font-size: 1.1rem;"><?php echo htmlspecialchars($row['task']); ?></div>
+                                <div style="display:flex; align-items:center; gap: 8px; margin-top: 4px;">
+                                    <?php if ($row['faculty_name']): ?>
+                                        <span class="creative-pill" style="background: var(--bg-2); border-color: var(--accent);">👤 Assigned by <?= htmlspecialchars($row['faculty_name']) ?></span>
+                                    <?php endif; ?>
+                                    <div class="priority-dot" style="background: <?php echo $row['priority_color'] ?: '#cbd5e0'; ?>;"></div>
+                                    <span class="creative-pill"><?php echo htmlspecialchars($row['category_name'] ?: 'General'); ?></span>      
+                                </div>
                             </div>
+                            <?php if($row['deadline']): ?>
+                                <div class="deadline-tag <?php echo $is_overdue ? 'overdue' : ''; ?>">
+                                    <div class="date-label"><?php echo date('M d', strtotime($row['deadline'])); ?></div>
+                                    <div class="time-label"><?php echo date('H:i', strtotime($row['deadline'])); ?></div>
+                                </div>
+                            <?php endif; ?>
+                            <a href="../../app/actions/productivity/delete_task.php?id=<?php echo $row['id']; ?>" style="color: #ef4444; font-weight: 900; text-decoration: none; margin-left: 10px;" onclick="return confirm('Delete?')">✕</a>
                         </div>
-                        <?php if($row['deadline']): ?>
-                            <div class="deadline-tag <?php echo $is_overdue ? 'overdue' : ''; ?>">
-                                <div class="date-label"><?php echo date('M d', strtotime($row['deadline'])); ?></div>
-                                <div class="time-label"><?php echo date('H:i', strtotime($row['deadline'])); ?></div>
+                        
+                        <?php if ($row['description']): ?>
+                            <div style="margin-top: 12px; padding-left: 45px; color: var(--text-2); font-size: 0.9rem; line-height: 1.4;">
+                                <?= nl2br(htmlspecialchars($row['description'])) ?>
                             </div>
                         <?php endif; ?>
-                        <a href="../../app/actions/productivity/delete_task.php?id=<?php echo $row['id']; ?>" style="color: #ef4444; font-weight: 900; text-decoration: none; margin-left: 10px;" onclick="return confirm('Delete?')">✕</a>
+
+                        <?php if ($row['resource_path']): ?>
+                            <div style="margin-top: 12px; padding-left: 45px;">
+                                <a href="../../public/<?= htmlspecialchars($row['resource_path']) ?>" target="_blank" class="neo-pill" style="font-size: 0.75rem; padding: 4px 10px; background: #f1f5f9;">
+                                    📂 Download Resource
+                                </a>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 <?php endwhile; ?>
             </div>
@@ -489,15 +514,27 @@ $userName = htmlspecialchars($stmt->get_result()->fetch_assoc()['name'] ?? 'User
                     ☀️ LIT UP (<?php echo $completed_count; ?>)
                 </h2>
                 <?php while ($row = mysqli_fetch_assoc($completed_result)): ?>
-                    <div class="task-strip completed">
-                        <a href="../../app/actions/productivity/undo_task.php?id=<?php echo $row['id']; ?>" class="bulb-container">      
-                            <svg class="bulb-svg bulb-on" viewBox="0 0 24 24"><path d="M9 21h6v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/></svg>
-                        </a>
-                        <div style="flex:1;">
-                            <div style="font-weight: 600; color: #94a3b8; text-decoration: line-through;"><?php echo htmlspecialchars($row['task']); ?></div>
-                            <span class="creative-pill" style="opacity: 0.5;"><?php echo htmlspecialchars($row['category_name'] ?: 'General'); ?></span>
+                    <div class="task-strip completed" style="display: block; padding: 1.5rem;">
+                        <div style="display: flex; align-items: flex-start; gap: 1.25rem;">
+                            <a href="../../app/actions/productivity/undo_task.php?id=<?php echo $row['id']; ?>" class="bulb-container">      
+                                <svg class="bulb-svg bulb-on" viewBox="0 0 24 24"><path d="M9 21h6v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/></svg>
+                            </a>
+                            <div style="flex:1;">
+                                <div style="font-weight: 600; color: #94a3b8; text-decoration: line-through; font-size: 1.1rem;"><?php echo htmlspecialchars($row['task']); ?></div>
+                                <div style="display:flex; align-items:center; gap: 8px; margin-top: 4px;">
+                                    <?php if ($row['faculty_name']): ?>
+                                        <span class="creative-pill" style="opacity: 0.6;">👤 Assigned by <?= htmlspecialchars($row['faculty_name']) ?></span>
+                                    <?php endif; ?>
+                                    <span class="creative-pill" style="opacity: 0.5;"><?php echo htmlspecialchars($row['category_name'] ?: 'General'); ?></span>
+                                </div>
+                            </div>
+                            <a href="../../app/actions/productivity/delete_task.php?id=<?php echo $row['id']; ?>" style="color: #cbd5e0;" onclick="return confirm('Remove?')">✕</a>
                         </div>
-                        <a href="../../app/actions/productivity/delete_task.php?id=<?php echo $row['id']; ?>" style="color: #cbd5e0;" onclick="return confirm('Remove?')">✕</a>
+                        <?php if ($row['description']): ?>
+                            <div style="margin-top: 12px; padding-left: 45px; color: #94a3b8; font-size: 0.9rem; line-height: 1.4; text-decoration: line-through;">
+                                <?= nl2br(htmlspecialchars($row['description'])) ?>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 <?php endwhile; ?>
             </div>
