@@ -26,8 +26,9 @@ $subject_name = $subject['subject_name'];
 $canGiveFeedback = false;
 $student_id = (int) $_SESSION['user_id'];
 $today = date('Y-m-d');
-$feedChk = $conn->prepare("SELECT 1 FROM feedback_selector WHERE selected_student_id = ? AND selected_date = ?");
-$feedChk->bind_param("is", $student_id, $today);
+// Only allow updates if the student is assigned to THIS specific subject today
+$feedChk = $conn->prepare("SELECT 1 FROM feedback_selector WHERE selected_student_id = ? AND selected_date = ? AND subject_id = ?");
+$feedChk->bind_param("isi", $student_id, $today, $subject_id);
 $feedChk->execute();
 if ($feedChk->get_result()->num_rows > 0) {
     $canGiveFeedback = true;

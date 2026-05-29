@@ -11,7 +11,8 @@ if (isset($_GET['id'])) {
     $stmt->bind_param("ii", $task_id, $user_id);
     $stmt->execute();
 
-    header("Location: ../../../public/productivity/tasks.php");
+    $redirect = isset($_GET['redirect']) && $_GET['redirect'] === 'assigned' ? 'assigned_tasks.php' : 'tasks.php';
+    header("Location: ../../../public/productivity/" . $redirect);
     exit();
 }
 ?>

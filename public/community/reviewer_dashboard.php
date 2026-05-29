@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../../app/middleware/auth.php';
 require_once __DIR__ . '/../../app/config/db.php';
 
-if (!has_permission('view_expert_dashboard')) {
+if (!has_permission('review_requests')) {
     header("Location: ../dashboard.php");
     exit;
 }
@@ -50,8 +50,15 @@ include __DIR__ . '/../../app/includes/header.php';
 ?>
 
 <div class="wrapper" style="padding: 2rem;">
-  <h1 class="page-title" style="font-family: 'DM Serif Display', serif; font-size: 2.5rem;">Review Panel</h1>
-  <p class="page-subtitle" style="color: var(--text-2); margin-bottom: 2rem;">Manage pending skill test requests and submit reviews.</p>
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem;">
+    <div>
+      <h1 class="page-title" style="font-family: 'DM Serif Display', serif; font-size: 2.5rem; margin-bottom: 0.5rem;">Review Panel</h1>
+      <p class="page-subtitle" style="color: var(--text-2);">Manage pending skill test requests and submit reviews.</p>
+    </div>
+    <a href="leaderboard.php" class="btn btn-secondary" style="border-radius: 50px; padding: 0.5rem 1.5rem;">
+        <i class="fa fa-trophy"></i> View Leaderboard
+    </a>
+  </div>
 
   <!-- ── Pending Requests ── -->
   <div class="card" style="padding:0;overflow:hidden;margin-bottom:3rem;">

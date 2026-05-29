@@ -25,15 +25,31 @@ require_once __DIR__ . '/../../app/includes/header.php';
 <div class="wrapper" style="padding: 2rem;">
     <div class="dashboard-header" style="margin-bottom: 2rem;">
         <div class="dashboard-title">
-            <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem; color: var(--text);">Your Subjects</h1>
+            <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem; color: var(--text);">Welcome, <?= htmlspecialchars($name) ?></h1>
             <p style="color: var(--text-2);">Track your academic progress and covered topics.</p>
         </div>
     </div>
 
     <div class="grid-2">
         <?php 
-        $subQuery = $conn->prepare("SELECT id, subject_name FROM faculty_subjects WHERE class_name = ? AND semester = ?");
-        $subQuery->bind_param("si", $class_name, $semester);
+        // Get assigned subject ID for today if any
+        $today = date('Y-m-d');
+        $assStmt = $conn->prepare("SELECT subject_id FROM feedback_selector WHERE selected_student_id = ? AND selected_date = ?");
+        $assStmt->bind_param("is", $student_id, $today);
+        $assStmt->execute();
+        $assRes = $assStmt->get_result();
+        $assigned_ids = [];
+        while($row = $assRes->fetch_assoc()) $assigned_ids[] = $row['subject_id'];
+
+        // Query for regular subjects assigned to the class AND electives where the student is 'enrolled' or 'pending'
+        $subQuery = $conn->prepare("
+            SELECT fs.id, fs.subject_name, fs.is_elective 
+            FROM faculty_subjects fs
+            LEFT JOIN student_electives se ON fs.id = se.subject_id AND se.student_id = ?
+            WHERE (fs.class_name = ? AND fs.semester = ? AND fs.is_elective = 0)
+               OR (fs.semester = ? AND fs.is_elective = 1 AND se.status IN ('enrolled', 'pending'))
+        ");
+        $subQuery->bind_param("isii", $student_id, $class_name, $semester, $semester);
         $subQuery->execute();
         $subjects = $subQuery->get_result();
 
@@ -42,9 +58,20 @@ require_once __DIR__ . '/../../app/includes/header.php';
         }
 
         while ($sub = $subjects->fetch_assoc()) {
+            $isAssignedToday = in_array($sub['id'], $assigned_ids);
         ?>
-            <a href="units.php?subject_id=<?php echo $sub['id']; ?>" class="card" style="text-decoration: none; color: inherit;">
-                <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600;"><?php echo htmlspecialchars($sub['subject_name']); ?></h3>
+            <a href="units.php?subject_id=<?php echo $sub['id']; ?>" class="card" style="text-decoration: none; color: inherit; border: <?php echo $isAssignedToday ? '2px solid var(--accent)' : '1px solid var(--border)'; ?>; border-top: 4px solid <?php echo $sub['is_elective'] ? 'var(--primary)' : 'transparent'; ?>;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600;"><?php echo htmlspecialchars($sub['subject_name']); ?></h3>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <?php if ($sub['is_elective']): ?>
+                            <span class="badge" style="background: var(--primary); color: #fff; font-size: 10px;">Elective</span>
+                        <?php endif; ?>
+                        <?php if ($isAssignedToday): ?>
+                            <span class="badge badge-pending">Verify Today</span>
+                        <?php endif; ?>
+                    </div>
+                </div>
                 <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">View Syllabus & Progress</p>
                 <div style="margin-top: 16px; display: flex; align-items: center; gap: 8px;">
                     <span class="badge badge-success">Syllabus</span>
@@ -59,29 +86,29 @@ require_once __DIR__ . '/../../app/includes/header.php';
         
         <div style="display: grid; gap: 16px;">
             <?php
-            // Check for pending electives
-            $elec_check = $conn->prepare("SELECT id FROM faculty_subjects WHERE semester = ? AND is_elective = 1");
-            $elec_check->bind_param("i", $semester);
-            $elec_check->execute();
-            $has_electives = $elec_check->get_result()->num_rows > 0;
+            // Check for pending elective requests
+            $pend_check = $conn->prepare("
+                SELECT COUNT(*) as pending_count 
+                FROM student_electives se
+                JOIN faculty_subjects fs ON fs.id = se.subject_id
+                WHERE se.student_id = ? AND se.status = 'pending' AND se.semester = ?
+            ");
+            $pend_check->bind_param("ii", $student_id, $semester);
+            $pend_check->execute();
+            $pending_requests = $pend_check->get_result()->fetch_assoc()['pending_count'] ?? 0;
 
-            if ($has_electives) {
-                $sel_check = $conn->prepare("SELECT 1 FROM student_electives WHERE student_id = ? AND semester = ? LIMIT 1");
-                $sel_check->bind_param("ii", $student_id, $semester);
-                $sel_check->execute();
-                if ($sel_check->get_result()->num_rows === 0) {
+            if ($pending_requests > 0) {
             ?>
                 <div class="card" style="border-left: 4px solid var(--primary);">
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
                         <div>
                             <h3 style="font-size: 1.1rem;">Choose Your Electives</h3>
-                            <p style="color: var(--text-2); font-size: 14px;">You haven't selected your elective subjects for this semester yet.</p>
+                            <p style="color: var(--text-2); font-size: 14px;">You have <?= $pending_requests ?> pending elective enrollment request<?= $pending_requests > 1 ? 's' : '' ?>.</p>
                         </div>
-                        <a href="select_electives.php" class="btn btn-primary">Select Electives</a>
+                        <a href="select_electives.php" class="btn btn-primary">Respond to Requests</a>
                     </div>
                 </div>
             <?php 
-                }
             }
             ?>
 

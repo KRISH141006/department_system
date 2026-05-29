@@ -66,6 +66,30 @@ require_once __DIR__ . '/../../app/includes/header.php';
             <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">Review consolidated ratings and student comments.</p>
         </a>
 
+        <a href="assign_task.php" class="card" style="text-decoration: none; color: inherit; border-left: 4px solid var(--accent);">
+            <div style="font-size: 32px; margin-bottom: 12px;">📋</div>
+            <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600;">Assign Task</h3>
+            <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">Assign academic or productivity tasks to your students based on class, semester, and PAC category.</p>
+        </a>
+
+        <a href="host_meeting.php" class="card" style="text-decoration: none; color: inherit; border-left: 4px solid #ef4444;">
+            <div style="font-size: 32px; margin-bottom: 12px;">🎥</div>
+            <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600; color: #ef4444;">Host Live Class</h3>
+            <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">Start a Zoom-like video class for your students with screen sharing and chat.</p>
+        </a>
+
+        <a href="submissions.php" class="card" style="text-decoration: none; color: inherit; border-left: 4px solid #22c55e;">
+            <div style="font-size: 32px; margin-bottom: 12px;">📤</div>
+            <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600;">Submissions</h3>
+            <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">Review, download, and grade assignments submitted by your students.</p>
+        </a>
+
+        <a href="assigned_tasks_history.php" class="card" style="text-decoration: none; color: inherit; border-left: 4px solid var(--primary);">
+            <div style="font-size: 32px; margin-bottom: 12px;">📜</div>
+            <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600;">Task History</h3>
+            <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">Review and manage tasks you have previously assigned to students.</p>
+        </a>
+
         <a href="select_student.php" class="card" style="text-decoration: none; color: inherit;">
             <?php 
             $countStmt = $conn->prepare("SELECT COUNT(*) as count FROM feedback_selector WHERE selected_date = ? AND subject_id IN (SELECT id FROM faculty_subjects WHERE faculty_id = ?)");
@@ -117,10 +141,9 @@ require_once __DIR__ . '/../../app/includes/header.php';
         <div class="grid-2">
             <?php 
             $subQuery = $conn->prepare("
-                SELECT fs.id, fs.subject_name, fs.class_name, fs.semester, u.name as assigned_student 
+                SELECT fs.id, fs.subject_name, fs.class_name, fs.semester, fs.is_elective,
+                       (SELECT COUNT(*) FROM feedback_selector s WHERE s.subject_id = fs.id AND s.selected_date = ?) as assigned_count
                 FROM faculty_subjects fs
-                LEFT JOIN feedback_selector s ON s.subject_id = fs.id AND s.selected_date = ?
-                LEFT JOIN users u ON u.id = s.selected_student_id
                 WHERE fs.faculty_id = ?
             ");
             $subQuery->bind_param("si", $today, $faculty_id);
@@ -134,30 +157,37 @@ require_once __DIR__ . '/../../app/includes/header.php';
             }
 
             while ($sub = $subjects->fetch_assoc()) {
+                $hasAssignments = $sub['assigned_count'] > 0;
             ?>
-                <div class="card" style="display: flex; justify-content: space-between; align-items: center; border-left: 4px solid <?php echo $sub['assigned_student'] ? 'var(--success)' : 'transparent'; ?>;">
+                <div class="card" style="display: flex; justify-content: space-between; align-items: center; border-left: 4px solid <?php echo $sub['is_elective'] ? 'var(--primary)' : ($hasAssignments ? 'var(--success)' : 'transparent'); ?>;">
                     <div>
                         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
                             <h3 style="margin: 0; font-size: 1.15rem;"><?php echo htmlspecialchars($sub['subject_name']); ?></h3>
-                            <?php if ($sub['assigned_student']): ?>
-                                <span class="badge badge-success" style="font-size: 10px;">Assigned</span>
+                            <?php if ($sub['is_elective']): ?>
+                                <span class="badge" style="background: var(--primary); color: #fff; font-size: 10px;">Elective</span>
+                            <?php endif; ?>
+                            <?php if ($hasAssignments): ?>
+                                <span class="badge badge-success" style="font-size: 10px;">Assigned Today</span>
                             <?php endif; ?>
                         </div>
                         <p style="font-size: 14px; color: var(--text-2);">
                             Class: <strong><?php echo htmlspecialchars($sub['class_name']); ?></strong> | 
                             Semester: <strong><?php echo htmlspecialchars($sub['semester']); ?></strong>
                         </p>
-                        <?php if ($sub['assigned_student']): ?>
+                        <?php if ($hasAssignments): ?>
                             <p style="font-size: 12px; color: var(--success); margin-top: 4px; font-weight: 600;">
-                                👤 Assigned: <?php echo htmlspecialchars($sub['assigned_student']); ?>
+                                👥 <?php echo $sub['assigned_count']; ?> Students Assigned Anonymously
                             </p>
                         <?php endif; ?>
                     </div>
                     <div style="display: flex; gap: 8px;">
+                        <?php if ($sub['is_elective']): ?>
+                            <a href="manage_elective_students.php?id=<?php echo $sub['id']; ?>" class="btn btn-sm btn-primary">Students</a>
+                        <?php endif; ?>
                         <a href="create_subject.php?id=<?php echo $sub['id']; ?>" class="btn btn-sm btn-secondary">Edit</a>
                         <a href="units.php?subject_id=<?php echo $sub['id']; ?>" class="btn btn-sm btn-secondary">Units</a>
-                        <a href="select_student.php?class_name=<?php echo urlencode($sub['class_name']); ?>&semester=<?php echo urlencode($sub['semester']); ?>" class="btn btn-sm <?php echo $sub['assigned_student'] ? 'btn-secondary' : 'btn-primary'; ?>">
-                            <?php echo $sub['assigned_student'] ? 'Reassign' : 'Verify'; ?>
+                        <a href="select_student.php?class_name=<?php echo urlencode($sub['class_name']); ?>&semester=<?php echo urlencode($sub['semester']); ?>" class="btn btn-sm <?php echo $hasAssignments ? 'btn-secondary' : 'btn-primary'; ?>">
+                            <?php echo $hasAssignments ? 'Show Details' : 'Verify'; ?>
                         </a>
                     </div>
                 </div>

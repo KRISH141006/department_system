@@ -57,13 +57,18 @@ if (!empty($target_class)) {
     $facultySubjects = $subStmt->get_result()->fetch_all(MYSQLI_ASSOC);
 }
 
-// Get unique classes from both users and faculty_subjects for dropdowns
+// Get unique classes where THIS faculty is teaching
 $classes = [];
-$cRes = $conn->query("SELECT DISTINCT class_name FROM users WHERE class_name IS NOT NULL AND class_name != '' 
-                      UNION 
-                      SELECT DISTINCT class_name FROM faculty_subjects WHERE class_name IS NOT NULL AND class_name != ''");
+$cStmt = $conn->prepare("SELECT DISTINCT class_name FROM faculty_subjects WHERE faculty_id = ? AND class_name IS NOT NULL AND class_name != '' ORDER BY class_name ASC");
+$cStmt->bind_param("i", $faculty_id);
+$cStmt->execute();
+$cRes = $cStmt->get_result();
 while($row = $cRes->fetch_assoc()) $classes[] = $row['class_name'];
-sort($classes);
+
+// If no target class is selected, default to the first class they teach
+if (empty($target_class) && !empty($classes)) {
+    $target_class = $classes[0];
+}
 
 // Get assignments count for today to show if a subject is already assigned
 $today = date('Y-m-d');
@@ -127,22 +132,50 @@ require_once __DIR__ . '/../../app/includes/header.php';
         <?php if (!empty($target_class) && !empty($facultySubjects)): ?>
             <div class="card" style="padding: 1.5rem; margin-bottom: 2rem; border: 1px solid var(--accent); background: #fdfcff;">
                 <h3 style="margin-bottom: 1rem; color: var(--accent);">Bulk Action for <?= htmlspecialchars($target_class) ?></h3>
-                <form id="assignForm" action="../../app/actions/academics/assign_feedback.php" method="POST" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
-                    <div class="form-group" style="margin-bottom: 0; min-width: 250px;">
-                        <label>Select Subject</label>
-                        <select name="subject_id" id="bulk_subject_id" required>
-                            <option value="">-- Choose Subject --</option>
-                            <?php foreach ($facultySubjects as $fs): ?>
-                                <option value="<?= $fs['id'] ?>"><?= htmlspecialchars($fs['subject_name']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
+                
+                <?php 
+                $allAssigned = true;
+                $assignedList = [];
+                foreach ($facultySubjects as $fs) {
+                    if (!isset($subjectAssignments[$fs['id']]) || $subjectAssignments[$fs['id']] == 0) {
+                        $allAssigned = false;
+                    } else {
+                        $assignedList[] = $fs['subject_name'];
+                    }
+                }
+                ?>
+
+                <?php if (!empty($assignedList)): ?>
+                    <div style="margin-bottom: 1.5rem; padding: 1rem; background: #ecfdf5; border-radius: 6px; border: 1px solid #10b981; color: #065f46; font-size: 14px;">
+                        <strong>✅ Currently Assigned Today:</strong> <?= implode(', ', $assignedList) ?>.
                     </div>
-                    <input type="hidden" name="class_name" value="<?= htmlspecialchars($target_class) ?>">
-                    <input type="hidden" name="random" value="1">
-                    <button type="submit" class="btn btn-secondary" style="background: var(--accent); color: white; border: none;">
-                        🎲 Randomly Assign 5 Students (Anonymous)
-                    </button>
-                </form>
+                <?php endif; ?>
+
+                <?php if ($allAssigned): ?>
+                    <p style="color: var(--success); font-weight: 600;">All your subjects for this class have been assigned for today's verification.</p>
+                    <a href="faculty_dashboard.php" class="btn btn-secondary" style="margin-top: 1rem;">Return to Dashboard</a>
+                <?php else: ?>
+                    <form id="assignForm" action="../../app/actions/academics/assign_feedback.php" method="POST" style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+                        <div class="form-group" style="margin-bottom: 0; min-width: 250px;">
+                            <label>Select Subject</label>
+                            <select name="subject_id" id="bulk_subject_id" required>
+                                <option value="">-- Choose Subject --</option>
+                                <?php foreach ($facultySubjects as $fs): 
+                                    $isAssigned = ($subjectAssignments[$fs['id']] ?? 0) > 0;
+                                ?>
+                                    <option value="<?= $fs['id'] ?>" <?= $isAssigned ? 'disabled' : '' ?>>
+                                        <?= htmlspecialchars($fs['subject_name']) ?> <?= $isAssigned ? '(Already Assigned)' : '' ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <input type="hidden" name="class_name" value="<?= htmlspecialchars($target_class) ?>">
+                        <input type="hidden" name="random" value="1">
+                        <button type="submit" class="btn btn-secondary" style="background: var(--accent); color: white; border: none;">
+                            🎲 Randomly Assign 5 Students (Anonymous)
+                        </button>
+                    </form>
+                <?php endif; ?>
             </div>
         <?php endif; ?>
 

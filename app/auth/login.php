@@ -43,6 +43,7 @@ try {
         if (password_verify($password, $user['password'])) {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['role']    = $user['role'];
+            $_SESSION['name']    = $user['name'];
 
             // Fetch Permissions for the role
             $perm_stmt = $conn->prepare("SELECT p.permission_name FROM permissions p JOIN role_permissions rp ON p.id = rp.permission_id WHERE rp.role = ?");

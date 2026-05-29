@@ -11,30 +11,57 @@ $faculty_id = $_SESSION['user_id'];
 $subject_id = (int) ($_POST['subject_id'] ?? 0);
 $subject_name = $_POST['subject_name'];
 $branch = $_POST['branch'] ?? '';
-$class_name = strtoupper(trim($_POST['class_name'] ?? 'N/A'));
 $semester = (int) ($_POST['semester'] ?? 0);
+$is_elective = isset($_POST['is_elective']) ? 1 : 0;
+$class_name = strtoupper(trim($_POST['class_name'] ?? 'N/A'));
+
+if ($is_elective) {
+    $class_name = 'ALL'; 
+} else if ($semester > 0 && !empty($class_name) && $class_name !== 'N/A') {
+    $class_pure = preg_replace('/^[\d\s\-_]+/', '', $class_name);
+    $class_pure = str_replace(['-', ' '], '', $class_pure);
+    $class_name = $semester . $class_pure;
+}
 
 if ($subject_id > 0) {
-    // Update existing subject
-    $stmt = $conn->prepare("UPDATE faculty_subjects SET subject_name = ?, branch = ?, class_name = ?, semester = ? WHERE id = ? AND faculty_id = ?");
-    $stmt->bind_param("sssiii", $subject_name, $branch, $class_name, $semester, $subject_id, $faculty_id);
+    // Update existing subject (Remove enrollment_closed from query)
+    $stmt = $conn->prepare("UPDATE faculty_subjects SET subject_name = ?, branch = ?, class_name = ?, semester = ?, is_elective = ? WHERE id = ? AND faculty_id = ?");
+    if (!$stmt) {
+        $_SESSION['msg_error'] = "Database error: " . $conn->error;
+        header("Location: ../../../public/academics/create_subject.php?id=" . $subject_id);
+        exit();
+    }
+    $stmt->bind_param("sssiiii", $subject_name, $branch, $class_name, $semester, $is_elective, $subject_id, $faculty_id);
     $stmt->execute();
 
-    // Delete old units and topics to refresh them
-    // Topics will be deleted via CASCADE if the DB is set up that way, 
-    // but let's be explicit if not sure.
-    // Based on schema: faculty_units has FOREIGN KEY (subject_id) REFERENCES faculty_subjects(id) ON DELETE CASCADE
-    // And faculty_topics has FOREIGN KEY (unit_id) REFERENCES faculty_units(id) ON DELETE CASCADE
-    // So deleting units should be enough.
     $delUnits = $conn->prepare("DELETE FROM faculty_units WHERE subject_id = ?");
     $delUnits->bind_param("i", $subject_id);
     $delUnits->execute();
 } else {
     // Create new subject
-    $stmt = $conn->prepare("INSERT INTO faculty_subjects (faculty_id, subject_name, branch, class_name, semester) VALUES (?, ?, ?, ?, ?)");
-    $stmt->bind_param("isssi", $faculty_id, $subject_name, $branch, $class_name, $semester);
+    $stmt = $conn->prepare("INSERT INTO faculty_subjects (faculty_id, subject_name, branch, class_name, semester, is_elective) VALUES (?, ?, ?, ?, ?, ?)");
+    if (!$stmt) {
+        $_SESSION['msg_error'] = "Database error: " . $conn->error;
+        header("Location: ../../../public/academics/create_subject.php");
+        exit();
+    }
+    $stmt->bind_param("isssii", $faculty_id, $subject_name, $branch, $class_name, $semester, $is_elective);
     $stmt->execute();
     $subject_id = $conn->insert_id;
+
+    // ONLY add pending requests for NEW subjects
+    if ($is_elective) {
+        $student_stmt = $conn->prepare("SELECT id FROM users WHERE role = 'student' AND semester = ?");
+        $student_stmt->bind_param("i", $semester);
+        $student_stmt->execute();
+        $students = $student_stmt->get_result();
+
+        $ins_request = $conn->prepare("INSERT INTO student_electives (student_id, subject_id, semester, status) VALUES (?, ?, ?, 'pending')");
+        while ($student = $students->fetch_assoc()) {
+            $ins_request->bind_param("iii", $student['id'], $subject_id, $semester);
+            $ins_request->execute();
+        }
+    }
 }
 
 $unit_names = $_POST['unit_names'] ?? [];

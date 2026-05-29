@@ -18,7 +18,7 @@ $faculty_members = $fac_query->fetch_all(MYSQLI_ASSOC);
 <div class="wrapper" style="padding: 2rem;">
     <div style="max-width: 600px; margin: 0 auto;">
         <h1 class="page-title" style="font-family: 'DM Serif Display', serif; font-size: 2.5rem; margin-bottom: 0.5rem;">Anonymous Feedback Box</h1>
-        <p style="color: var(--text-2); margin-bottom: 2rem;">Your identity will remain completely anonymous. This feedback is only visible to the Department Admin.</p>
+        <p style="color: var(--text-2); margin-bottom: 2rem;">Your identity will remain completely anonymous. This feedback is only visible to the Department Admin and Faculty.</p>
 
         <?php if (isset($_SESSION['msg_success'])): ?>
             <div class="alert alert-success"><?= $_SESSION['msg_success']; unset($_SESSION['msg_success']); ?></div>

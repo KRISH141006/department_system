@@ -11,11 +11,9 @@ $faculty_id = (int) $_SESSION['user_id'];
 $today = date('Y-m-d');
 
 // Fetch topics updated today for subjects taught by this faculty
-// We join with faculty_subjects to ensure faculty only sees their own topics
 $query = "
-    SELECT tp.*, u.name as student_name
+    SELECT tp.*, 'Anonymous Student' as student_name
     FROM topic_progress tp
-    JOIN users u ON u.id = tp.updated_by
     JOIN faculty_subjects fs ON fs.subject_name = tp.subject
     WHERE fs.faculty_id = ? 
     AND DATE(tp.updated_at) = ?

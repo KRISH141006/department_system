@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../app/middleware/auth.php';
 require_once __DIR__ . '/../../app/config/db.php';
 
 // Only allow reviewers (faculty, expert, admin)
-if (!has_permission('view_expert_dashboard')) {
+if (!has_permission('review_requests')) {
     header("Location: ../dashboard.php");
     exit;
 }

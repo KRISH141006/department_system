@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../../middleware/auth.php';
 require_once __DIR__ . '/../../config/db.php';
 
-if (!has_permission('view_expert_dashboard')) {
+if (!has_permission('review_requests')) {
     header("Location: ../../../public/dashboard.php");
     exit;
 }

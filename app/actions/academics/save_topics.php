@@ -39,12 +39,12 @@ foreach ($selectedTopics as $topic) {
     $result = $check->get_result();
 
     if ($result->num_rows > 0) {
-        $update = $conn->prepare("UPDATE topic_progress SET is_covered=1, updated_by=? WHERE subject=? AND unit_no=? AND topic_name=?");
-        $update->bind_param("isis", $_SESSION['user_id'], $subject_name, $unit_no, $topic);
+        $update = $conn->prepare("UPDATE topic_progress SET is_covered=1, is_verified=0 WHERE subject=? AND unit_no=? AND topic_name=?");
+        $update->bind_param("sis", $subject_name, $unit_no, $topic);
         $update->execute();
     } else {
-        $insert = $conn->prepare("INSERT INTO topic_progress (subject, unit_no, topic_name, is_covered, updated_by) VALUES (?, ?, ?, 1, ?)");
-        $insert->bind_param("sisi", $subject_name, $unit_no, $topic, $_SESSION['user_id']);
+        $insert = $conn->prepare("INSERT INTO topic_progress (subject, unit_no, topic_name, is_covered, is_verified) VALUES (?, ?, ?, 1, 0)");
+        $insert->bind_param("sis", $subject_name, $unit_no, $topic);
         $insert->execute();
     }
 }
