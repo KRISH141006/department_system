@@ -70,9 +70,9 @@ require_once __DIR__ . '/../../app/includes/header.php';
             </div>
 
             <div class="grid-2">
-                <div class="form-group">
+                <div class="form-group" id="classGroup">
                     <label>Target Class</label>
-                    <input type="text" name="class_name" value="<?= htmlspecialchars($subject_data['class_name'] ?? '') ?>" placeholder="e.g. 4EK1" required>
+                    <input type="text" name="class_name" value="<?= htmlspecialchars($subject_data['class_name'] ?? '') ?>" placeholder="e.g. 4EK1" id="classInput">
                 </div>
                 <div class="form-group">
                     <label>Target Semester</label>
@@ -87,6 +87,16 @@ require_once __DIR__ . '/../../app/includes/header.php';
                         ?>
                     </select>
                 </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 2rem;">
+                <label class="checkbox-container" style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" name="is_elective" id="isElective" value="1" <?= ($subject_data['is_elective'] ?? 0) ? 'checked' : '' ?> style="width: 20px; height: 20px;" onchange="toggleFields()">
+                    <span style="font-weight: 600; color: var(--text);">This is an Elective Subject</span>
+                </label>
+                <p style="font-size: 0.85rem; color: var(--text-2); margin-top: 5px; margin-left: 30px;">
+                    If checked, students will receive an enrollment request.
+                </p>
             </div>
 
             <div id="unitsContainer">
@@ -135,6 +145,25 @@ require_once __DIR__ . '/../../app/includes/header.php';
 
 <script>
     let unitCount = <?= count($units_data) ?: 1 ?>;
+
+    function toggleFields() {
+        const isElective = document.getElementById('isElective').checked;
+        const classGroup = document.getElementById('classGroup');
+        const classInput = document.getElementById('classInput');
+        
+        if (isElective) {
+            classGroup.style.display = 'none';
+            classInput.removeAttribute('required');
+            classInput.value = 'ALL';
+        } else {
+            classGroup.style.display = 'block';
+            classInput.setAttribute('required', 'required');
+            if (classInput.value === 'ALL') classInput.value = '';
+        }
+    }
+
+    // Run on page load
+    window.onload = toggleFields;
 
     function addUnit() {
         unitCount++;
