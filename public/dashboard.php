@@ -1,13 +1,22 @@
 <?php
 require_once __DIR__ . '/../app/middleware/auth.php';
+require_once __DIR__ . '/../app/config/db.php';
 $page_title = 'Dashboard';
+
+$user_id = $_SESSION['user_id'];
+$name_stmt = $conn->prepare("SELECT name FROM users WHERE id = ?");
+$name_stmt->bind_param("i", $user_id);
+$name_stmt->execute();
+$name_result = $name_stmt->get_result();
+$user_name = ($name_result->num_rows > 0) ? $name_result->fetch_assoc()['name'] : ($_SESSION['name'] ?? 'User');
+
 require_once __DIR__ . '/../app/includes/header.php';
 
 $role = $_SESSION['role'] ?? 'student';
 ?>
 
 <div class="dashboard-wrapper" style="padding: 2rem;">
-    <h1>Welcome to the Department System</h1>
+    <h1>Welcome, <?= htmlspecialchars($user_name) ?></h1>
     <p>Your role: <strong><?= htmlspecialchars(ucfirst($_SESSION['role'] ?? '')) ?></strong></p>
 
     <div class="dashboard-modules" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem;">

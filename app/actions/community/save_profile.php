@@ -11,6 +11,7 @@ $user_id = (int) $_SESSION['user_id'];
 $role = $_SESSION['role'];
 
 // --- User table fields ---
+$name         = trim($_POST['name']         ?? '');
 $class_name   = strtoupper(trim($_POST['class_name']   ?? ''));
 $semester     = (int) ($_POST['semester']     ?? 0);
 $roll_no       = strtoupper(trim($_POST['roll_no']      ?? ''));
@@ -21,6 +22,14 @@ $linkedin_url  = trim($_POST['linkedin_url'] ?? '');
 $cc_class           = strtoupper(trim($_POST['cc_class']           ?? ''));
 $cc_semester        = (int) ($_POST['cc_semester']        ?? 0);
 
+// Enforce [Semester][ClassName] convention (e.g., 4EK1)
+if ($role === 'student' && $semester > 0 && !empty($class_name)) {
+    // Remove leading digits, hyphens, and spaces
+    $class_pure = preg_replace('/^[\d\s\-_]+/', '', $class_name);
+    $class_pure = str_replace(['-', ' '], '', $class_pure);
+    $class_name = $semester . $class_pure;
+}
+
 // Check if student is trying to change class/semester when it's already set
 if ($role === 'student') {
     $checkStmt = $conn->prepare("SELECT class_name, semester FROM users WHERE id = ?");
@@ -29,7 +38,7 @@ if ($role === 'student') {
     $current = $checkStmt->get_result()->fetch_assoc();
 
     if (!empty($current['class_name']) && !empty($current['semester'])) {
-        // Prevent changing these fields
+        // Prevent changing these fields (they already follow the convention if they were set after this update)
         $class_name = $current['class_name'];
         $semester = $current['semester'];
     }
@@ -52,6 +61,12 @@ $designation        = trim($_POST['designation']        ?? '');
 $teaching_interests = trim($_POST['teaching_interests'] ?? '');
 $is_cc              = isset($_POST['is_cc']) ? 1 : 0;
 
+if ($is_cc && $cc_semester > 0 && !empty($cc_class)) {
+    $cc_pure = preg_replace('/^[\d\s\-_]+/', '', $cc_class);
+    $cc_pure = str_replace(['-', ' '], '', $cc_pure);
+    $cc_class = $cc_semester . $cc_pure;
+}
+
 // --- Expert Specific ---
 $is_alumni          = isset($_POST['is_alumni']) ? 1 : 0;
 $college_name       = trim($_POST['college_name']       ?? '');
@@ -66,16 +81,19 @@ if ($role === 'expert') {
     $designation = trim($_POST['designation'] ?? '');
 }
 
-if (empty($branch)) {
-    $_SESSION['profile_error'] = "Branch is required.";
+if (empty($branch) || empty($name)) {
+    $_SESSION['profile_error'] = "Name and Branch are required.";
     header("Location: ../../../public/community/profile.php");
     exit;
 }
 
 // 1. Update users table
-$uStmt = $conn->prepare("UPDATE users SET class_name = ?, semester = ?, roll_no = ?, emp_id = ?, linkedin_url = ? WHERE id = ?");
-$uStmt->bind_param("sssssi", $class_name, $semester, $roll_no, $emp_id, $linkedin_url, $user_id);
+$uStmt = $conn->prepare("UPDATE users SET name = ?, class_name = ?, semester = ?, roll_no = ?, emp_id = ?, linkedin_url = ? WHERE id = ?");
+$uStmt->bind_param("ssssssi", $name, $class_name, $semester, $roll_no, $emp_id, $linkedin_url, $user_id);
 $uStmt->execute();
+
+// Update session name too
+$_SESSION['name'] = $name;
 
 // 2. Check if profile exists
 $chk = $conn->prepare("SELECT id FROM profiles WHERE user_id = ?");

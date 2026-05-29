@@ -48,8 +48,8 @@ include __DIR__ . '/../../app/includes/header.php';
                     <h2 style="font-size: 1.25rem; margin-bottom: 1rem; color: var(--accent);">1. Basic Information</h2>
                     <div class="grid-2">
                         <div class="form-group">
-                            <label>Full Name</label>
-                            <input type="text" value="<?= htmlspecialchars($user_data['name']) ?>" readonly style="background: var(--bg-2);">
+                            <label>Full Name <span style="color:red;">*</span></label>
+                            <input type="text" name="name" value="<?= htmlspecialchars($user_data['name']) ?>" required placeholder="Enter your full name">
                         </div>
                         <div class="form-group">
                             <label>Account Role</label>

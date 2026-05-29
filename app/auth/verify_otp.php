@@ -92,6 +92,7 @@ try {
         
         $_SESSION['user_id'] = $new_user_id;
         $_SESSION['role']    = $role;
+        $_SESSION['name']    = $name;
 
         unset($_SESSION['otp']);
         unset($_SESSION['user_data']);

@@ -117,7 +117,7 @@ require_once __DIR__ . '/../../app/includes/header.php';
         <div class="grid-2">
             <?php 
             $subQuery = $conn->prepare("
-                SELECT fs.id, fs.subject_name, fs.class_name, fs.semester, 
+                SELECT fs.id, fs.subject_name, fs.class_name, fs.semester, fs.is_elective,
                        (SELECT COUNT(*) FROM feedback_selector s WHERE s.subject_id = fs.id AND s.selected_date = ?) as assigned_count
                 FROM faculty_subjects fs
                 WHERE fs.faculty_id = ?
@@ -135,10 +135,13 @@ require_once __DIR__ . '/../../app/includes/header.php';
             while ($sub = $subjects->fetch_assoc()) {
                 $hasAssignments = $sub['assigned_count'] > 0;
             ?>
-                <div class="card" style="display: flex; justify-content: space-between; align-items: center; border-left: 4px solid <?php echo $hasAssignments ? 'var(--success)' : 'transparent'; ?>;">
+                <div class="card" style="display: flex; justify-content: space-between; align-items: center; border-left: 4px solid <?php echo $sub['is_elective'] ? 'var(--primary)' : ($hasAssignments ? 'var(--success)' : 'transparent'); ?>;">
                     <div>
                         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
                             <h3 style="margin: 0; font-size: 1.15rem;"><?php echo htmlspecialchars($sub['subject_name']); ?></h3>
+                            <?php if ($sub['is_elective']): ?>
+                                <span class="badge" style="background: var(--primary); color: #fff; font-size: 10px;">Elective</span>
+                            <?php endif; ?>
                             <?php if ($hasAssignments): ?>
                                 <span class="badge badge-success" style="font-size: 10px;">Assigned Today</span>
                             <?php endif; ?>
@@ -154,6 +157,9 @@ require_once __DIR__ . '/../../app/includes/header.php';
                         <?php endif; ?>
                     </div>
                     <div style="display: flex; gap: 8px;">
+                        <?php if ($sub['is_elective']): ?>
+                            <a href="manage_elective_students.php?id=<?php echo $sub['id']; ?>" class="btn btn-sm btn-primary">Students</a>
+                        <?php endif; ?>
                         <a href="create_subject.php?id=<?php echo $sub['id']; ?>" class="btn btn-sm btn-secondary">Edit</a>
                         <a href="units.php?subject_id=<?php echo $sub['id']; ?>" class="btn btn-sm btn-secondary">Units</a>
                         <a href="select_student.php?class_name=<?php echo urlencode($sub['class_name']); ?>&semester=<?php echo urlencode($sub['semester']); ?>" class="btn btn-sm <?php echo $hasAssignments ? 'btn-secondary' : 'btn-primary'; ?>">

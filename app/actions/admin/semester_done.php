@@ -23,9 +23,10 @@ try {
         if ($new_sem > 8) continue;
 
         $old_class = $student['class_name'];
-        // Replace the semester digit in class name (e.g., 4EK1 -> 5EK1)
-        // We assume the class name starts with the semester number
-        $new_class = preg_replace('/^\d+/', $new_sem, $old_class);
+        // Ensure new class follows [semester][class] convention without hyphens/spaces
+        $pure_class = preg_replace('/^[\d\s\-_]+/', '', $old_class);
+        $pure_class = str_replace(['-', ' '], '', $pure_class);
+        $new_class = strtoupper($new_sem . $pure_class);
 
         $upd = $conn->prepare("UPDATE users SET semester = ?, class_name = ? WHERE id = ?");
         $upd->bind_param("isi", $new_sem, $new_class, $student['id']);
@@ -49,10 +50,13 @@ try {
             $updCC->execute();
             continue;
         }
-        $new_class = preg_replace('/^\d+/', $new_sem, $cc['cc_class']);
+        $old_cc_class = $cc['cc_class'];
+        $pure_cc_class = preg_replace('/^[\d\s\-_]+/', '', $old_cc_class);
+        $pure_cc_class = str_replace(['-', ' '], '', $pure_cc_class);
+        $new_cc_class = strtoupper($new_sem . $pure_cc_class);
 
         $updCC = $conn->prepare("UPDATE profiles SET cc_semester = ?, cc_class = ? WHERE user_id = ?");
-        $updCC->bind_param("isi", $new_sem, $new_class, $cc['user_id']);
+        $updCC->bind_param("isi", $new_sem, $new_cc_class, $cc['user_id']);
         $updCC->execute();
     }
 
