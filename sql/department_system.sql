@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- ======================
 -- PROFILES TABLE
--- ======================
+-- ======================   
 CREATE TABLE IF NOT EXISTS profiles (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT UNIQUE NOT NULL,
