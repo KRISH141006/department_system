@@ -29,7 +29,7 @@ $stmt = $conn->prepare("INSERT INTO continuous_feedback (faculty_id, subject_id,
 $stmt->bind_param("iis", $faculty_id, $subj_param, $feedback_text);
 
 if ($stmt->execute()) {
-    $_SESSION['msg_success'] = "Thank you! Your anonymous feedback has been submitted to the Admin.";
+    $_SESSION['msg_success'] = "Thank you! Your anonymous feedback has been submitted.";
 } else {
     $_SESSION['msg_error'] = "Error submitting feedback: " . $conn->error;
 }

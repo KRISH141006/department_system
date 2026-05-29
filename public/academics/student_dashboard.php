@@ -32,6 +32,15 @@ require_once __DIR__ . '/../../app/includes/header.php';
 
     <div class="grid-2">
         <?php 
+        // Get assigned subject ID for today if any
+        $today = date('Y-m-d');
+        $assStmt = $conn->prepare("SELECT subject_id FROM feedback_selector WHERE selected_student_id = ? AND selected_date = ?");
+        $assStmt->bind_param("is", $student_id, $today);
+        $assStmt->execute();
+        $assRes = $assStmt->get_result();
+        $assigned_ids = [];
+        while($row = $assRes->fetch_assoc()) $assigned_ids[] = $row['subject_id'];
+
         $subQuery = $conn->prepare("SELECT id, subject_name FROM faculty_subjects WHERE class_name = ? AND semester = ?");
         $subQuery->bind_param("si", $class_name, $semester);
         $subQuery->execute();
@@ -42,9 +51,15 @@ require_once __DIR__ . '/../../app/includes/header.php';
         }
 
         while ($sub = $subjects->fetch_assoc()) {
+            $isAssignedToday = in_array($sub['id'], $assigned_ids);
         ?>
-            <a href="units.php?subject_id=<?php echo $sub['id']; ?>" class="card" style="text-decoration: none; color: inherit;">
-                <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600;"><?php echo htmlspecialchars($sub['subject_name']); ?></h3>
+            <a href="units.php?subject_id=<?php echo $sub['id']; ?>" class="card" style="text-decoration: none; color: inherit; border: <?php echo $isAssignedToday ? '2px solid var(--accent)' : '1px solid var(--border)'; ?>;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600;"><?php echo htmlspecialchars($sub['subject_name']); ?></h3>
+                    <?php if ($isAssignedToday): ?>
+                        <span class="badge badge-pending">Verify Today</span>
+                    <?php endif; ?>
+                </div>
                 <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">View Syllabus & Progress</p>
                 <div style="margin-top: 16px; display: flex; align-items: center; gap: 8px;">
                     <span class="badge badge-success">Syllabus</span>

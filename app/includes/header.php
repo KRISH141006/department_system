@@ -28,10 +28,10 @@ $base_path = rtrim($base_path, '/');
       <a href="<?= $base_path ?>/public/dashboard.php" class="nav-link">Dashboard</a>
       <a href="<?= $base_path ?>/public/community/profile.php" class="nav-link">Profile</a>
       <a href="<?= $base_path ?>/public/community/leaderboard.php" class="nav-link">Leaderboard</a>
-      <?php if (has_permission('view_expert_dashboard')): ?>
+      <?php if (has_permission('review_requests')): ?>
         <a href="<?= $base_path ?>/public/community/reviewer_dashboard.php" class="nav-link">Review Requests</a>
       <?php endif; ?>
-      <?php if (has_permission('view_faculty_dashboard')): ?>
+      <?php if (has_permission('view_faculty_dashboard') && $_SESSION['role'] !== 'faculty'): ?>
         <a href="<?= $base_path ?>/public/academics/manage_subjects.php" class="nav-link">Academics</a>
       <?php endif; ?>
       <a href="<?= $base_path ?>/app/auth/logout.php" class="nav-link">Logout</a>
