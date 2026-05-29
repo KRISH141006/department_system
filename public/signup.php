@@ -50,11 +50,6 @@
         </div>
 
         <div class="form-group">
-          <label>LinkedIn Profile</label>
-          <input type="text" name="linkedin_url" placeholder="https://linkedin.com/in/your-profile" required>
-        </div>
-
-        <div class="form-group">
           <label>Role</label>
           <select name="role">
             <option value="student">Student</option>

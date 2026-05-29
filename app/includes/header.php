@@ -27,13 +27,11 @@ $base_path = rtrim($base_path, '/');
     <nav class="header-nav">
       <a href="<?= $base_path ?>/public/dashboard.php" class="nav-link">Dashboard</a>
       <a href="<?= $base_path ?>/public/community/profile.php" class="nav-link">Profile</a>
-      <?php if ($nav_role === 'student'): ?>
-        <!-- Student specific links if any -->
-      <?php endif; ?>
-      <?php if (in_array($nav_role, ['expert', 'admin'])): ?>
+      <a href="<?= $base_path ?>/public/community/leaderboard.php" class="nav-link">Leaderboard</a>
+      <?php if (has_permission('view_expert_dashboard')): ?>
         <a href="<?= $base_path ?>/public/community/reviewer_dashboard.php" class="nav-link">Review Requests</a>
       <?php endif; ?>
-      <?php if (in_array($nav_role, ['faculty', 'admin'])): ?>
+      <?php if (has_permission('view_faculty_dashboard')): ?>
         <a href="<?= $base_path ?>/public/academics/manage_subjects.php" class="nav-link">Academics</a>
       <?php endif; ?>
       <a href="<?= $base_path ?>/app/auth/logout.php" class="nav-link">Logout</a>
@@ -42,14 +40,16 @@ $base_path = rtrim($base_path, '/');
   </div>
 </header>
 <main class="main-content">
-  <div class="wrapper" style="padding-top: 1rem; padding-bottom: 0;">
     <?php if (isset($_SESSION['msg_success'])): ?>
-      <div class="alert alert-success" style="margin-bottom: 1rem;"><?= $_SESSION['msg_success'] ?></div>
-      <?php unset($_SESSION['msg_success']); ?>
+      <div class="page-wrap" style="padding-top: 1rem; padding-bottom: 0;">
+        <div class="alert alert-success" style="margin-bottom: 1rem;"><?= $_SESSION['msg_success'] ?></div>
+        <?php unset($_SESSION['msg_success']); ?>
+      </div>
     <?php endif; ?>
 
     <?php if (isset($_SESSION['msg_error'])): ?>
-      <div class="alert alert-error" style="margin-bottom: 1rem;"><?= $_SESSION['msg_error'] ?></div>
-      <?php unset($_SESSION['msg_error']); ?>
+      <div class="page-wrap" style="padding-top: 1rem; padding-bottom: 0;">
+        <div class="alert alert-error" style="margin-bottom: 1rem;"><?= $_SESSION['msg_error'] ?></div>
+        <?php unset($_SESSION['msg_error']); ?>
+      </div>
     <?php endif; ?>
-  </div>

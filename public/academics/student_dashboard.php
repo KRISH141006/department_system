@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../../app/middleware/auth.php';
 require_once __DIR__ . '/../../app/config/db.php';
 
-if ($_SESSION['role'] !== 'student') {
+if (!has_permission('view_student_dashboard')) {
     header("Location: ../dashboard.php");
     exit();
 }
@@ -33,7 +33,7 @@ require_once __DIR__ . '/../../app/includes/header.php';
     <div class="grid-2">
         <?php 
         $subQuery = $conn->prepare("SELECT id, subject_name FROM faculty_subjects WHERE class_name = ? AND semester = ?");
-        $subQuery->bind_param("ss", $class_name, $semester);
+        $subQuery->bind_param("si", $class_name, $semester);
         $subQuery->execute();
         $subjects = $subQuery->get_result();
 
@@ -58,21 +58,56 @@ require_once __DIR__ . '/../../app/includes/header.php';
         <h2 style="margin-bottom: 24px;">Action Required</h2>
         
         <div style="display: grid; gap: 16px;">
+            <?php
+            // Check for pending electives
+            $elec_check = $conn->prepare("SELECT id FROM faculty_subjects WHERE semester = ? AND is_elective = 1");
+            $elec_check->bind_param("i", $semester);
+            $elec_check->execute();
+            $has_electives = $elec_check->get_result()->num_rows > 0;
+
+            if ($has_electives) {
+                $sel_check = $conn->prepare("SELECT 1 FROM student_electives WHERE student_id = ? AND semester = ? LIMIT 1");
+                $sel_check->bind_param("ii", $student_id, $semester);
+                $sel_check->execute();
+                if ($sel_check->get_result()->num_rows === 0) {
+            ?>
+                <div class="card" style="border-left: 4px solid var(--primary);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                        <div>
+                            <h3 style="font-size: 1.1rem;">Choose Your Electives</h3>
+                            <p style="color: var(--text-2); font-size: 14px;">You haven't selected your elective subjects for this semester yet.</p>
+                        </div>
+                        <a href="select_electives.php" class="btn btn-primary">Select Electives</a>
+                    </div>
+                </div>
+            <?php 
+                }
+            }
+            ?>
+
             <?php 
             // Check if selected for daily feedback
             $today = date('Y-m-d');
-            $feedChk = $conn->prepare("SELECT 1 FROM feedback_selector WHERE selected_student_id = ? AND selected_date = ?");
+            $feedChk = $conn->prepare("SELECT subject_id FROM feedback_selector WHERE selected_student_id = ? AND selected_date = ?");
             $feedChk->bind_param("is", $student_id, $today);
             $feedChk->execute();
-            if ($feedChk->get_result()->num_rows > 0) { 
+            $feedRes = $feedChk->get_result();
+            if ($feedRes->num_rows > 0) {
+                $assigned_subject_id = $feedRes->fetch_assoc()['subject_id'];
             ?>
                 <div class="card" style="border-left: 4px solid var(--accent);">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
                         <div>
                             <h3 style="font-size: 1.1rem;">Today's Lecture Feedback</h3>
-                            <p style="color: var(--text-2); font-size: 14px;">You have been selected to provide feedback for today's sessions.</p>
+                            <p style="color: var(--text-2); font-size: 14px;">You have been randomly selected to provide anonymous feedback for today's sessions.</p>
                         </div>
-                        <a href="lecture_feedback.php?from=feedback" class="btn btn-primary">Provide Feedback</a>
+                        <div style="display: flex; gap: 10px;">
+                            <form action="../../app/actions/academics/skip_feedback.php" method="POST" onsubmit="return confirm('Are you sure you want to skip this review? You should only do this if you were absent.');">
+                                <input type="hidden" name="subject_id" value="<?php echo $assigned_subject_id; ?>">
+                                <button type="submit" class="btn btn-secondary" style="border: 1px solid var(--border);">I was absent - Skip Review</button>
+                            </form>
+                            <a href="lecture_feedback.php?from=feedback" class="btn btn-primary">Provide Feedback</a>
+                        </div>
                     </div>
                 </div>
             <?php } ?>

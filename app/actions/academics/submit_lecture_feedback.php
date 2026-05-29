@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../../middleware/auth.php';
 require_once __DIR__ . '/../../config/db.php';
 
-if ($_SESSION['role'] !== 'student') {
+if (!has_permission('view_student_dashboard')) {
     header("Location: ../../../public/dashboard.php");
     exit();
 }
@@ -17,14 +17,21 @@ $selectedTopics = $_POST['topics'] ?? [];
 
 // Insert Lecture Feedback
 $stmt = $conn->prepare("INSERT INTO lecture_feedback 
-(student_id, lecture_start_time, lecture_end_time, topic_type, assignment) 
-VALUES (?, ?, ?, ?, ?)");
+(student_id, subject_id, lecture_start_time, lecture_end_time, topic_type, assignment) 
+VALUES (?, ?, ?, ?, ?, ?)");
 
-$stmt->bind_param("issss", $student_id, $start, $end, $topic_type, $assignment);
+$stmt->bind_param("iissss", $student_id, $subject_id, $start, $end, $topic_type, $assignment);
 
 if ($stmt->execute()) {
-    // 1. Update Topic Progress
-    if (!empty($selectedTopics)) {
+    // 1. Check if student was assigned for verification today
+    $today = date('Y-m-d');
+    $checkAssign = $conn->prepare("SELECT id FROM feedback_selector WHERE selected_student_id = ? AND selected_date = ? AND subject_id = ?");
+    $checkAssign->bind_param("isi", $student_id, $today, $subject_id);
+    $checkAssign->execute();
+    $is_assigned = $checkAssign->get_result()->num_rows > 0;
+
+    // 2. Update Topic Progress (ONLY IF ASSIGNED)
+    if ($is_assigned && !empty($selectedTopics)) {
         // Get subject name
         $sStmt = $conn->prepare("SELECT subject_name FROM faculty_subjects WHERE id = ?");
         $sStmt->bind_param("i", $subject_id);
@@ -45,31 +52,32 @@ if ($stmt->execute()) {
             if ($uRes->num_rows > 0) {
                 $unit_no = $uRes->fetch_assoc()['unit_no'];
 
-                // Update or Insert into topic_progress
+                // Update or Insert into topic_progress anonymously
                 $check = $conn->prepare("SELECT id FROM topic_progress WHERE subject=? AND unit_no=? AND topic_name=?");
                 $check->bind_param("sis", $subject_name, $unit_no, $topic);
                 $check->execute();
                 
                 if ($check->get_result()->num_rows > 0) {
-                    $upd = $conn->prepare("UPDATE topic_progress SET is_covered=1, updated_by=? WHERE subject=? AND unit_no=? AND topic_name=?");
-                    $upd->bind_param("isis", $student_id, $subject_name, $unit_no, $topic);
+                    $upd = $conn->prepare("UPDATE topic_progress SET is_covered=1, verification_count = verification_count + 1 WHERE subject=? AND unit_no=? AND topic_name=?");
+                    $upd->bind_param("sis", $subject_name, $unit_no, $topic);
                     $upd->execute();
                 } else {
-                    $ins = $conn->prepare("INSERT INTO topic_progress (subject, unit_no, topic_name, is_covered, updated_by) VALUES (?, ?, ?, 1, ?)");
-                    $ins->bind_param("sisi", $subject_name, $unit_no, $topic, $student_id);
+                    $ins = $conn->prepare("INSERT INTO topic_progress (subject, unit_no, topic_name, is_covered, verification_count) VALUES (?, ?, ?, 1, 1)");
+                    $ins->bind_param("sis", $subject_name, $unit_no, $topic);
                     $ins->execute();
                 }
             }
         }
     }
 
-    // 2. Remove from selector
-    $today = date('Y-m-d');
-    $del = $conn->prepare("DELETE FROM feedback_selector WHERE selected_student_id = ? AND selected_date = ?");
-    $del->bind_param("is", $student_id, $today);
-    $del->execute();
+    // 3. Remove from selector (assignment completed)
+    $del = $conn->prepare("DELETE FROM feedback_selector WHERE selected_student_id = ? AND selected_date = ? AND subject_id = ?");
+    if ($del) {
+        $del->bind_param("isi", $student_id, $today, $subject_id);
+        $del->execute();
+    }
     
-    $_SESSION['msg_success'] = "Feedback submitted successfully.";
+    $_SESSION['msg_success'] = "Feedback submitted anonymously. Thank you for your review.";
     header("Location: ../../../public/academics/student_dashboard.php");
 } else {
     $_SESSION['msg_error'] = "Error submitting feedback: " . $conn->error;

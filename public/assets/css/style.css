@@ -83,10 +83,16 @@ body {
 .nav-link:hover { background: var(--border); color: var(--text); }
 
 /* ── Page Wrapper ── */
-.page-wrap {
+.wrapper, .page-wrap {
   max-width: 960px;
   margin: 0 auto;
   padding: 2.5rem 2rem;
+}
+
+.main-content {
+  min-height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
 }
 
 .page-wrap.narrow { max-width: 540px; }
