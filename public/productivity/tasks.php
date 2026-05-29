@@ -112,60 +112,92 @@ require_once __DIR__ . '/../../app/includes/header.php';
 $user_id = $_SESSION['user_id'];
 
 // Get counts to determine view
+$total_tasks = 0;
 $total_sql = "SELECT COUNT(*) as count FROM tasks WHERE user_id = ?";
 $stmt = $conn->prepare($total_sql);
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$total_tasks = $stmt->get_result()->fetch_assoc()['count'];
+if ($stmt) {
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    if ($res) {
+        $total_tasks = $res->fetch_assoc()['count'] ?? 0;
+    }
+    $stmt->close();
+}
 
 $view = isset($_GET['view']) ? $_GET['view'] : 'list';
 
 // Get all categories for this user
-$cat_stmt = $conn->prepare("SELECT * FROM task_categories WHERE user_id = ?");
-$cat_stmt->bind_param("i", $user_id);
-$cat_stmt->execute();
-$categories_result = $cat_stmt->get_result();
 $categories = [];
-while ($cat = $categories_result->fetch_assoc()) {
-    $categories[] = $cat;
-}
-
-// If no categories exist, add defaults
-if (empty($categories)) {
-    $defaults = ['Personal', 'Work', 'Study', 'Others'];
-    foreach ($defaults as $def) {
-        $ins = $conn->prepare("INSERT INTO task_categories (user_id, name) VALUES (?, ?)");
-        $ins->bind_param("is", $user_id, $def);
-        $ins->execute();
-    }
+$cat_stmt = $conn->prepare("SELECT * FROM task_categories WHERE user_id = ?");
+if ($cat_stmt) {
+    $cat_stmt->bind_param("i", $user_id);
     $cat_stmt->execute();
     $categories_result = $cat_stmt->get_result();
-    while ($cat = $categories_result->fetch_assoc()) { $categories[] = $cat; }
+    if ($categories_result) {
+        while ($cat = $categories_result->fetch_assoc()) {
+            $categories[] = $cat;
+        }
+    }
+
+    // If no categories exist, add defaults
+    if (empty($categories)) {
+        $defaults = ['Personal', 'Work', 'Study', 'Others'];
+        foreach ($defaults as $def) {
+            $ins = $conn->prepare("INSERT INTO task_categories (user_id, name) VALUES (?, ?)");
+            if ($ins) {
+                $ins->bind_param("is", $user_id, $def);
+                $ins->execute();
+                $ins->close();
+            }
+        }
+        $cat_stmt->execute();
+        $categories_result = $cat_stmt->get_result();
+        if ($categories_result) {
+            while ($cat = $categories_result->fetch_assoc()) { $categories[] = $cat; }
+        }
+    }
+    $cat_stmt->close();
 }
 
 // Get all priorities
-$prio_stmt = $conn->prepare("SELECT * FROM task_priorities WHERE user_id = ? ORDER BY sort_order ASC");
-$prio_stmt->bind_param("i", $user_id);
-$prio_stmt->execute();
-$priorities_result = $prio_stmt->get_result();
 $priorities = [];
-while ($prio = $priorities_result->fetch_assoc()) {
-    $priorities[] = $prio;
-}
-
-if (empty($priorities)) {
-    $defaults = [['Most Prior', '#ff3b30', 1], ['Prior', '#ff9f0a', 2], ['Least Prior', '#34c759', 3]];
-    foreach ($defaults as $def) {
-        $ins = $conn->prepare("INSERT INTO task_priorities (user_id, name, color, sort_order) VALUES (?, ?, ?, ?)");
-        $ins->bind_param("issi", $user_id, $def[0], $def[1], $def[2]);
-        $ins->execute();
-    }
+$prio_stmt = $conn->prepare("SELECT * FROM task_priorities WHERE user_id = ? ORDER BY sort_order ASC");
+if ($prio_stmt) {
+    $prio_stmt->bind_param("i", $user_id);
     $prio_stmt->execute();
     $priorities_result = $prio_stmt->get_result();
-    while ($prio = $priorities_result->fetch_assoc()) { $priorities[] = $prio; }
+    if ($priorities_result) {
+        while ($prio = $priorities_result->fetch_assoc()) {
+            $priorities[] = $prio;
+        }
+    }
+
+    if (empty($priorities)) {
+        $defaults = [['Most Prior', '#ff3b30', 1], ['Prior', '#ff9f0a', 2], ['Least Prior', '#34c759', 3]];
+        foreach ($defaults as $def) {
+            $ins = $conn->prepare("INSERT INTO task_priorities (user_id, name, color, sort_order) VALUES (?, ?, ?, ?)");
+            if ($ins) {
+                $ins->bind_param("issi", $user_id, $def[0], $def[1], $def[2]);
+                $ins->execute();
+                $ins->close();
+            }
+        }
+        $prio_stmt->execute();
+        $priorities_result = $prio_stmt->get_result();
+        if ($priorities_result) {
+            while ($prio = $priorities_result->fetch_assoc()) { $priorities[] = $prio; }
+        }
+    }
+    $prio_stmt->close();
 }
 
 // Data for list view
+$pending_count = 0;
+$completed_count = 0;
+$pending_result = false;
+$completed_result = false;
+
 if ($total_tasks > 0 && $view === 'list') {
     $filter_category = isset($_GET['category']) ? $_GET['category'] : 'all';
     $filter_priority = isset($_GET['priority']) ? $_GET['priority'] : 'all';
@@ -196,14 +228,24 @@ if ($total_tasks > 0 && $view === 'list') {
                       LEFT JOIN users fu ON fa.faculty_id = fu.id
                       $where_clause AND t.is_completed = 1 $order_by";
     $completed_result = mysqli_query($conn, $completed_sql);
-    $pending_count = mysqli_num_rows($pending_result);
-    $completed_count = mysqli_num_rows($completed_result);
+    
+    if ($pending_result) $pending_count = mysqli_num_rows($pending_result);
+    if ($completed_result) $completed_count = mysqli_num_rows($completed_result);
 }
 
+$userName = 'User';
 $stmt = $conn->prepare("SELECT name FROM users WHERE id = ?");
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$userName = htmlspecialchars($stmt->get_result()->fetch_assoc()['name'] ?? 'User');
+if ($stmt) {
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    if ($res) {
+        $userData = $res->fetch_assoc();
+        $userName = htmlspecialchars($userData['name'] ?? 'User');
+    }
+    $stmt->close();
+}
+?>
 ?>
 
 <style>

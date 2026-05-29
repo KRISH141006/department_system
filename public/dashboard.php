@@ -4,11 +4,17 @@ require_once __DIR__ . '/../app/config/db.php';
 $page_title = 'Dashboard';
 
 $user_id = $_SESSION['user_id'];
+$user_name = $_SESSION['name'] ?? 'User';
 $name_stmt = $conn->prepare("SELECT name FROM users WHERE id = ?");
-$name_stmt->bind_param("i", $user_id);
-$name_stmt->execute();
-$name_result = $name_stmt->get_result();
-$user_name = ($name_result->num_rows > 0) ? $name_result->fetch_assoc()['name'] : ($_SESSION['name'] ?? 'User');
+if ($name_stmt) {
+    $name_stmt->bind_param("i", $user_id);
+    $name_stmt->execute();
+    $name_result = $name_stmt->get_result();
+    if ($name_result && $name_result->num_rows > 0) {
+        $user_name = $name_result->fetch_assoc()['name'];
+    }
+    $name_stmt->close();
+}
 
 require_once __DIR__ . '/../app/includes/header.php';
 

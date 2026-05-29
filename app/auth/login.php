@@ -46,25 +46,32 @@ try {
             $_SESSION['name']    = $user['name'];
 
             // Fetch Permissions for the role
-            $perm_stmt = $conn->prepare("SELECT p.permission_name FROM permissions p JOIN role_permissions rp ON p.id = rp.permission_id WHERE rp.role = ?");
-            $perm_stmt->bind_param("s", $user['role']);
-            $perm_stmt->execute();
-            $perm_res = $perm_stmt->get_result();
             $_SESSION['permissions'] = [];
-            while ($p_row = $perm_res->fetch_assoc()) {
-                $_SESSION['permissions'][] = $p_row['permission_name'];
+            $perm_stmt = $conn->prepare("SELECT p.permission_name FROM permissions p JOIN role_permissions rp ON p.id = rp.permission_id WHERE rp.role = ?");
+            if ($perm_stmt) {
+                $perm_stmt->bind_param("s", $user['role']);
+                $perm_stmt->execute();
+                $perm_res = $perm_stmt->get_result();
+                if ($perm_res) {
+                    while ($p_row = $perm_res->fetch_assoc()) {
+                        $_SESSION['permissions'][] = $p_row['permission_name'];
+                    }
+                }
+                $perm_stmt->close();
             }
 
             // Check if profile exists
+            $redirect = "dashboard.php";
             $ps = $conn->prepare("SELECT id FROM profiles WHERE user_id = ?");
-            if (!$ps) {
-                throw new Exception("DB Error (profiles): " . $conn->error);
+            if ($ps) {
+                $ps->bind_param("i", $user['id']);
+                $ps->execute();
+                $pr = $ps->get_result();
+                if ($pr && $pr->num_rows === 0) {
+                    $redirect = "community/profile.php";
+                }
+                $ps->close();
             }
-            $ps->bind_param("i", $user['id']);
-            $ps->execute();
-            $pr = $ps->get_result();
-
-            $redirect = ($pr->num_rows === 0) ? "community/profile.php" : "dashboard.php";
 
             echo json_encode(["status" => "success", "redirect" => $redirect]);
         } else {

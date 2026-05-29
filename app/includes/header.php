@@ -46,15 +46,23 @@ $base_path = rtrim($base_path, '/');
           $s_stmt->execute();
           $s_user = $s_stmt->get_result()->fetch_assoc();
           
-          $m_sql = "SELECT lm.*, u.name as faculty_name FROM live_meetings lm 
-                    JOIN users u ON lm.faculty_id = u.id 
-                    WHERE lm.class_name = ? AND lm.semester = ? AND lm.status = 'live' 
-                    ORDER BY lm.created_at DESC";
-          $m_stmt = $conn->prepare($m_sql);
-          $m_stmt->bind_param("si", $s_user['class_name'], $s_user['semester']);
-          $m_stmt->execute();
-          $live_meetings = $m_stmt->get_result();
-          $has_live = $live_meetings->num_rows > 0;
+          $has_live = false;
+          $live_meetings = null;
+          
+          if ($s_user) {
+              $m_sql = "SELECT lm.*, u.name as faculty_name FROM live_meetings lm 
+                        JOIN users u ON lm.faculty_id = u.id 
+                        WHERE lm.class_name = ? AND lm.semester = ? AND lm.status = 'live' 
+                        ORDER BY lm.created_at DESC";
+              $m_stmt = $conn->prepare($m_sql);
+              
+              if ($m_stmt) {
+                  $m_stmt->bind_param("si", $s_user['class_name'], $s_user['semester']);
+                  $m_stmt->execute();
+                  $live_meetings = $m_stmt->get_result();
+                  $has_live = $live_meetings->num_rows > 0;
+              }
+          }
           ?>
           <div class="notification-container" style="position: relative; display: inline-flex; align-items: center; cursor: pointer; margin: 0 1rem;" onclick="toggleNotifications()">
               <div class="bell-icon <?= $has_live ? 'ringing' : '' ?>" style="font-size: 20px;">🔔</div>

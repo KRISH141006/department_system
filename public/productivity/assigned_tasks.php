@@ -9,9 +9,12 @@ $user_id = $_SESSION['user_id'];
 // Get counts of assigned tasks
 $count_sql = "SELECT COUNT(*) as count FROM tasks WHERE user_id = ? AND faculty_assignment_id IS NOT NULL";
 $stmt = $conn->prepare($count_sql);
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$total_assigned = $stmt->get_result()->fetch_assoc()['count'];
+$total_assigned = 0;
+if ($stmt) {
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $total_assigned = $stmt->get_result()->fetch_assoc()['count'];
+}
 
 $sort_by = isset($_GET['sort']) ? $_GET['sort'] : 'newest';
 $order_by = ($sort_by === 'oldest') ? "ORDER BY t.created_at ASC" : "ORDER BY t.created_at DESC";

@@ -5,13 +5,21 @@ require_once __DIR__ . '/../../app/config/db.php';
 $user_id = (int) $_SESSION['user_id'];
 $role = $_SESSION['role'];
 
+$user_data = ['name' => $_SESSION['name'] ?? '', 'class_name' => '', 'semester' => '', 'roll_no' => '', 'emp_id' => '', 'linkedin_url' => ''];
 // Fetch from users table
 $uStmt = $conn->prepare("SELECT name, class_name, semester, roll_no, emp_id, linkedin_url FROM users WHERE id = ?");
-$uStmt->bind_param("i", $user_id);
-$uStmt->execute();
-$user_data = $uStmt->get_result()->fetch_assoc();
+if ($uStmt) {
+    $uStmt->bind_param("i", $user_id);
+    $uStmt->execute();
+    $uRes = $uStmt->get_result();
+    if ($uRes) {
+        $user_data = $uRes->fetch_assoc() ?? $user_data;
+    }
+    $uStmt->close();
+}
 
 
+$profile_data = [];
 // Fetch from profiles table (Updated with all new columns)
 $pStmt = $conn->prepare("
     SELECT branch, skills, expertise_area, company, designation, bio, 
@@ -20,9 +28,15 @@ $pStmt = $conn->prepare("
            teaching_interests, is_cc, cc_class, cc_semester
     FROM profiles WHERE user_id = ?
 ");
-$pStmt->bind_param("i", $user_id);
-$pStmt->execute();
-$profile_data = $pStmt->get_result()->fetch_assoc() ?? [];
+if ($pStmt) {
+    $pStmt->bind_param("i", $user_id);
+    $pStmt->execute();
+    $pRes = $pStmt->get_result();
+    if ($pRes) {
+        $profile_data = $pRes->fetch_assoc() ?? [];
+    }
+    $pStmt->close();
+}
 
 $error = $_SESSION['profile_error'] ?? '';
 $success = $_SESSION['profile_success'] ?? '';
