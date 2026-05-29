@@ -91,11 +91,11 @@ $user_id = $_SESSION['user_id'];
         </a>
 
         <!-- Assigned Task Manager -->
-        <div class="landing-card assigned-card" onclick="alert('Assigned Task Manager coming soon!')">
+        <a href="assigned_tasks.php" class="landing-card assigned-card">
             <div class="icon">📋</div>
             <h2>Assigned Task Manager</h2>
             <p>Tasks assigned to you by faculty or department leads.</p>
-        </div>
+        </a>
     </div>
 </div>
 

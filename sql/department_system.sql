@@ -212,18 +212,71 @@ CREATE TABLE IF NOT EXISTS task_priorities (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- ======================
+-- FACULTY ASSIGNMENTS
+-- ======================
+CREATE TABLE IF NOT EXISTS faculty_assignments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    faculty_id INT NOT NULL,
+    task_name VARCHAR(255) NOT NULL,
+    task_details TEXT,
+    class_name VARCHAR(50),
+    semester INT,
+    pac_category ENUM('premium', 'average', 'challenged', 'all') DEFAULT 'all',
+    deadline DATETIME NULL,
+    resource_path VARCHAR(255) NULL,
+    resource_name VARCHAR(255) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (faculty_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS tasks (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     task TEXT NOT NULL,
+    description TEXT,
     deadline DATETIME NULL,
     category_id INT NULL,
     priority_id INT NULL,
     is_completed TINYINT DEFAULT 0,
+    faculty_assignment_id INT NULL,
+    resource_path VARCHAR(255) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (category_id) REFERENCES task_categories(id) ON DELETE SET NULL,
-    FOREIGN KEY (priority_id) REFERENCES task_priorities(id) ON DELETE SET NULL
+    FOREIGN KEY (priority_id) REFERENCES task_priorities(id) ON DELETE SET NULL,
+    FOREIGN KEY (faculty_assignment_id) REFERENCES faculty_assignments(id) ON DELETE CASCADE
+);
+
+-- ======================
+-- STUDENT SUBMISSIONS
+-- ======================
+CREATE TABLE IF NOT EXISTS student_submissions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    task_id INT NOT NULL,
+    student_id INT NOT NULL,
+    submission_path VARCHAR(255) NOT NULL,
+    submission_name VARCHAR(255) NULL,
+    grade VARCHAR(20) DEFAULT NULL,
+    feedback TEXT DEFAULT NULL,
+    submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+    FOREIGN KEY (student_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- ======================
+-- LIVE MEETINGS
+-- ======================
+CREATE TABLE IF NOT EXISTS live_meetings (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    faculty_id INT NOT NULL,
+    class_name VARCHAR(50) NOT NULL,
+    semester INT NOT NULL,
+    topic VARCHAR(255) NOT NULL,
+    room_code VARCHAR(100) UNIQUE NOT NULL,
+    status ENUM('live', 'ended') DEFAULT 'live',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (faculty_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- ======================
