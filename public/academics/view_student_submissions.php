@@ -21,12 +21,12 @@ $s_stmt->bind_param("i", $student_id);
 $s_stmt->execute();
 $student = $s_stmt->get_result()->fetch_assoc();
 
-// Fetch all assignments and submissions for this student assigned by THIS faculty (or all faculty?)
-// Usually faculty wants to see what they assigned. But user said "see all students info... if submitted then... download"
-// I'll show assignments assigned by ANY faculty to this student, but mostly the ones relevant to the current faculty's subjects?
-// Actually, the previous page filtered by class/semester.
-// Let's show all faculty-assigned tasks for this student.
+if (!$student) {
+    header("Location: submissions.php");
+    exit();
+}
 
+// Fetch all assignments and submissions for this student
 $stmt = $conn->prepare("
     SELECT t.id as task_id, t.task as task_name, t.deadline, fa.created_at as assigned_at,
     ss.id as submission_id, ss.submission_path, ss.submission_name, ss.submitted_at, ss.grade, ss.feedback,
@@ -57,21 +57,35 @@ require_once __DIR__ . '/../../app/includes/header.php';
 
     <div class="grid-1" style="gap: 2rem;">
         <?php while ($row = $assignments->fetch_assoc()): ?>
-            <div class="card" style="border: 2px solid var(--border); border-left: 8px solid <?= $row['submission_id'] ? 'var(--success)' : 'var(--warning)' ?>;">
+            <?php 
+                $is_graded = !empty($row['grade']);
+                $border_color = 'var(--warning)';
+                if ($row['submission_id']) {
+                    $border_color = $is_graded ? 'var(--success)' : '#3b82f6'; // success for graded, blue for submitted
+                }
+            ?>
+            <div class="card" style="border: 2px solid var(--border); border-left: 8px solid <?= $border_color ?>; <?= $is_graded ? 'background: #f0fdf4;' : '' ?>">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
                     <div>
                         <h3 style="margin: 0; font-size: 1.3rem;"><?= htmlspecialchars($row['task_name']) ?></h3>
                         <span style="font-size: 12px; color: var(--text-2);">Assigned by <?= htmlspecialchars($row['assigned_by']) ?> on <?= date('M d, Y', strtotime($row['assigned_at'])) ?></span>
                     </div>
-                    <?php if ($row['submission_id']): ?>
-                        <span class="badge badge-success">Submitted</span>
-                    <?php else: ?>
-                        <span class="badge badge-warning">Pending</span>
-                    <?php endif; ?>
+                    <div style="display: flex; gap: 8px;">
+                        <?php if ($row['submission_id']): ?>
+                            <span class="badge" style="background: #3b82f6; color: white;">Submitted</span>
+                            <?php if ($is_graded): ?>
+                                <span class="badge badge-success">Graded: <?= htmlspecialchars($row['grade']) ?></span>
+                            <?php else: ?>
+                                <span class="badge" style="background: #ef4444; color: white;">Not Graded</span>
+                            <?php endif; ?>
+                        <?php else: ?>
+                            <span class="badge badge-warning">No Submission</span>
+                        <?php endif; ?>
+                    </div>
                 </div>
 
                 <?php if ($row['submission_id']): ?>
-                    <div class="grid-2" style="background: var(--bg); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border);">
+                    <div class="grid-2" style="background: white; padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border);">
                         <div>
                             <span style="display: block; font-size: 10px; font-weight: 800; text-transform: uppercase; color: var(--text-2); margin-bottom: 10px;">Submission Details</span>
                             <p style="margin-bottom: 15px;">Submitted on <strong><?= date('M d, Y h:i A', strtotime($row['submitted_at'])) ?></strong></p>
@@ -81,8 +95,14 @@ require_once __DIR__ . '/../../app/includes/header.php';
                                     <span style="font-size: 12px; font-weight: 700;">📄 <?= htmlspecialchars($row['submission_name'] ?: 'View Submission') ?></span>
                                     <a href="<?= $base_path ?>/public/<?= htmlspecialchars($row['submission_path']) ?>" download="<?= htmlspecialchars($row['submission_name']) ?>" class="btn btn-sm btn-secondary">Download</a>
                                 </div>
-                                <?php if (pathinfo($row['submission_path'], PATHINFO_EXTENSION) === 'pdf'): ?>
-                                    <iframe src="<?= $base_path ?>/public/<?= htmlspecialchars($row['submission_path']) ?>" style="width: 100%; height: 300px; border: 1px solid var(--border); border-radius: 4px;"></iframe>
+                                <?php 
+                                $ext = strtolower(pathinfo($row['submission_path'], PATHINFO_EXTENSION));
+                                $file_url = $base_path . '/public/' . htmlspecialchars($row['submission_path']);
+                                ?>
+                                <?php if ($ext === 'pdf'): ?>
+                                    <iframe src="<?= $file_url ?>" style="width: 100%; height: 300px; border: 1px solid var(--border); border-radius: 4px;"></iframe>
+                                <?php elseif (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])): ?>
+                                    <img src="<?= $file_url ?>" style="max-width: 100%; max-height: 300px; border: 1px solid var(--border); border-radius: 4px; display: block; margin: 0 auto;">
                                 <?php endif; ?>
                             </div>
                         </div>
@@ -96,13 +116,13 @@ require_once __DIR__ . '/../../app/includes/header.php';
                                 
                                 <div style="margin-bottom: 15px;">
                                     <label style="display: block; font-size: 12px; margin-bottom: 5px;">Grade (e.g. A, B, 90/100)</label>
-                                    <input type="text" name="grade" value="<?= htmlspecialchars($row['grade'] ?? '') ?>" placeholder="Enter grade" style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px;">
+                                    <input type="text" name="grade" value="<?= htmlspecialchars($row['grade'] ?? '') ?>" placeholder="Enter grade" required style="width: 100%; padding: 8px; border: 2px solid #1a1a1a; border-radius: 6px;">
                                 </div>
                                 <div style="margin-bottom: 15px;">
                                     <label style="display: block; font-size: 12px; margin-bottom: 5px;">Feedback</label>
-                                    <textarea name="feedback" rows="2" placeholder="Enter feedback..." style="width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px; resize: vertical;"><?= htmlspecialchars($row['feedback'] ?? '') ?></textarea>
+                                    <textarea name="feedback" rows="2" placeholder="Enter feedback..." style="width: 100%; padding: 8px; border: 2px solid #1a1a1a; border-radius: 6px; resize: vertical;"><?= htmlspecialchars($row['feedback'] ?? '') ?></textarea>
                                 </div>
-                                <button type="submit" class="btn btn-sm btn-success" style="width: 100%;">Update Grade</button>
+                                <button type="submit" class="btn btn-sm <?= $is_graded ? 'btn-secondary' : 'btn-success' ?>" style="width: 100%; border: 2px solid #1a1a1a; box-shadow: 4px 4px 0px #1a1a1a; font-weight: 800;"><?= $is_graded ? 'Update Grade' : 'Submit Grade' ?></button>
                             </form>
                         </div>
                     </div>

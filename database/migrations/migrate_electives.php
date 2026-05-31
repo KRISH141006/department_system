@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/app/includes/env.php';
+require_once __DIR__ . '/../../app/includes/env.php';
 
 $host = $_ENV['DB_HOST'] ?? '127.0.0.1';
 $user = $_ENV['DB_USER'] ?? 'root';

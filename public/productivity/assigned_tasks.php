@@ -141,7 +141,7 @@ $completed_count = mysqli_num_rows($completed_result);
 
                         <?php if ($row['resource_path']): ?>
                             <div style="margin-top: 12px; padding-left: 45px;">
-                                <a href="../../public/<?= htmlspecialchars($row['resource_path']) ?>" download="<?= htmlspecialchars($row['resource_name']) ?>" class="neo-pill" style="font-size: 0.75rem; padding: 4px 10px; background: #f1f5f9;" onclick="event.stopPropagation();">
+                                <a href="<?= $base_path ?>/public/<?= htmlspecialchars($row['resource_path']) ?>" download="<?= htmlspecialchars($row['resource_name']) ?>" class="neo-pill" style="font-size: 0.75rem; padding: 4px 10px; background: #f1f5f9;" onclick="event.stopPropagation();">
                                     📂 <?= htmlspecialchars($row['resource_name'] ?: 'Download Resource') ?>
                                 </a>
                             </div>

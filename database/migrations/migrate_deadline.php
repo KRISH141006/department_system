@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/app/config/db.php';
+require_once __DIR__ . '/../../app/config/db.php';
 
 $sql = "ALTER TABLE tasks ADD COLUMN deadline DATETIME NULL AFTER task";
 

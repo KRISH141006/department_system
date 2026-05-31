@@ -13,7 +13,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     $stmt = $conn->prepare("UPDATE student_submissions SET grade = ?, feedback = ? WHERE id = ?");
     $stmt->bind_param("ssi", $grade, $feedback, $submission_id);
-    $stmt->execute();
+    
+    if ($stmt->execute()) {
+        $_SESSION['msg_success'] = "Grade updated successfully for student.";
+    } else {
+        $_SESSION['msg_error'] = "Failed to update grade.";
+    }
 
     header("Location: ../../../public/academics/view_student_submissions.php?student_id=" . $student_id . "&class_name=" . urlencode($class_name) . "&semester=" . $semester . "&graded=1");
     exit();

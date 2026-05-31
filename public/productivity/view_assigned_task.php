@@ -36,6 +36,27 @@ $submission = $sub_stmt->get_result()->fetch_assoc();
 
 $page_title = "View Task: " . $task['task_name'];
 require_once __DIR__ . '/../../app/includes/header.php';
+
+function getFileIcon($filename) {
+    $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+    switch ($ext) {
+        case 'pdf': return '📕';
+        case 'jpg':
+        case 'jpeg':
+        case 'png':
+        case 'gif': return '🖼️';
+        case 'doc':
+        case 'docx': return '📘';
+        case 'zip':
+        case 'rar': return '📦';
+        default: return '📄';
+    }
+}
+
+function isImage($filename) {
+    $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+    return in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp']);
+}
 ?>
 
 <style>
@@ -71,10 +92,18 @@ require_once __DIR__ . '/../../app/includes/header.php';
     }
     .doc-viewer {
         width: 100%;
-        height: 500px;
-        border: 2px solid var(--border);
-        border-radius: 12px;
+        height: 600px;
+        border: 2px solid #1a1a1a;
+        border-radius: 8px;
         margin-top: 1rem;
+    }
+    .img-preview {
+        max-width: 100%;
+        height: auto;
+        border: 2px solid #1a1a1a;
+        border-radius: 8px;
+        margin-top: 1rem;
+        display: block;
     }
 </style>
 
@@ -108,16 +137,32 @@ require_once __DIR__ . '/../../app/includes/header.php';
         <?php if ($task['assignment_resource']): ?>
             <div class="meta-item">
                 <span class="meta-label">Reference Material</span>
-                <div style="background: var(--bg-2); padding: 1rem; border-radius: 12px; border: 2px solid var(--border);">
+                <div style="background: #f8fafc; padding: 1.5rem; border-radius: 12px; border: 2px solid #1a1a1a;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <span style="font-weight: 700;">📂 <?= htmlspecialchars($task['assignment_resource_name'] ?: 'Download Resource') ?></span>
-                        <a href="<?= $base_path ?>/public/<?= htmlspecialchars($task['assignment_resource']) ?>" download="<?= htmlspecialchars($task['assignment_resource_name']) ?>" class="btn btn-sm btn-secondary">Download</a>
+                        <span style="font-weight: 700;">
+                            <?= getFileIcon($task['assignment_resource']) ?> <?= htmlspecialchars($task['assignment_resource_name'] ?: 'Download Resource') ?>
+                        </span>
+                        <a href="<?= $base_path ?>/public/<?= htmlspecialchars($task['assignment_resource']) ?>" download="<?= htmlspecialchars($task['assignment_resource_name']) ?>" class="neo-pill" style="background: #1a1a1a; color: #fff;">Download</a>
                     </div>
-                    <?php if (pathinfo($task['assignment_resource'], PATHINFO_EXTENSION) === 'pdf'): ?>
-                        <iframe src="<?= $base_path ?>/public/<?= htmlspecialchars($task['assignment_resource']) ?>" class="doc-viewer"></iframe>
-                    <?php else: ?>
-                        <div style="text-align: center; padding: 1rem; color: var(--text-2); font-style: italic;">Online preview only available for PDF files.</div>
-                    <?php endif; ?>
+                    
+                    <div class="preview-container">
+                        <?php 
+                        $ext = strtolower(pathinfo($task['assignment_resource'], PATHINFO_EXTENSION));
+                        $file_url = $base_path . '/public/' . htmlspecialchars($task['assignment_resource']);
+                        ?>
+                        
+                        <?php if ($ext === 'pdf'): ?>
+                            <iframe src="<?= $file_url ?>" class="doc-viewer"></iframe>
+                        <?php elseif (isImage($task['assignment_resource'])): ?>
+                            <img src="<?= $file_url ?>" class="img-preview" alt="Preview">
+                        <?php else: ?>
+                            <div style="text-align: center; padding: 2rem; background: #fff; border: 2px dashed #cbd5e0; border-radius: 8px; color: #64748b;">
+                                <div style="font-size: 2rem; margin-bottom: 0.5rem;">📎</div>
+                                Online preview not available for this file type.<br>
+                                Please download the file to view it.
+                            </div>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
         <?php endif; ?>
@@ -135,11 +180,21 @@ require_once __DIR__ . '/../../app/includes/header.php';
                 
                 <div style="background: white; padding: 1rem; border-radius: 8px; border: 1px solid #22c55e; margin-bottom: 1rem;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                        <span style="font-weight: 700; color: #1a1a1a;">📄 <?= htmlspecialchars($submission['submission_name'] ?: 'View Your Upload') ?></span>
+                        <span style="font-weight: 700; color: #1a1a1a;">
+                            <?= getFileIcon($submission['submission_path']) ?> <?= htmlspecialchars($submission['submission_name'] ?: 'View Your Upload') ?>
+                        </span>
                         <a href="<?= $base_path ?>/public/<?= htmlspecialchars($submission['submission_path']) ?>" download="<?= htmlspecialchars($submission['submission_name']) ?>" class="btn btn-sm btn-secondary">Download</a>
                     </div>
-                    <?php if (pathinfo($submission['submission_path'], PATHINFO_EXTENSION) === 'pdf'): ?>
-                        <iframe src="<?= $base_path ?>/public/<?= htmlspecialchars($submission['submission_path']) ?>" class="doc-viewer" style="height: 400px;"></iframe>
+
+                    <?php 
+                    $sub_ext = strtolower(pathinfo($submission['submission_path'], PATHINFO_EXTENSION));
+                    $sub_url = $base_path . '/public/' . htmlspecialchars($submission['submission_path']);
+                    ?>
+
+                    <?php if ($sub_ext === 'pdf'): ?>
+                        <iframe src="<?= $sub_url ?>" class="doc-viewer" style="height: 400px;"></iframe>
+                    <?php elseif (isImage($submission['submission_path'])): ?>
+                        <img src="<?= $sub_url ?>" class="img-preview" style="max-height: 400px; margin: 0 auto;" alt="Submission Preview">
                     <?php endif; ?>
                 </div>
                 

@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS users (
     class_name VARCHAR(50),
     semester INT,
     batch VARCHAR(30),
-    roll_no VARCHAR(50),
+    roll_no VARCHAR(50), 
     emp_id VARCHAR(50),
     linkedin_url VARCHAR(255),
     is_verified TINYINT DEFAULT 1,

@@ -16,18 +16,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // Handle File Upload
     if (isset($_FILES['resource']) && $_FILES['resource']['error'] == 0) {
-        $upload_dir = __DIR__ . '/../../../public/uploads/resources/';
+        $upload_dir = realpath(__DIR__ . '/../../../public/uploads/') . '/resources/';
         if (!is_dir($upload_dir)) {
             mkdir($upload_dir, 0777, true);
         }
         
         $resource_name = $_FILES['resource']['name'];
-        $file_ext = pathinfo($resource_name, PATHINFO_EXTENSION);
+        $file_ext = strtolower(pathinfo($resource_name, PATHINFO_EXTENSION));
         $file_name = time() . '_' . uniqid() . '.' . $file_ext;
         $target_file = $upload_dir . $file_name;
         
         if (move_uploaded_file($_FILES['resource']['tmp_name'], $target_file)) {
             $resource_path = 'uploads/resources/' . $file_name;
+        } else {
+            // If move fails, we don't want to save a broken reference
+            $resource_name = null;
         }
     }
 

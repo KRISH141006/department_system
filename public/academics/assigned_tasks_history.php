@@ -77,7 +77,7 @@ $assignments = $stmt->get_result();
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
                             <?php if ($row['resource_path']): ?>
-                                <a href="../../public/<?= htmlspecialchars($row['resource_path']) ?>" target="_blank" class="btn btn-sm" style="background: #e2e8f0; color: #1e293b;">📂 View Resource</a>
+                                <a href="<?= $base_path ?>/public/<?= htmlspecialchars($row['resource_path']) ?>" target="_blank" class="btn btn-sm" style="background: #e2e8f0; color: #1e293b;">📂 View Resource</a>
                             <?php endif; ?>
                         </div>
                         <div style="width: 200px; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden;">

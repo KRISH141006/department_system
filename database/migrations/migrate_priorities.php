@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/app/config/db.php';
+require_once __DIR__ . '/../../app/config/db.php';
 
 $sql1 = "CREATE TABLE IF NOT EXISTS task_priorities (
     id INT AUTO_INCREMENT PRIMARY KEY,

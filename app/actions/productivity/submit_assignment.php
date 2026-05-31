@@ -11,23 +11,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // Handle File Upload
     if (isset($_FILES['submission']) && $_FILES['submission']['error'] == 0) {
-        $upload_dir = __DIR__ . '/../../../public/uploads/submissions/';
+        $upload_dir = realpath(__DIR__ . '/../../../public/uploads/') . '/submissions/';
         if (!is_dir($upload_dir)) {
             mkdir($upload_dir, 0777, true);
         }
         
         $submission_name = $_FILES['submission']['name'];
-        $file_ext = pathinfo($submission_name, PATHINFO_EXTENSION);
+        $file_ext = strtolower(pathinfo($submission_name, PATHINFO_EXTENSION));
         $file_name = time() . '_' . uniqid() . '.' . $file_ext;
         $target_file = $upload_dir . $file_name;
         
         if (move_uploaded_file($_FILES['submission']['tmp_name'], $target_file)) {
             $submission_path = 'uploads/submissions/' . $file_name;
         } else {
-            die("File upload failed.");
+            die("File upload failed. Could not move file to $target_file. Check directory permissions.");
         }
     } else {
-        die("No file uploaded or upload error.");
+        $err_code = $_FILES['submission']['error'] ?? 'No file';
+        die("No file uploaded or upload error. Error Code: " . $err_code);
     }
 
     // 1. Save to student_submissions

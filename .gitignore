@@ -3,7 +3,7 @@
 
 # Configuration
 .env
-GEMINI.md
+composer.phar
 
 # IDE / Editor
 .vscode/
@@ -15,3 +15,9 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Uploads
+public/uploads/resources/**
+!public/uploads/resources/.gitkeep
+public/uploads/submissions/**
+!public/uploads/submissions/.gitkeep
