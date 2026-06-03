@@ -8,6 +8,7 @@ composer.phar
 # IDE / Editor
 .vscode/
 .idea/
+notes.md
 
 # OS files
 .DS_Store

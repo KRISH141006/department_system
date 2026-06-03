@@ -8,7 +8,7 @@ require_once __DIR__ . '/../../app/includes/header.php';
 <!-- Flatpickr for Creative Calendar -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <style>
-    /* 🎨 HAND-DRAWN SKETCHBOOK CALENDAR */
+    /* 🎨 HAND-DRAWN SKETCHBOOK CALENDAR */ 
     .flatpickr-calendar {
         background: #fff !important;
         border: 4px solid #1a1a1a !important;
