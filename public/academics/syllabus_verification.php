@@ -55,8 +55,8 @@ require_once __DIR__ . '/../../app/includes/header.php';
                     <tr style="text-align: left; border-bottom: 1px solid var(--border); background: #f9fafb;">
                         <th style="padding: 12px 24px;">Subject</th>
                         <th style="padding: 12px 24px;">Unit & Topic</th>
-                        <th style="padding: 12px 24px;">Updated By</th>
-                        <th style="padding: 12px 24px;">Time</th>
+                        <th style="padding: 12px 24px;">Consensus</th>
+                        <th style="padding: 12px 24px;">Last Update</th>
                         <th style="padding: 12px 24px; text-align: right;">Action</th>
                     </tr>
                 </thead>
@@ -78,7 +78,11 @@ require_once __DIR__ . '/../../app/includes/header.php';
                                     <div style="font-weight: 500;"><?= htmlspecialchars($row['topic_name']) ?></div>
                                 </td>
                                 <td style="padding: 12px 24px;">
-                                    <div style="font-size: 14px;"><?= htmlspecialchars($row['student_name']) ?></div>
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <div class="badge <?= $row['verification_count'] >= 3 ? 'badge-completed' : 'badge-pending' ?>" style="font-size: 11px;">
+                                            <?= htmlspecialchars($row['verification_count']) ?> Students
+                                        </div>
+                                    </div>
                                 </td>
                                 <td style="padding: 12px 24px;">
                                     <div style="font-size: 13px; color: var(--text-2);"><?= date('H:i', strtotime($row['updated_at'])) ?></div>

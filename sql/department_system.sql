@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS users (
     phone VARCHAR(20),
     password VARCHAR(255) NOT NULL,
     role ENUM('student','faculty','expert','admin') NOT NULL,
+    dashboard_view ENUM('card', 'sidebar') DEFAULT 'sidebar',
+    theme_pref ENUM('light', 'dark') DEFAULT 'light',
     pac_category ENUM('premium', 'average', 'challenged') DEFAULT 'average',
     class_name VARCHAR(50),
     semester INT,
@@ -21,6 +23,7 @@ CREATE TABLE IF NOT EXISTS users (
     roll_no VARCHAR(50), 
     emp_id VARCHAR(50),
     linkedin_url VARCHAR(255),
+    profile_photo VARCHAR(255) DEFAULT NULL,
     is_verified TINYINT DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

@@ -87,6 +87,42 @@ if (empty($branch) || empty($name)) {
     exit;
 }
 
+// --- Photo Upload Handling ---
+$profile_photo_path = null;
+if (isset($_FILES['profile_photo']) && $_FILES['profile_photo']['error'] === UPLOAD_ERR_OK) {
+    $upload_dir = __DIR__ . '/../../../public/uploads/profiles/';
+    if (!is_dir($upload_dir)) {
+        mkdir($upload_dir, 0777, true);
+    }
+
+    $file_ext = strtolower(pathinfo($_FILES['profile_photo']['name'], PATHINFO_EXTENSION));
+    $allowed_exts = ['jpg', 'jpeg', 'png', 'webp'];
+
+    if (in_array($file_ext, $allowed_exts)) {
+        $new_filename = 'profile_' . $user_id . '_' . time() . '.' . $file_ext;
+        $target_path = $upload_dir . $new_filename;
+
+        if (move_uploaded_file($_FILES['profile_photo']['tmp_name'], $target_path)) {
+            $profile_photo_path = 'uploads/profiles/' . $new_filename;
+
+            // Delete old photo if exists
+            $oldPhotoStmt = $conn->prepare("SELECT profile_photo FROM users WHERE id = ?");
+            $oldPhotoStmt->bind_param("i", $user_id);
+            $oldPhotoStmt->execute();
+            $oldPhoto = $oldPhotoStmt->get_result()->fetch_assoc()['profile_photo'] ?? null;
+            if ($oldPhoto && file_exists(__DIR__ . '/../../../public/' . $oldPhoto)) {
+                unlink(__DIR__ . '/../../../public/' . $oldPhoto);
+            }
+
+            // Update user table with new photo path
+            $photoUpdateStmt = $conn->prepare("UPDATE users SET profile_photo = ? WHERE id = ?");
+            $photoUpdateStmt->bind_param("si", $profile_photo_path, $user_id);
+            $photoUpdateStmt->execute();
+            $_SESSION['profile_photo'] = $profile_photo_path;
+        }
+    }
+}
+
 // 1. Update users table
 $uStmt = $conn->prepare("UPDATE users SET name = ?, class_name = ?, semester = ?, roll_no = ?, emp_id = ?, linkedin_url = ? WHERE id = ?");
 $uStmt->bind_param("ssssssi", $name, $class_name, $semester, $roll_no, $emp_id, $linkedin_url, $user_id);

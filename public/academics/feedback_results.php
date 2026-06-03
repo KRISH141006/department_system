@@ -15,10 +15,10 @@ require_once __DIR__ . '/../../app/includes/header.php';
 ?>
 
 <div class="wrapper" style="padding: 2rem; margin-bottom: 5rem;">
-    <div class="dashboard-header" style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: flex-start;">
+    <div class="dashboard-header" style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
         <div class="dashboard-title">
-            <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem; color: var(--text);">Student Feedback Analytics</h1>
-            <p style="color: var(--text-2);">View detailed results from your custom forms and anonymous submissions.</p>
+            <h1 class="page-title">Feedback Analytics</h1>
+            <p class="page-subtitle">Detailed insights from custom evaluations and anonymous student feedback.</p>
         </div>
         <div class="dashboard-actions">
             <a href="faculty_dashboard.php" class="btn btn-secondary">Back to Dashboard</a>
@@ -26,29 +26,29 @@ require_once __DIR__ . '/../../app/includes/header.php';
     </div>
 
     <!-- TABS -->
-    <div style="display: flex; gap: 1rem; margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem;">
-        <button class="tab-btn active" onclick="showTab('customFeedback')">Custom Form Results</button>
-        <button class="tab-btn" onclick="showTab('anonymousFeedback')">Anonymous Submissions</button>
+    <div style="display: flex; gap: 2rem; margin-bottom: 2.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0;">
+        <button class="tab-btn active" onclick="showTab('customFeedback')">Custom Evaluations</button>
+        <button class="tab-btn" onclick="showTab('anonymousFeedback')">Anonymous Inbox</button>
     </div>
 
     <!-- CUSTOM FORM RESULTS -->
     <div id="customFeedback" class="tab-content">
         <?php
         if ($formQuery->num_rows == 0) {
-            echo "<div class='card' style='text-align: center; padding: 3rem;'>
-                    <div style='font-size: 3rem; margin-bottom: 1rem;'>📝</div>
-                    <h3>No Custom Form Created</h3>
-                    <p style='color: var(--text-2);'>You haven't launched any evaluation forms yet.</p>
-                    <a href='create_feedback.php' class='btn btn-primary' style='margin-top: 1rem;'>Create Now</a>
+            echo "<div class='card' style='text-align: center; padding: 4rem; border-top: 5px solid var(--accent);'>
+                    <div style='font-size: 3.5rem; margin-bottom: 1.5rem;'>📝</div>
+                    <h2 style='margin-bottom: 0.5rem;'>No Active Evaluations</h2>
+                    <p style='color: var(--text-secondary); margin-bottom: 2rem;'>You haven't launched any evaluation forms yet.</p>
+                    <a href='create_feedback.php' class='btn btn-primary' style='padding-left: 2rem; padding-right: 2rem;'>Create Evaluation Form</a>
                   </div>";
         } else {
             $form = $formQuery->fetch_assoc();
             $form_id = (int) $form['id'];
             $questions = $conn->query("SELECT * FROM faculty_feedback_questions WHERE form_id=$form_id");
             
-            echo "<div style='margin-bottom: 2rem;'>
-                    <span class='badge badge-success'>Live Form ID: #$form_id</span>
-                    <span style='color: var(--text-2); font-size: 14px; margin-left: 10px;'>Launched on: " . date('d M Y', strtotime($form['created_at'])) . "</span>
+            echo "<div style='margin-bottom: 2.5rem; display: flex; align-items: center; gap: 1rem;'>
+                    <span class='badge' style='background: var(--accent-light); color: var(--accent); padding: 6px 12px; font-weight: 700;'>LIVE FORM #$form_id</span>
+                    <span style='color: var(--text-secondary); font-size: 14px;'>Launched: <strong>" . date('d M Y', strtotime($form['created_at'])) . "</strong></span>
                   </div>";
             ?>
             <div class="grid-2">
@@ -57,11 +57,11 @@ require_once __DIR__ . '/../../app/includes/header.php';
                     $question_id = (int) $q['id'];
                     $type = $q['question_type'];
                 ?>
-                    <div class="card" style="display: flex; flex-direction: column;">
-                        <div style="margin-bottom: 1rem;">
-                            <span class="badge" style="background: #e2e8f0; color: #475569; text-transform: uppercase; font-size: 10px;"><?php echo $type; ?></span>
+                    <div class="card" style="display: flex; flex-direction: column; border-top: 3px solid var(--accent-light);">
+                        <div style="margin-bottom: 1.25rem;">
+                            <span class="badge" style="background: var(--bg-secondary); color: var(--text-secondary); text-transform: uppercase; font-size: 10px; border: 1px solid var(--border-color);"><?php echo $type; ?></span>
                         </div>
-                        <h3 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 1.5rem; line-height: 1.4;">
+                        <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 2rem; line-height: 1.5; color: var(--text-primary);">
                             <?php echo htmlspecialchars($q['question_text']); ?>
                         </h3>
 
@@ -76,11 +76,11 @@ require_once __DIR__ . '/../../app/includes/header.php';
                                 if ($rating < 3) $color = 'var(--error)';
                                 else if ($rating < 4) $color = 'var(--warning)';
                             ?>
-                                <div style="text-align: center; padding: 1rem; background: #f8fafc; border-radius: 8px;">
-                                    <h1 style="font-size: 3rem; margin: 0; color: <?php echo $color; ?>;"><?php echo $rating; ?></h1>
-                                    <p style="font-size: 14px; color: var(--text-2); margin-top: 4px;">Avg. Rating (<?php echo $count; ?> responses)</p>
-                                    <div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px; margin-top: 15px; overflow: hidden;">
-                                        <div style="width: <?php echo ($rating / 5) * 100; ?>%; height: 100%; background: <?php echo $color; ?>;"></div>
+                                <div style="text-align: center; padding: 2rem; background: var(--bg-secondary); border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                                    <h1 style="font-size: 3.5rem; margin: 0; color: <?php echo $color; ?>; font-family: 'DM Serif Display', serif;"><?php echo $rating; ?></h1>
+                                    <p style="font-size: 14px; color: var(--text-secondary); margin-top: 8px;">Avg. Rating (<?php echo $count; ?> responses)</p>
+                                    <div style="width: 100%; height: 10px; background: var(--border-color); border-radius: 5px; margin-top: 20px; overflow: hidden;">
+                                        <div style="width: <?php echo ($rating / 5) * 100; ?>%; height: 100%; background: <?php echo $color; ?>; transition: width 1s ease-out;"></div>
                                     </div>
                                 </div>
 
@@ -97,13 +97,13 @@ require_once __DIR__ . '/../../app/includes/header.php';
                                     $opt_count = $countQuery->fetch_assoc()['opt_cnt'] ?? 0;
                                     $percent = $total > 0 ? round(($opt_count / $total) * 100) : 0;
                             ?>
-                                    <div style="margin-bottom: 12px;">
-                                        <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 4px;">
-                                            <span><?php echo htmlspecialchars($opt); ?></span>
-                                            <span style="font-weight: 600;"><?php echo $opt_count; ?> (<?php echo $percent; ?>%)</span>
+                                    <div style="margin-bottom: 1.5rem; background: var(--bg-secondary); padding: 1rem; border-radius: 12px; border: 1px solid var(--border-color);">
+                                        <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 10px;">
+                                            <span style="font-weight: 600; color: var(--text-primary);"><?php echo htmlspecialchars($opt); ?></span>
+                                            <span style="color: var(--accent); font-weight: 700;"><?php echo $opt_count; ?> (<?php echo $percent; ?>%)</span>
                                         </div>
-                                        <div style="width: 100%; height: 6px; background: #f1f5f9; border-radius: 3px; overflow: hidden;">
-                                            <div style="width: <?php echo $percent; ?>%; height: 100%; background: var(--accent);"></div>
+                                        <div style="width: 100%; height: 8px; background: var(--border-color); border-radius: 4px; overflow: hidden;">
+                                            <div style="width: <?php echo $percent; ?>%; height: 100%; background: var(--accent); transition: width 1s ease-out;"></div>
                                         </div>
                                     </div>
                             <?php endforeach; ?>
@@ -111,15 +111,21 @@ require_once __DIR__ . '/../../app/includes/header.php';
                             <?php elseif ($type === 'text'): 
                                 $textQuery = $conn->query("SELECT answer_text, created_at FROM student_faculty_feedback WHERE question_id = $question_id ORDER BY created_at DESC");
                             ?>
-                                <div style="max-height: 250px; overflow-y: auto; padding-right: 10px;">
+                                <div style="max-height: 350px; overflow-y: auto; padding-right: 15px; display: flex; flex-direction: column; gap: 12px;">
                                     <?php while ($ans = $textQuery->fetch_assoc()): ?>
-                                        <div style="padding: 12px; background: #f8fafc; border-radius: 6px; margin-bottom: 10px; border-left: 3px solid #cbd5e0;">
-                                            <p style="font-size: 14px; line-height: 1.5; margin-bottom: 4px;"><?php echo htmlspecialchars($ans['answer_text']); ?></p>
-                                            <span style="font-size: 11px; color: var(--text-3);"><?php echo date('d M, H:i', strtotime($ans['created_at'])); ?></span>
+                                        <div style="padding: 1.25rem; background: var(--bg-secondary); border-radius: 12px; border: 1px solid var(--border-color); border-left: 4px solid var(--accent-light);">
+                                            <p style="font-size: 14px; line-height: 1.6; margin-bottom: 8px; color: var(--text-primary);"><?php echo htmlspecialchars($ans['answer_text']); ?></p>
+                                            <div style="display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-secondary);">
+                                                <span>📅 <?php echo date('d M Y', strtotime($ans['created_at'])); ?></span>
+                                                <span>•</span>
+                                                <span>⏰ <?php echo date('H:i', strtotime($ans['created_at'])); ?></span>
+                                            </div>
                                         </div>
                                     <?php endwhile; ?>
                                     <?php if ($textQuery->num_rows == 0): ?>
-                                        <p style="text-align: center; color: var(--text-2); font-size: 14px; padding: 1rem;">No comments yet.</p>
+                                        <div style="text-align: center; color: var(--text-secondary); font-size: 14px; padding: 3rem; background: var(--bg-secondary); border-radius: 12px; border: 1px dashed var(--border-color);">
+                                            No descriptive comments yet.
+                                        </div>
                                     <?php endif; ?>
                                 </div>
                             <?php endif; ?>
@@ -145,41 +151,43 @@ require_once __DIR__ . '/../../app/includes/header.php';
         $anonResults = $anonQuery->get_result();
 
         if ($anonResults->num_rows == 0) {
-            echo "<div class='card' style='text-align: center; padding: 3rem;'>
-                    <div style='font-size: 3rem; margin-bottom: 1rem;'>📭</div>
-                    <h3>The Feedback Box is Empty</h3>
-                    <p style='color: var(--text-2);'>Students haven't sent any anonymous feedback yet.</p>
+            echo "<div class='card' style='text-align: center; padding: 4rem; border-top: 5px solid var(--accent);'>
+                    <div style='font-size: 3.5rem; margin-bottom: 1.5rem;'>📭</div>
+                    <h2 style='margin-bottom: 0.5rem;'>Feedback Inbox is Empty</h2>
+                    <p style='color: var(--text-secondary);'>Students haven't sent any anonymous feedback yet.</p>
                   </div>";
         } else {
         ?>
-            <div class="card" style="padding: 0; overflow: hidden;">
-                <table class="table-minimal" style="width: 100%; border-collapse: collapse;">
-                    <thead>
-                        <tr style="text-align: left; background: #f8fafc; border-bottom: 1px solid var(--border);">
-                            <th style="padding: 1rem 1.5rem; width: 200px;">Subject</th>
-                            <th style="padding: 1rem 1.5rem;">Feedback Message</th>
-                            <th style="padding: 1rem 1.5rem; width: 150px;">Date</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php while ($fb = $anonResults->fetch_assoc()): ?>
-                            <tr style="border-bottom: 1px solid var(--border);">
-                                <td style="padding: 1rem 1.5rem;">
-                                    <span class="badge" style="background: <?php echo $fb['subject_name'] ? '#e0f2fe' : '#fef3c7'; ?>; color: <?php echo $fb['subject_name'] ? '#0369a1' : '#b45309'; ?>;">
-                                        <?php echo $fb['subject_name'] ? htmlspecialchars($fb['subject_name']) : 'General'; ?>
-                                    </span>
-                                </td>
-                                <td style="padding: 1rem 1.5rem;">
-                                    <div style="font-size: 14px; line-height: 1.6; color: var(--text);"><?php echo nl2br(htmlspecialchars($fb['feedback_text'])); ?></div>
-                                </td>
-                                <td style="padding: 1rem 1.5rem; font-size: 13px; color: var(--text-3);">
-                                    <?php echo date('d M Y', strtotime($fb['created_at'])); ?>
-                                    <div style="font-size: 11px;"><?php echo date('H:i', strtotime($fb['created_at'])); ?></div>
-                                </td>
+            <div class="card" style="padding: 0; overflow: hidden; border-top: 5px solid var(--accent);">
+                <div class="table-wrap">
+                    <table class="table-minimal" style="width: 100%;">
+                        <thead>
+                            <tr style="text-align: left; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color);">
+                                <th style="padding: 1.25rem 1.5rem; width: 220px; font-weight: 700; color: var(--text-primary);">Target Context</th>
+                                <th style="padding: 1.25rem 1.5rem; font-weight: 700; color: var(--text-primary);">Feedback Content</th>
+                                <th style="padding: 1.25rem 1.5rem; width: 180px; font-weight: 700; color: var(--text-primary);">Received Date</th>
                             </tr>
-                        <?php endwhile; ?>
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            <?php while ($fb = $anonResults->fetch_assoc()): ?>
+                                <tr style="border-bottom: 1px solid var(--border-color); transition: background 0.2s;">
+                                    <td style="padding: 1.25rem 1.5rem;">
+                                        <span class="badge" style="background: <?php echo $fb['subject_name'] ? 'var(--accent-light)' : '#fef3c7'; ?>; color: <?php echo $fb['subject_name'] ? 'var(--accent)' : '#b45309'; ?>; padding: 6px 12px; font-weight: 700; font-size: 11px;">
+                                            <?php echo $fb['subject_name'] ? htmlspecialchars($fb['subject_name']) : 'General Feedback'; ?>
+                                        </span>
+                                    </td>
+                                    <td style="padding: 1.25rem 1.5rem;">
+                                        <div style="font-size: 14.5px; line-height: 1.7; color: var(--text-primary); font-weight: 500;"><?php echo nl2br(htmlspecialchars($fb['feedback_text'])); ?></div>
+                                    </td>
+                                    <td style="padding: 1.25rem 1.5rem; font-size: 13px; color: var(--text-secondary);">
+                                        <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 4px;"><?php echo date('d M Y', strtotime($fb['created_at'])); ?></div>
+                                        <div>at <?php echo date('H:i A', strtotime($fb['created_at'])); ?></div>
+                                    </td>
+                                </tr>
+                            <?php endwhile; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         <?php } ?>
     </div>
@@ -187,23 +195,23 @@ require_once __DIR__ . '/../../app/includes/header.php';
 
 <style>
 .tab-btn {
-    padding: 0.75rem 1.5rem;
+    padding: 1rem 0.5rem;
     border: none;
     background: none;
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-2);
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.2s;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -0.5rem;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1px;
 }
 .tab-btn:hover {
     color: var(--accent);
 }
 .tab-btn.active {
     color: var(--accent);
-    border-bottom: 2px solid var(--accent);
+    border-bottom: 3px solid var(--accent);
 }
 </style>
 

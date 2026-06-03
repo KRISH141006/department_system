@@ -41,8 +41,28 @@ include __DIR__ . '/../../app/includes/header.php';
         <?php if ($success): ?><div class="alert alert-success"><?= htmlspecialchars($success) ?></div><?php endif; ?>
 
         <div class="card">
-            <form action="../../app/actions/community/save_profile.php" method="POST" id="profileForm">
+            <form action="../../app/actions/community/save_profile.php" method="POST" id="profileForm" enctype="multipart/form-data">
                 
+                <!-- PROFILE PHOTO SECTION -->
+                <div style="margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 2rem; text-align: center;">
+                    <h2 style="font-size: 1.25rem; margin-bottom: 1.5rem; color: var(--accent); text-align: left;">Profile Photo</h2>
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 15px;">
+                        <div style="width: 120px; height: 120px; border-radius: 50%; overflow: hidden; border: 3px solid var(--accent); background: var(--bg-2); display: flex; align-items: center; justify-content: center;">
+                            <?php if (!empty($user_data['profile_photo'])): ?>
+                                <img src="../../public/<?= htmlspecialchars($user_data['profile_photo']) ?>" id="photoPreview" style="width: 100%; height: 100%; object-fit: cover;">
+                            <?php else: ?>
+                                <div id="photoPlaceholder" style="font-size: 3rem; color: var(--text-muted);">👤</div>
+                                <img id="photoPreview" style="width: 100%; height: 100%; object-fit: cover; display: none;">
+                            <?php endif; ?>
+                        </div>
+                        <div style="max-width: 300px;">
+                            <input type="file" name="profile_photo" id="photoInput" accept="image/*" style="display: none;" onchange="previewImage(this)">
+                            <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('photoInput').click()">Choose Photo</button>
+                            <p style="font-size: 11px; color: var(--text-2); margin-top: 8px;">Upload a professional photo (JPG, PNG). Max 2MB.</p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- SECTION 1: BASIC INFORMATION -->
                 <div style="margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem;">
                     <h2 style="font-size: 1.25rem; margin-bottom: 1rem; color: var(--accent);">1. Basic Information</h2>
@@ -260,6 +280,21 @@ include __DIR__ . '/../../app/includes/header.php';
 </div>
 
 <script>
+    function previewImage(input) {
+        const preview = document.getElementById('photoPreview');
+        const placeholder = document.getElementById('photoPlaceholder');
+        
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+                if (placeholder) placeholder.style.display = 'none';
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
     function toggleCCFields(isChecked) {
         const ccFields = document.getElementById('ccFields');
         ccFields.style.display = isChecked ? 'block' : 'none';
