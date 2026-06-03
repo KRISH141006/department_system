@@ -58,6 +58,17 @@ require_once __DIR__ . '/../../app/includes/header.php';
             <?php if ($subject_id): ?>
                 <input type="hidden" name="subject_id" value="<?= $subject_id ?>">
             <?php endif; ?>
+
+            <div class="form-group" style="margin-bottom: 2rem; padding: 1rem; background: var(--bg-2); border-radius: 8px; border: 1px dashed var(--border);">
+                <label class="checkbox-container" style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                    <input type="checkbox" name="is_elective" id="isElective" value="1" <?= ($subject_data['is_elective'] ?? 0) ? 'checked' : '' ?> style="width: 20px; height: 20px;" onchange="toggleFields()">
+                    <span style="font-weight: 600; color: var(--text); font-size: 1.1rem;">Is this an Elective Subject?</span>
+                </label>
+                <p style="font-size: 0.85rem; color: var(--text-2); margin-top: 5px; margin-left: 30px;">
+                    Students will receive an enrollment request and must accept to join.
+                </p>
+            </div>
+
             <div class="grid-2">
                 <div class="form-group">
                     <label>Subject Name</label>
@@ -72,12 +83,14 @@ require_once __DIR__ . '/../../app/includes/header.php';
             <div class="grid-2">
                 <div class="form-group" id="classGroup">
                     <label>Target Class</label>
-                    <input type="text" name="class_name" value="<?= htmlspecialchars($subject_data['class_name'] ?? '') ?>" placeholder="e.g. 4EK1" id="classInput">
+                    <input type="text" name="class_name" value="<?= htmlspecialchars($subject_data['class_name'] ?? '') ?>" placeholder="e.g. 4EK1" id="classInput" oninput="autoSelectSemester()">
+                    <p style="font-size: 0.75rem; color: var(--text-3); mt-1">Semester is automatically set based on class code (e.g., 4th for 4EK1).</p>
                 </div>
                 <div class="form-group">
                     <label>Target Semester</label>
-                    <select name="semester" required>
-                        <option value="">-- Select Semester --</option>
+                    <input type="hidden" name="semester" id="semesterHidden" value="<?= $subject_data['semester'] ?? '' ?>">
+                    <select id="semesterSelect" disabled style="background: var(--bg-2); cursor: not-allowed; opacity: 0.8;">
+                        <option value="">-- Auto-selected --</option>
                         <?php 
                         for($i=1; $i<=8; $i++) {
                             $val = $i;
@@ -87,16 +100,6 @@ require_once __DIR__ . '/../../app/includes/header.php';
                         ?>
                     </select>
                 </div>
-            </div>
-
-            <div class="form-group" style="margin-bottom: 2rem;">
-                <label class="checkbox-container" style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                    <input type="checkbox" name="is_elective" id="isElective" value="1" <?= ($subject_data['is_elective'] ?? 0) ? 'checked' : '' ?> style="width: 20px; height: 20px;" onchange="toggleFields()">
-                    <span style="font-weight: 600; color: var(--text);">This is an Elective Subject</span>
-                </label>
-                <p style="font-size: 0.85rem; color: var(--text-2); margin-top: 5px; margin-left: 30px;">
-                    If checked, students will receive an enrollment request.
-                </p>
             </div>
 
             <div id="unitsContainer">
@@ -146,24 +149,63 @@ require_once __DIR__ . '/../../app/includes/header.php';
 <script>
     let unitCount = <?= count($units_data) ?: 1 ?>;
 
+    function autoSelectSemester() {
+        const classInput = document.getElementById('classInput');
+        const semesterSelect = document.getElementById('semesterSelect');
+        const semesterHidden = document.getElementById('semesterHidden');
+        const classVal = classInput.value.trim();
+        
+        if (classVal.length > 0) {
+            const firstChar = classVal.charAt(0);
+            if (!isNaN(firstChar) && firstChar >= 1 && firstChar <= 8) {
+                semesterSelect.value = firstChar;
+                semesterHidden.value = firstChar;
+            } else {
+                semesterSelect.value = "";
+                semesterHidden.value = "";
+            }
+        }
+    }
+
     function toggleFields() {
         const isElective = document.getElementById('isElective').checked;
         const classGroup = document.getElementById('classGroup');
         const classInput = document.getElementById('classInput');
+        const semesterSelect = document.getElementById('semesterSelect');
+        const semesterHidden = document.getElementById('semesterHidden');
         
         if (isElective) {
             classGroup.style.display = 'none';
             classInput.removeAttribute('required');
             classInput.value = 'ALL';
+            semesterSelect.disabled = false; // Allow manual selection for electives if class is ALL
+            semesterSelect.style.cursor = 'default';
+            semesterSelect.style.opacity = '1';
         } else {
             classGroup.style.display = 'block';
             classInput.setAttribute('required', 'required');
             if (classInput.value === 'ALL') classInput.value = '';
+            semesterSelect.disabled = true;
+            semesterSelect.style.cursor = 'not-allowed';
+            semesterSelect.style.opacity = '0.8';
+            autoSelectSemester();
         }
     }
 
     // Run on page load
-    window.onload = toggleFields;
+    window.onload = function() {
+        toggleFields();
+        if (document.getElementById('classInput').value !== 'ALL') {
+            autoSelectSemester();
+        }
+    };
+
+    // Before form submission, ensure hidden semester is updated if elective is manual
+    document.getElementById('subjectForm').onsubmit = function() {
+        if (document.getElementById('isElective').checked) {
+            document.getElementById('semesterHidden').value = document.getElementById('semesterSelect').value;
+        }
+    };
 
     function addUnit() {
         unitCount++;

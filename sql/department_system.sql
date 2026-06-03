@@ -67,7 +67,19 @@ CREATE TABLE IF NOT EXISTS faculty_subjects (
     class_name VARCHAR(50),
     semester INT,
     is_elective TINYINT DEFAULT 0,
+    is_locked TINYINT DEFAULT 0,
     FOREIGN KEY (faculty_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS elective_change_requests (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    faculty_id INT NOT NULL,
+    subject_id INT NOT NULL,
+    reason TEXT NOT NULL,
+    status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (faculty_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (subject_id) REFERENCES faculty_subjects(id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS student_electives (

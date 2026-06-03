@@ -41,13 +41,13 @@ require_once __DIR__ . '/../../app/includes/header.php';
         $assigned_ids = [];
         while($row = $assRes->fetch_assoc()) $assigned_ids[] = $row['subject_id'];
 
-        // Query for regular subjects assigned to the class AND electives where the student is 'enrolled' or 'pending'
+        // Query for regular subjects assigned to the class AND electives where the student is 'enrolled'
         $subQuery = $conn->prepare("
             SELECT fs.id, fs.subject_name, fs.is_elective 
             FROM faculty_subjects fs
             LEFT JOIN student_electives se ON fs.id = se.subject_id AND se.student_id = ?
             WHERE (fs.class_name = ? AND fs.semester = ? AND fs.is_elective = 0)
-               OR (fs.semester = ? AND fs.is_elective = 1 AND se.status IN ('enrolled', 'pending'))
+               OR (fs.semester = ? AND fs.is_elective = 1 AND se.status = 'enrolled')
         ");
         $subQuery->bind_param("isii", $student_id, $class_name, $semester, $semester);
         $subQuery->execute();

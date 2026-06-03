@@ -35,6 +35,12 @@ $role = $_SESSION['role'] ?? 'student';
                 <a href="admin/manage_permissions.php" class="btn" style="background: var(--accent); color: white;">Manage Permissions</a>
             </div>
 
+            <div class="card module-card" style="border-top: 4px solid var(--warning);">
+                <h2>Elective Requests</h2>
+                <p>Manage faculty requests for unlocking elective subject enrollments.</p>
+                <a href="admin/elective_requests.php" class="btn btn-warning">Review Unlock Requests</a>
+            </div>
+
             <div class="card module-card" style="border: 2px solid var(--warning);">
                 <h2 style="color: var(--warning);">Community Overview</h2>
                 <p>Monitor community reviews, validation requests, and student performances.</p>

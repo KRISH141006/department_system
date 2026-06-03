@@ -18,7 +18,7 @@ if (!$subject_id) {
 }
 
 // Verify faculty owns this subject
-$check = $conn->prepare("SELECT semester FROM faculty_subjects WHERE id = ? AND faculty_id = ? AND is_elective = 1");
+$check = $conn->prepare("SELECT semester, is_locked FROM faculty_subjects WHERE id = ? AND faculty_id = ? AND is_elective = 1");
 $check->bind_param("ii", $subject_id, $faculty_id);
 $check->execute();
 $sub_data = $check->get_result()->fetch_assoc();
@@ -30,15 +30,46 @@ if (!$sub_data) {
 }
 
 $semester = $sub_data['semester'];
+$is_locked = (int) $sub_data['is_locked'];
+
+// Check for approved unlock request (Manual Mode)
+$req_stmt = $conn->prepare("SELECT id FROM elective_change_requests WHERE subject_id = ? AND status = 'approved' LIMIT 1");
+$req_stmt->bind_param("i", $subject_id);
+$req_stmt->execute();
+$manual_mode = $req_stmt->get_result()->num_rows > 0;
 
 try {
     $conn->begin_transaction();
 
-    if ($action_type === 'batch_save') {
+    if ($action_type === 'lock_enrollment') {
+        // 1. Delete all pending requests that weren't accepted
+        $del = $conn->prepare("DELETE FROM student_electives WHERE subject_id = ? AND status = 'pending'");
+        $del->bind_param("i", $subject_id);
+        $del->execute();
+
+        // 2. Set the subject as locked
+        $stmt = $conn->prepare("UPDATE faculty_subjects SET is_locked = 1 WHERE id = ?");
+        $stmt->bind_param("i", $subject_id);
+        $stmt->execute();
+        $_SESSION['msg_success'] = "Enrollment has been locked successfully. Pending requests have been cleared.";
+
+    } else if ($action_type === 'request_unlock') {
+        $reason = trim($_POST['reason']);
+        if (empty($reason)) {
+            throw new Exception("Reason is required.");
+        }
+        $stmt = $conn->prepare("INSERT INTO elective_change_requests (faculty_id, subject_id, reason, status) VALUES (?, ?, ?, 'pending')");
+        $stmt->bind_param("iis", $faculty_id, $subject_id, $reason);
+        $stmt->execute();
+        $_SESSION['msg_success'] = "Unlock request submitted to Admin.";
+
+    } else if ($action_type === 'batch_save') {
+        if ($is_locked || !$manual_mode) {
+            throw new Exception("Manual changes are not allowed. Please request an unlock if needed.");
+        }
         $enrolled_ids = $_POST['enrolled_students'] ?? [];
         
         // 1. First, remove EVERYONE currently associated with this elective
-        // This ensures unselected students are completely wiped out
         $del = $conn->prepare("DELETE FROM student_electives WHERE subject_id = ?");
         $del->bind_param("i", $subject_id);
         $del->execute();
@@ -54,6 +85,9 @@ try {
         $_SESSION['msg_success'] = "Enrollment list updated successfully.";
 
     } else if ($action_type === 'quick_add') {
+        if ($is_locked || !$manual_mode) {
+            throw new Exception("Manual changes are not allowed. Please request an unlock if needed.");
+        }
         $roll_no = trim($_POST['roll_no']);
         
         // Find student in this semester by Roll No
