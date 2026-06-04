@@ -42,8 +42,11 @@ try {
     ");
     $get_all_electives->bind_param("i", $class_id);
     $get_all_electives->execute();
-    $all_elective_ids = $get_all_electives->get_result()->fetch_all(MYSQLI_ASSOC);
-    $elective_id_list = array_column($all_elective_ids, 'id');
+    $res_elective_ids = $get_all_electives->get_result();
+    $elective_id_list = [];
+    while ($row = $res_elective_ids->fetch_assoc()) {
+        $elective_id_list[] = $row['id'];
+    }
 
     if (!empty($elective_id_list)) {
         $placeholders = implode(',', array_fill(0, count($elective_id_list), '?'));

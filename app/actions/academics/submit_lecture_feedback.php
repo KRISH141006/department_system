@@ -29,11 +29,16 @@ try {
 
     // 2. Submit verification - Updated to 'lecture_verifications' table
     $stmt = $conn->prepare("
-        INSERT INTO lecture_verifications (lecture_record_id, student_id, status, feedback, verified_at) 
+        INSERT INTO lecture_verifications (lecture_record_id, student_id, status, remarks, verified_at) 
         VALUES (?, ?, ?, ?, NOW())
-        ON DUPLICATE KEY UPDATE status = VALUES(status), feedback = VALUES(feedback), verified_at = NOW()
+        ON DUPLICATE KEY UPDATE status = VALUES(status), remarks = VALUES(remarks), verified_at = NOW()
     ");
-    $stmt->bind_param("iiss", $lecture_record_id, $student_id, $status, $remarks);
+    
+    // Normalize status values (handle discrepancy from legacy UI)
+    $final_status = $status;
+    if ($final_status === 'discrepancy') $final_status = 'disputed';
+    
+    $stmt->bind_param("iiss", $lecture_record_id, $student_id, $final_status, $remarks);
     $stmt->execute();
 
     $_SESSION['msg_success'] = "Verification submitted successfully.";

@@ -46,7 +46,11 @@ $elective_query = $conn->prepare("
 ");
 $elective_query->bind_param("ii", $student_id, $class_id);
 $elective_query->execute();
-$electives = $elective_query->get_result()->fetch_all(MYSQLI_ASSOC);
+$res_electives = $elective_query->get_result();
+$electives = [];
+while ($row = $res_electives->fetch_assoc()) {
+    $electives[] = $row;
+}
 
 // 4. Check for pending change requests
 $req_query = $conn->prepare("
@@ -58,7 +62,11 @@ $req_query = $conn->prepare("
 ");
 $req_query->bind_param("i", $student_id);
 $req_query->execute();
-$pending_requests = $req_query->get_result()->fetch_all(MYSQLI_ASSOC);
+$res_reqs = $req_query->get_result();
+$pending_requests = [];
+while ($row = $res_reqs->fetch_assoc()) {
+    $pending_requests[] = $row;
+}
 ?>
 
 <div class="wrapper" style="padding: 2rem;">

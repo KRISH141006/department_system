@@ -79,10 +79,10 @@ require_once __DIR__ . '/../../app/includes/header.php';
             <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">Generate evaluation forms for student feedback.</p>
         </a>
 
-        <a href="feedback_results.php" class="card" style="text-decoration: none; color: inherit;">
+        <a href="feedback_history.php" class="card" style="text-decoration: none; color: inherit;">
             <div style="font-size: 32px; margin-bottom: 12px;">📊</div>
             <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600;">Student's Feedback</h3>
-            <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">Review consolidated ratings and student comments.</p>
+            <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">Review anonymous ratings and student comments from your classes.</p>
         </a>
 
         <a href="assign_task.php" class="card" style="text-decoration: none; color: inherit; border-left: 4px solid var(--accent);">
@@ -109,7 +109,7 @@ require_once __DIR__ . '/../../app/includes/header.php';
             <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">Review and manage tasks you have previously assigned to students.</p>
         </a>
 
-        <a href="select_student.php" class="card" style="text-decoration: none; color: inherit;">
+        <a href="syllabus_verification.php" class="card" style="text-decoration: none; color: inherit;">
             <?php 
             // Count active verification assignments for this faculty's subjects today
             $countStmt = $conn->prepare("
@@ -163,68 +163,88 @@ require_once __DIR__ . '/../../app/includes/header.php';
             <a href="create_subject.php" class="btn btn-sm" style="background: var(--accent); color: white;">+ Add Subject</a>
         </div>
         
-        <div class="grid-2">
-            <?php 
-            // 3. Fetch Taught Subjects - Updated junction logic
-            $subQuery = $conn->prepare("
-                SELECT s.id as subject_id, s.name as subject_name, c.name as class_name, c.semester, s.type, cs.id as class_subject_id,
-                       (SELECT COUNT(*) 
-                        FROM verification_assignments va 
-                        JOIN lecture_records lr ON va.lecture_record_id = lr.id 
-                        WHERE lr.subject_id = s.id AND lr.class_id = c.id AND DATE(va.assigned_at) = ?) as assigned_count
-                FROM faculty_subjects fs 
-                JOIN class_subjects cs ON fs.class_subject_id = cs.id 
-                JOIN subjects s ON cs.subject_id = s.id 
-                JOIN classes c ON cs.class_id = c.id 
-                WHERE fs.faculty_id = ?
-            ");
-            $subQuery->bind_param("si", $today, $faculty_id);
-            $subQuery->execute();
-            $subjects = $subQuery->get_result();
+        <?php 
+        // 3. Fetch Taught Subjects - Updated junction logic
+        $subQuery = $conn->prepare("
+            SELECT s.id as subject_id, s.name as subject_name, c.name as class_name, c.semester, c.id as class_id, s.type, cs.id as class_subject_id,
+                   (SELECT COUNT(*) 
+                    FROM verification_assignments va 
+                    JOIN lecture_records lr ON va.lecture_record_id = lr.id 
+                    WHERE lr.subject_id = s.id AND lr.class_id = c.id AND DATE(va.assigned_at) = ?) as assigned_count
+            FROM faculty_subjects fs 
+            JOIN class_subjects cs ON fs.class_subject_id = cs.id 
+            JOIN subjects s ON cs.subject_id = s.id 
+            JOIN classes c ON cs.class_id = c.id 
+            WHERE fs.faculty_id = ?
+        ");
+        $subQuery->bind_param("si", $today, $faculty_id);
+        $subQuery->execute();
+        $subjects = $subQuery->get_result();
+        ?>
 
-            if ($subjects->num_rows === 0) {
-                echo "<div class='card' style='grid-column: span 2; text-align: center; padding: 2rem;'>
-                        <p style='color: var(--text-2);'>You haven't added any subjects yet.</p>
-                      </div>";
-            }
+        <div class="card" style="padding: 0; overflow: hidden;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                <thead style="background: var(--bg-2); border-bottom: 1px solid var(--border);">
+                    <tr>
+                        <th style="padding: 1.25rem;">Subject</th>
+                        <th style="padding: 1.25rem;">Class & Semester</th>
+                        <th style="padding: 1.25rem;">Verification</th>
+                        <th style="padding: 1.25rem; text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php if ($subjects->num_rows === 0): ?>
+                        <tr>
+                            <td colspan="4" style="padding: 3rem; text-align: center; color: var(--text-3);">
+                                You haven't added any subjects yet.
+                            </td>
+                        </tr>
+                    <?php endif; ?>
 
-            while ($sub = $subjects->fetch_assoc()) {
-                $hasAssignments = $sub['assigned_count'] > 0;
-                $isElective = $sub['type'] === 'elective';
-            ?>
-                <div class="card" style="display: flex; justify-content: space-between; align-items: center; border-left: 4px solid <?php echo $isElective ? 'var(--primary)' : ($hasAssignments ? 'var(--success)' : 'transparent'); ?>;">
-                    <div>
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                            <h3 style="margin: 0; font-size: 1.15rem;"><?php echo htmlspecialchars($sub['subject_name']); ?></h3>
-                            <?php if ($isElective): ?>
-                                <span class="badge" style="background: var(--primary); color: #fff; font-size: 10px;">Elective</span>
-                            <?php endif; ?>
-                            <?php if ($hasAssignments): ?>
-                                <span class="badge badge-success" style="font-size: 10px;">Assigned Today</span>
-                            <?php endif; ?>
-                        </div>
-                        <p style="font-size: 14px; color: var(--text-2);">
-                            Class: <strong><?php echo htmlspecialchars($sub['class_name']); ?></strong> | 
-                            Semester: <strong><?php echo htmlspecialchars($sub['semester']); ?></strong>
-                        </p>
-                        <?php if ($hasAssignments): ?>
-                            <p style="font-size: 12px; color: var(--success); margin-top: 4px; font-weight: 600;">
-                                👥 <?php echo $sub['assigned_count']; ?> Students Assigned Anonymously
-                            </p>
-                        <?php endif; ?>
-                    </div>
-                    <div style="display: flex; gap: 8px;">
-                        <?php if ($isElective): ?>
-                            <a href="manage_elective_students.php?id=<?php echo $sub['subject_id']; ?>" class="btn btn-sm btn-primary">Students</a>
-                        <?php endif; ?>
-                        <a href="create_subject.php?id=<?php echo $sub['subject_id']; ?>" class="btn btn-sm btn-secondary">Edit</a>
-                        <a href="units.php?subject_id=<?php echo $sub['subject_id']; ?>&class_id=<?php echo $sub['class_id']; ?>" class="btn btn-sm btn-secondary">Units</a>
-                        <a href="select_student.php?class_id=<?php echo $sub['class_subject_id']; ?>" class="btn btn-sm <?php echo $hasAssignments ? 'btn-secondary' : 'btn-primary'; ?>">
-                            <?php echo $hasAssignments ? 'Show Details' : 'Verify'; ?>
-                        </a>
-                    </div>
-                </div>
-            <?php } ?>
+                    <?php while ($sub = $subjects->fetch_assoc()): 
+                        $hasAssignments = $sub['assigned_count'] > 0;
+                        $isElective = $sub['type'] === 'elective';
+                    ?>
+                        <tr style="border-bottom: 1px solid var(--border);">
+                            <td style="padding: 1.25rem;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-weight: 600; font-size: 1.1rem;"><?php echo htmlspecialchars($sub['subject_name']); ?></span>
+                                    <?php if ($isElective): ?>
+                                        <span class="badge" style="background: var(--accent-light); color: var(--accent); font-size: 10px;">Elective</span>
+                                    <?php endif; ?>
+                                </div>
+                            </td>
+                            <td style="padding: 1.25rem;">
+                                <div style="font-size: 14px;"><strong><?php echo htmlspecialchars($sub['class_name']); ?></strong></div>
+                                <div style="font-size: 12px; color: var(--text-2);">Semester <?php echo htmlspecialchars($sub['semester']); ?></div>
+                            </td>
+                            <td style="padding: 1.25rem;">
+                                <?php if ($hasAssignments): ?>
+                                    <div style="display: flex; align-items: center; gap: 6px; color: var(--success); font-weight: 600; font-size: 13px;">
+                                        <span style="font-size: 16px;">👥</span> <?php echo $sub['assigned_count']; ?> Assigned
+                                    </div>
+                                <?php else: ?>
+                                    <span style="color: var(--text-3); font-size: 13px;">No assignments</span>
+                                <?php endif; ?>
+                            </td>
+                            <td style="padding: 1.25rem; text-align: right;">
+                                <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                                    <?php if ($isElective): ?>
+                                        <a href="manage_elective_students.php?id=<?php echo $sub['subject_id']; ?>" class="btn btn-sm btn-secondary" title="Manage Students">Students</a>
+                                    <?php endif; ?>
+                                    <a href="units.php?subject_id=<?php echo $sub['subject_id']; ?>&class_id=<?php echo $sub['class_id']; ?>" class="btn btn-sm btn-secondary" title="Syllabus/Topics">Units</a>
+                                    <a href="select_student.php?class_id=<?php echo $sub['class_subject_id']; ?>" class="btn btn-sm <?php echo $hasAssignments ? 'btn-secondary' : 'btn-primary'; ?>">
+                                        <?php echo $hasAssignments ? 'Details' : 'Verify'; ?>
+                                    </a>
+                                    <a href="create_subject.php?id=<?php echo $sub['subject_id']; ?>" class="btn btn-sm btn-secondary" title="Edit Subject">
+                                        <span style="font-size: 14px;">⚙️</span>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endwhile; ?>
+                </tbody>
+            </table>
         </div>
     </div>
 

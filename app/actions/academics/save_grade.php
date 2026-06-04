@@ -20,7 +20,7 @@ if (!$submission_id || empty($grade)) {
 
 try {
     // Update submission with grade and feedback - Updated to new 'submissions' table
-    $stmt = $conn->prepare("UPDATE submissions SET grade = ?, feedback = ?, status = 'graded' WHERE id = ?");
+    $stmt = $conn->prepare("UPDATE submissions SET grade = ?, feedback = ?, graded_at = CURRENT_TIMESTAMP WHERE id = ?");
     $stmt->bind_param("ssi", $grade, $feedback, $submission_id);
     
     if ($stmt->execute()) {

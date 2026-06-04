@@ -6,13 +6,19 @@ require_once __DIR__ . '/../../app/includes/header.php';
 
 $user_id = $_SESSION['user_id'];
 
-// Fetch Assigned Tasks via subjects the student is enrolled in
+// Get student's class_id to fetch core subject assignments
+$classStmt = $conn->prepare("SELECT class_id FROM students WHERE user_id = ?");
+$classStmt->bind_param("i", $user_id);
+$classStmt->execute();
+$class_id = $classStmt->get_result()->fetch_assoc()['class_id'] ?? 0;
+
+// Fetch Assigned Tasks via subjects (both core and enrolled electives)
 $base_query = "
     FROM assignments a
     JOIN users f ON a.faculty_id = f.id
-    JOIN student_subjects ss ON a.class_subject_id = ss.class_subject_id
+    JOIN class_subjects cs ON a.class_subject_id = cs.id
     LEFT JOIN submissions sub ON a.id = sub.assignment_id AND sub.student_id = ?
-    WHERE ss.student_id = ?
+    WHERE (cs.class_id = ? OR a.class_subject_id IN (SELECT class_subject_id FROM student_subjects WHERE student_id = ?))
 ";
 
 $sort_by = isset($_GET['sort']) ? $_GET['sort'] : 'newest';
@@ -20,7 +26,7 @@ $order_by = ($sort_by === 'oldest') ? "ORDER BY a.created_at ASC" : "ORDER BY a.
 
 // Count total assigned
 $count_stmt = $conn->prepare("SELECT COUNT(DISTINCT a.id) as count $base_query");
-$count_stmt->bind_param("ii", $user_id, $user_id);
+$count_stmt->bind_param("iii", $user_id, $class_id, $user_id);
 $count_stmt->execute();
 $total_assigned = $count_stmt->get_result()->fetch_assoc()['count'];
 
@@ -30,7 +36,7 @@ $pending_stmt = $conn->prepare("
     $base_query AND sub.id IS NULL
     $order_by
 ");
-$pending_stmt->bind_param("ii", $user_id, $user_id);
+$pending_stmt->bind_param("iii", $user_id, $class_id, $user_id);
 $pending_stmt->execute();
 $pending_result = $pending_stmt->get_result();
 
@@ -40,7 +46,7 @@ $completed_stmt = $conn->prepare("
     $base_query AND sub.id IS NOT NULL
     $order_by
 ");
-$completed_stmt->bind_param("ii", $user_id, $user_id);
+$completed_stmt->bind_param("iii", $user_id, $class_id, $user_id);
 $completed_stmt->execute();
 $completed_result = $completed_stmt->get_result();
 

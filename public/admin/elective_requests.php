@@ -16,7 +16,11 @@ $query = "
     JOIN subjects s2 ON r.new_subject_id = s2.id
     ORDER BY r.created_at DESC
 ";
-$requests = $conn->query($query)->fetch_all(MYSQLI_ASSOC);
+$res = $conn->query($query);
+$requests = [];
+while ($row = $res->fetch_assoc()) {
+    $requests[] = $row;
+}
 
 $page_title = "Elective Change Requests";
 require_once __DIR__ . '/../../app/includes/header.php';

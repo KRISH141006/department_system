@@ -11,7 +11,11 @@ $page_title = "Manage Role Permissions";
 require_once __DIR__ . '/../../app/includes/header.php';
 
 // Fetch all permissions
-$all_perms = $conn->query("SELECT * FROM permissions ORDER BY permission_name ASC")->fetch_all(MYSQLI_ASSOC);
+$res = $conn->query("SELECT * FROM permissions ORDER BY permission_name ASC");
+$all_perms = [];
+while ($row = $res->fetch_assoc()) {
+    $all_perms[] = $row;
+}
 
 // Define roles to manage (excluding admin as admin always has all perms)
 $roles = ['student', 'faculty', 'expert'];

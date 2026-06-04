@@ -79,8 +79,9 @@ require_once __DIR__ . '/../../app/includes/header.php';
                                         <textarea name="remarks" placeholder="Any comments..." style="height: 60px; font-size: 13px;"></textarea>
                                     </div>
                                     <div style="display: flex; gap: 10px;">
-                                        <button type="submit" name="status" value="verified" class="btn btn-primary" style="flex: 1;">Yes, Topic was Covered</button>
-                                        <button type="submit" name="status" value="discrepancy" class="btn btn-secondary" style="color: var(--error); border-color: var(--error);">No, It was Not</button>
+                                        <button type="submit" name="status" value="verified" class="btn btn-primary" style="flex: 2;">Yes, Topic was Covered</button>
+                                        <button type="submit" name="status" value="disputed" class="btn btn-secondary" style="flex: 1; color: var(--error); border-color: var(--error);">No, It was Not</button>
+                                        <button type="submit" name="status" value="absent" class="btn btn-secondary" style="flex: 1;">I was Absent</button>
                                     </div>
                                 </form>
                             </div>

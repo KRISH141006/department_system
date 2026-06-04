@@ -22,16 +22,42 @@ if (!$faculty_id || empty($feedback_text)) {
     exit();
 }
 
-// Prepare subject_id for NULL if 0
-$subj_param = ($subject_id > 0) ? $subject_id : NULL;
+try {
+    // 1. Ensure table exists (Safety check in case SQL wasn't imported)
+    $createTableQuery = "
+        CREATE TABLE IF NOT EXISTS continuous_feedback (
+            id            INT AUTO_INCREMENT PRIMARY KEY,
+            faculty_id    INT NOT NULL,
+            subject_id    INT NULL,
+            feedback_text TEXT NOT NULL,
+            created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT fk_cf_faculty_v2 FOREIGN KEY (faculty_id) REFERENCES faculty(user_id) ON DELETE CASCADE,
+            CONSTRAINT fk_cf_subject_v2 FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE SET NULL
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    ";
+    $conn->query($createTableQuery);
 
-$stmt = $conn->prepare("INSERT INTO continuous_feedback (faculty_id, subject_id, feedback_text) VALUES (?, ?, ?)");
-$stmt->bind_param("iis", $faculty_id, $subj_param, $feedback_text);
+    // 2. Prepare query
+    $query = "INSERT INTO continuous_feedback (faculty_id, subject_id, feedback_text) VALUES (?, ?, ?)";
+    $stmt = $conn->prepare($query);
 
-if ($stmt->execute()) {
-    $_SESSION['msg_success'] = "Thank you! Your anonymous feedback has been submitted.";
-} else {
-    $_SESSION['msg_error'] = "Error submitting feedback: " . $conn->error;
+    if (!$stmt) {
+        throw new Exception("Database prepare error: " . $conn->error);
+    }
+
+    // 3. Bind parameters
+    // Handle optional subject_id
+    $subject_val = ($subject_id > 0) ? $subject_id : NULL;
+    $stmt->bind_param("iis", $faculty_id, $subject_val, $feedback_text);
+
+    if ($stmt->execute()) {
+        $_SESSION['msg_success'] = "Thank you! Your anonymous feedback has been submitted.";
+    } else {
+        throw new Exception("Execute error: " . $stmt->error);
+    }
+
+} catch (Exception $e) {
+    $_SESSION['msg_error'] = "Error: " . $e->getMessage();
 }
 
 header("Location: ../../../public/academics/continuous_feedback.php");

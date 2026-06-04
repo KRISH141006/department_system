@@ -34,7 +34,11 @@ $stmt = $conn->prepare("
 ");
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
-$myRequests = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$result = $stmt->get_result();
+$myRequests = [];
+while ($row = $result->fetch_assoc()) {
+    $myRequests[] = $row;
+}
 
 $page_title = "Skill Validation";
 include __DIR__ . '/../../app/includes/header.php';
@@ -140,9 +144,5 @@ include __DIR__ . '/../../app/includes/header.php';
         btn.innerText = isExpanded ? 'Show Full History (<?= count($myRequests) ?>)' : 'Hide Extra History';
     }
 </script>
-            </div>
-        </div>
-    </div>
-</div>
 
 <?php require_once __DIR__ . '/../../app/includes/footer.php'; ?>

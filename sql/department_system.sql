@@ -12,6 +12,8 @@
 --     updated_at ON UPDATE CURRENT_TIMESTAMP.
 -- ============================================================
 
+
+
 DROP DATABASE IF EXISTS dept_system;
 CREATE DATABASE dept_system CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE dept_system;
@@ -282,6 +284,19 @@ CREATE TABLE feedback_responses (
         FOREIGN KEY (student_id)  REFERENCES students(user_id)      ON DELETE CASCADE
 );
 
+-- Continuous/Anonymous feedback box (not tied to a specific form)
+CREATE TABLE continuous_feedback (
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    faculty_id    INT NOT NULL,
+    subject_id    INT NULL,                 -- optional; can be general feedback
+    feedback_text TEXT NOT NULL,
+    created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_cf_faculty
+        FOREIGN KEY (faculty_id) REFERENCES faculty(user_id) ON DELETE CASCADE,
+    CONSTRAINT fk_cf_subject
+        FOREIGN KEY (subject_id) REFERENCES subjects(id)      ON DELETE SET NULL
+);
+
 
 -- ============================================================
 -- DOMAIN 6: SYLLABUS VERIFICATION
@@ -329,7 +344,7 @@ CREATE TABLE lecture_verifications (
     id                INT AUTO_INCREMENT PRIMARY KEY,
     lecture_record_id INT NOT NULL,
     student_id        INT NOT NULL,
-    status            ENUM('pending','verified','disputed') NOT NULL DEFAULT 'pending',
+    status            ENUM('pending','verified','disputed','absent') NOT NULL DEFAULT 'pending',
     remarks           TEXT NULL,
     verified_at       TIMESTAMP NULL,
     -- One verification entry per student per lecture

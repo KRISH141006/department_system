@@ -13,7 +13,7 @@ $reviewer_id = (int) $_SESSION['user_id'];
 $open_request_id = isset($_GET['accepted']) ? (int)$_GET['accepted'] : 0;
 
 // Fetch pending requests
-$pending = $conn->query("
+$res1 = $conn->query("
     SELECT r.*, c.branch, u.name AS student_name
     FROM review_requests r
     JOIN users u ON u.id = r.user_id
@@ -21,10 +21,12 @@ $pending = $conn->query("
     JOIN classes c ON c.id = s.class_id
     WHERE r.status = 'pending'
     ORDER BY r.created_at ASC
-")->fetch_all(MYSQLI_ASSOC);
+");
+$pending = [];
+while ($row = $res1->fetch_assoc()) { $pending[] = $row; }
 
 // Fetch accepted (open) requests — for review forms
-$accepted = $conn->query("
+$res2 = $conn->query("
     SELECT r.*, c.branch, u.name AS student_name
     FROM review_requests r
     JOIN users u ON u.id = r.user_id
@@ -32,10 +34,12 @@ $accepted = $conn->query("
     JOIN classes c ON c.id = s.class_id
     WHERE r.status = 'accepted' AND r.reviewer_id = $reviewer_id
     ORDER BY r.created_at ASC
-")->fetch_all(MYSQLI_ASSOC);
+");
+$accepted = [];
+while ($row = $res2->fetch_assoc()) { $accepted[] = $row; }
 
 // Fetch completed (history for this reviewer)
-$completed = $conn->query("
+$res3 = $conn->query("
     SELECT r.skill, r.created_at, r.user_id as student_id,
            u.name AS student_name,
            rev.marks, rev.comment, rev.created_at AS reviewed_at
@@ -45,7 +49,9 @@ $completed = $conn->query("
     WHERE rev.reviewer_id = $reviewer_id
     ORDER BY rev.created_at DESC
     LIMIT 100
-")->fetch_all(MYSQLI_ASSOC);
+");
+$completed = [];
+while ($row = $res3->fetch_assoc()) { $completed[] = $row; }
 
 $page_title = "Review Panel";
 include __DIR__ . '/../../app/includes/header.php';

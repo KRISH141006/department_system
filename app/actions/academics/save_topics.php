@@ -42,17 +42,20 @@ try {
         $getPremium = $conn->prepare("SELECT user_id FROM students WHERE class_id = ? AND pac_category = 'premium' ORDER BY RAND() LIMIT 2");
         $getPremium->bind_param("i", $class_id);
         $getPremium->execute();
-        foreach ($getPremium->get_result()->fetch_all(MYSQLI_ASSOC) as $s) $selected_students[] = $s['user_id'];
+        $resPremium = $getPremium->get_result();
+        while ($s = $resPremium->fetch_assoc()) $selected_students[] = $s['user_id'];
 
         $getAverage = $conn->prepare("SELECT user_id FROM students WHERE class_id = ? AND pac_category = 'average' ORDER BY RAND() LIMIT 2");
         $getAverage->bind_param("i", $class_id);
         $getAverage->execute();
-        foreach ($getAverage->get_result()->fetch_all(MYSQLI_ASSOC) as $s) $selected_students[] = $s['user_id'];
+        $resAverage = $getAverage->get_result();
+        while ($s = $resAverage->fetch_assoc()) $selected_students[] = $s['user_id'];
 
         $getChallenged = $conn->prepare("SELECT user_id FROM students WHERE class_id = ? AND pac_category = 'challenged' ORDER BY RAND() LIMIT 1");
         $getChallenged->bind_param("i", $class_id);
         $getChallenged->execute();
-        foreach ($getChallenged->get_result()->fetch_all(MYSQLI_ASSOC) as $s) $selected_students[] = $s['user_id'];
+        $resChallenged = $getChallenged->get_result();
+        while ($s = $resChallenged->fetch_assoc()) $selected_students[] = $s['user_id'];
 
         // Fallback: If not enough students in specific categories, pick randomly to reach 5
         if (count($selected_students) < 5) {

@@ -16,7 +16,7 @@ if (empty($skill)) {
     exit;
 }
 
-$stmt = $conn->prepare(\"INSERT INTO review_requests (user_id, skill) VALUES (?, ?)\");
+$stmt = $conn->prepare("INSERT INTO review_requests (user_id, skill) VALUES (?, ?)");
 $stmt->bind_param("is", $user_id, $skill);
 
 if ($stmt->execute()) {

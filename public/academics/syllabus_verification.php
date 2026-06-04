@@ -14,7 +14,7 @@ $stmt = $conn->prepare("
     SELECT lr.*, s.name as subject_name, c.name as class_name, t.name as topic_name,
            (SELECT COUNT(*) FROM verification_assignments va WHERE va.lecture_record_id = lr.id) as assigned_count,
            (SELECT COUNT(*) FROM lecture_verifications lv WHERE lv.lecture_record_id = lr.id AND lv.status = 'verified') as verified_count,
-           (SELECT COUNT(*) FROM lecture_verifications lv WHERE lv.lecture_record_id = lr.id AND lv.status = 'discrepancy') as dispute_count
+           (SELECT COUNT(*) FROM lecture_verifications lv WHERE lv.lecture_record_id = lr.id AND lv.status = 'disputed') as dispute_count
     FROM lecture_records lr
     JOIN subjects s ON lr.subject_id = s.id
     JOIN classes c ON lr.class_id = c.id
@@ -84,7 +84,11 @@ require_once __DIR__ . '/../../app/includes/header.php';
                         </td>
                         <td style="padding: 1.25rem; text-align: right;">
                             <?php if ($r['dispute_count'] > 0): ?>
-                                <a href="correct_topic.php?id=<?= $r['id'] ?>" class="btn btn-sm btn-error">Resolve Dispute</a>
+                                <form action="../../app/actions/academics/correct_topic.php" method="POST" style="display: inline;" onsubmit="return confirm('Do you want to confirm this topic was covered and resolve all disputes?')">
+                                    <input type="hidden" name="lecture_record_id" value="<?= $r['id'] ?>">
+                                    <input type="hidden" name="action" value="confirm_covered">
+                                    <button type="submit" class="btn btn-sm btn-error">Resolve Dispute</button>
+                                </form>
                             <?php else: ?>
                                 <span style="color: var(--text-3); font-size: 12px; font-style: italic;">All Clear</span>
                             <?php endif; ?>

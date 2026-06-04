@@ -55,22 +55,20 @@ require_once __DIR__ . '/../../app/includes/header.php';
             <div>
                 <div class="card" style="margin-bottom: 2rem;">
                     <h3 style="margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 10px;">Submission Details</h3>
-                    <div style="margin-bottom: 1.5rem;">
-                        <p style="font-size: 0.75rem; color: var(--text-3); text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">Student Message / Description</p>
-                        <div style="font-size: 15px; line-height: 1.6; white-space: pre-wrap;"><?= htmlspecialchars($submission['submission_text'] ?: 'No message provided.') ?></div>
-                    </div>
-
-                    <?php if ($submission['file_path']): ?>
+                    
+                    <?php if ($submission['submission_path']): ?>
                         <div style="background: var(--bg-2); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border);">
                             <div style="display: flex; align-items: center; gap: 15px;">
                                 <div style="font-size: 2rem;">📎</div>
                                 <div style="flex: 1;">
                                     <p style="font-weight: 600; margin-bottom: 4px;">Attachment Provided</p>
-                                    <p style="font-size: 12px; color: var(--text-3);"><?= basename($submission['file_path']) ?></p>
+                                    <p style="font-size: 12px; color: var(--text-3);"><?= htmlspecialchars($submission['submission_name'] ?: basename($submission['submission_path'])) ?></p>
                                 </div>
-                                <a href="<?= htmlspecialchars($submission['file_path']) ?>" class="btn btn-sm btn-primary" target="_blank">Download File</a>
+                                <a href="../<?= htmlspecialchars($submission['submission_path']) ?>" class="btn btn-sm btn-primary" target="_blank">Download File</a>
                             </div>
                         </div>
+                    <?php else: ?>
+                        <p style="color: var(--text-3); text-align: center; padding: 2rem;">No file attached.</p>
                     <?php endif; ?>
                 </div>
             </div>

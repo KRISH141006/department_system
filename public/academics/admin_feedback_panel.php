@@ -12,10 +12,10 @@ require_once __DIR__ . '/../../app/includes/header.php';
 
 // Fetch all anonymous feedbacks with faculty and subject names
 $query = "
-    SELECT cf.*, u.name as faculty_name, fs.subject_name 
+    SELECT cf.*, u.name as faculty_name, s.name as subject_name 
     FROM continuous_feedback cf
     JOIN users u ON u.id = cf.faculty_id
-    LEFT JOIN faculty_subjects fs ON fs.id = cf.subject_id
+    LEFT JOIN subjects s ON s.id = cf.subject_id
     ORDER BY cf.created_at DESC
 ";
 $fb_query = $conn->query($query);

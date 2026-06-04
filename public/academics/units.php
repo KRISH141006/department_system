@@ -6,7 +6,8 @@ $subject_id = (int) ($_GET['subject_id'] ?? 0);
 $unit_id = (int) ($_GET['unit_id'] ?? 0);
 
 if (!$subject_id) {
-    header("Location: student_dashboard.php");
+    $redirect = ($_SESSION['role'] === 'student') ? 'student_dashboard.php' : 'faculty_dashboard.php';
+    header("Location: $redirect");
     exit();
 }
 
@@ -17,28 +18,32 @@ $stmt->execute();
 $subject = $stmt->get_result()->fetch_assoc();
 
 if (!$subject) {
-    header("Location: student_dashboard.php");
+    $redirect = ($_SESSION['role'] === 'student') ? 'student_dashboard.php' : 'faculty_dashboard.php';
+    header("Location: $redirect");
     exit();
 }
 
 $subject_name = $subject['subject_name'];
 
 $canGiveFeedback = false;
-$student_id = (int) $_SESSION['user_id'];
+$user_id = (int) $_SESSION['user_id'];
+$role = $_SESSION['role'];
 $today = date('Y-m-d');
 
-// Updated to new 'verification_assignments' table (replaces feedback_selector)
-// Check if student is assigned to verify any lecture for this subject today
-$feedChk = $conn->prepare("
-    SELECT 1 FROM verification_assignments va 
-    JOIN lecture_records lr ON va.lecture_record_id = lr.id 
-    WHERE va.student_id = ? AND lr.subject_id = ? AND DATE(va.assigned_at) = ?
-    LIMIT 1
-");
-$feedChk->bind_param("iis", $student_id, $subject_id, $today);
-$feedChk->execute();
-if ($feedChk->get_result()->num_rows > 0) {
-    $canGiveFeedback = true;
+if ($role === 'student') {
+    // Updated to new 'verification_assignments' table (replaces feedback_selector)
+    // Check if student is assigned to verify any lecture for this subject today
+    $feedChk = $conn->prepare("
+        SELECT 1 FROM verification_assignments va 
+        JOIN lecture_records lr ON va.lecture_record_id = lr.id 
+        WHERE va.student_id = ? AND lr.subject_id = ? AND DATE(va.assigned_at) = ?
+        LIMIT 1
+    ");
+    $feedChk->bind_param("iis", $user_id, $subject_id, $today);
+    $feedChk->execute();
+    if ($feedChk->get_result()->num_rows > 0) {
+        $canGiveFeedback = true;
+    }
 }
 
 $page_title = "$subject_name Syllabus";
@@ -54,8 +59,11 @@ require_once __DIR__ . '/../../app/includes/header.php';
         <div class="dashboard-actions">
             <?php if (isset($_GET['from']) && $_GET['from'] == 'feedback') { ?>
                 <a href="lecture_feedback.php" class="btn btn-secondary">Back to Feedback</a>
-            <?php } else { ?>
-                <a href="student_dashboard.php" class="btn btn-secondary">Back to Academics</a>
+            <?php } else { 
+                $back_link = ($role === 'student') ? 'student_dashboard.php' : 'faculty_dashboard.php';
+                $back_text = ($role === 'student') ? 'Back to Academics' : 'Back to Dashboard';
+            ?>
+                <a href="<?php echo $back_link; ?>" class="btn btn-secondary"><?php echo $back_text; ?></a>
             <?php } ?>
         </div>
     </div>
@@ -149,9 +157,10 @@ require_once __DIR__ . '/../../app/includes/header.php';
                         ?>
                             <tr style="border-bottom: 1px solid var(--border);">
                                 <td style="padding: 12px;">
+                                    <?php $is_faculty = ($_SESSION['role'] === 'faculty' || $_SESSION['role'] === 'admin'); ?>
                                     <input type="checkbox" name="topic_ids[]" value="<?php echo $topic_id; ?>" 
                                            <?php if ($covered == 1) echo "checked"; ?>
-                                           <?php if (!$canGiveFeedback) echo "disabled"; ?>
+                                           <?php if (!$is_faculty && !$canGiveFeedback) echo "disabled"; ?>
                                            style="width: 20px; height: 20px; cursor: pointer;">
                                 </td>
                                 <td style="padding: 12px;"><?php echo htmlspecialchars($topic); ?></td>

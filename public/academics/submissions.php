@@ -37,7 +37,7 @@ $class_id = $assignment['class_id'];
 // 2. Fetch all students in this class and their submission status
 $query = "
     SELECT u.id as student_id, u.name as student_name, s_ext.roll_no, 
-           sub.id as submission_id, sub.submitted_at, sub.status as submission_status, sub.grade
+           sub.id as submission_id, sub.submitted_at, sub.grade
     FROM users u
     JOIN students s_ext ON u.id = s_ext.user_id
     LEFT JOIN submissions sub ON sub.student_id = u.id AND sub.assignment_id = ?

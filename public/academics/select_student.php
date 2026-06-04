@@ -101,8 +101,8 @@ require_once __DIR__ . '/../../app/includes/header.php';
                         <td style="padding: 1rem; text-align: center;">
                             <?php if ($a['verification_status'] === 'verified'): ?>
                                 <span class="badge badge-success">Verified</span>
-                            <?php elseif ($a['verification_status'] === 'discrepancy'): ?>
-                                <span class="badge badge-error">Discrepancy</span>
+                            <?php elseif ($a['verification_status'] === 'discrepancy' || $a['verification_status'] === 'disputed'): ?>
+                                <span class="badge badge-error">Disputed</span>
                             <?php elseif ($a['verification_status'] === 'absent'): ?>
                                 <span class="badge badge-secondary">Absent</span>
                             <?php else: ?>
