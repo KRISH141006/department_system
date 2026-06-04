@@ -10,138 +10,136 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $user_id = (int) $_SESSION['user_id'];
 $role = $_SESSION['role'];
 
-// --- User table fields ---
-$name         = trim($_POST['name']         ?? '');
-$class_name   = strtoupper(trim($_POST['class_name']   ?? ''));
-$semester     = (int) ($_POST['semester']     ?? 0);
-$roll_no       = strtoupper(trim($_POST['roll_no']      ?? ''));
-$emp_id        = strtoupper(trim($_POST['emp_id']       ?? ''));
-$linkedin_url  = trim($_POST['linkedin_url'] ?? '');
-
-// --- CC Fields ---
-$cc_class           = strtoupper(trim($_POST['cc_class']           ?? ''));
-$cc_semester        = (int) ($_POST['cc_semester']        ?? 0);
-
-// Enforce [Semester][ClassName] convention (e.g., 4EK1)
-if ($role === 'student' && $semester > 0 && !empty($class_name)) {
-    // Remove leading digits, hyphens, and spaces
-    $class_pure = preg_replace('/^[\d\s\-_]+/', '', $class_name);
-    $class_pure = str_replace(['-', ' '], '', $class_pure);
-    $class_name = $semester . $class_pure;
-}
-
-// Check if student is trying to change class/semester when it's already set
-if ($role === 'student') {
-    $checkStmt = $conn->prepare("SELECT class_name, semester FROM users WHERE id = ?");
-    $checkStmt->bind_param("i", $user_id);
-    $checkStmt->execute();
-    $current = $checkStmt->get_result()->fetch_assoc();
-
-    if (!empty($current['class_name']) && !empty($current['semester'])) {
-        // Prevent changing these fields (they already follow the convention if they were set after this update)
-        $class_name = $current['class_name'];
-        $semester = $current['semester'];
-    }
-}
-
-// --- Profile table fields (Common) ---
-$branch         = trim($_POST['branch']         ?? '');
-$skills         = trim($_POST['skills']         ?? '');
-$bio            = trim($_POST['bio']            ?? '');
-$hobbies        = trim($_POST['hobbies']        ?? '');
-
-// --- Student Specific ---
-$github_url     = trim($_POST['github_url']     ?? '');
-$leetcode_url   = trim($_POST['leetcode_url']   ?? '');
-$portfolio_url  = trim($_POST['portfolio_url']  ?? '');
-$target_role    = trim($_POST['target_role']    ?? '');
-
-// --- Faculty/Admin Specific ---
-$designation        = trim($_POST['designation']        ?? '');
-$teaching_interests = trim($_POST['teaching_interests'] ?? '');
-$is_cc              = isset($_POST['is_cc']) ? 1 : 0;
-
-if ($is_cc && $cc_semester > 0 && !empty($cc_class)) {
-    $cc_pure = preg_replace('/^[\d\s\-_]+/', '', $cc_class);
-    $cc_pure = str_replace(['-', ' '], '', $cc_pure);
-    $cc_class = $cc_semester . $cc_pure;
-}
-
-// --- Expert Specific ---
-$is_alumni          = isset($_POST['is_alumni']) ? 1 : 0;
-$college_name       = trim($_POST['college_name']       ?? '');
-$degree             = trim($_POST['degree']             ?? '');
-$graduation_year    = trim($_POST['graduation_year']    ?? '');
-$experience_years   = (int) ($_POST['experience_years'] ?? 0);
-$company            = trim($_POST['company']            ?? '');
-$expertise_area     = trim($_POST['expertise_area']     ?? '');
-
-// Expert might also have designation from common field
-if ($role === 'expert') {
-    $designation = trim($_POST['designation'] ?? '');
-}
-
-if (empty($branch) || empty($name)) {
-    $_SESSION['profile_error'] = "Name and Branch are required.";
+// --- 1. Basic Information (Users Table) ---
+$name = trim($_POST['name'] ?? '');
+if (empty($name)) {
+    $_SESSION['profile_error'] = "Full Name is required.";
     header("Location: ../../../public/community/profile.php");
     exit;
 }
 
-// 1. Update users table
-$uStmt = $conn->prepare("UPDATE users SET name = ?, class_name = ?, semester = ?, roll_no = ?, emp_id = ?, linkedin_url = ? WHERE id = ?");
-$uStmt->bind_param("ssssssi", $name, $class_name, $semester, $roll_no, $emp_id, $linkedin_url, $user_id);
+$uStmt = $conn->prepare("UPDATE users SET name = ? WHERE id = ?");
+$uStmt->bind_param("si", $name, $user_id);
 $uStmt->execute();
-
-// Update session name too
 $_SESSION['name'] = $name;
 
-// 2. Check if profile exists
-$chk = $conn->prepare("SELECT id FROM profiles WHERE user_id = ?");
-$chk->bind_param("i", $user_id);
-$chk->execute();
+// --- 2. Common Profile Fields (Profiles Table) ---
+$linkedin_url  = trim($_POST['linkedin_url'] ?? '');
+$github_url    = trim($_POST['github_url'] ?? '');
+$leetcode_url  = trim($_POST['leetcode_url'] ?? '');
+$portfolio_url = trim($_POST['portfolio_url'] ?? '');
+$skills        = trim($_POST['skills'] ?? '');
+$hobbies       = trim($_POST['hobbies'] ?? '');
+$bio           = trim($_POST['bio'] ?? '');
 
-if ($chk->get_result()->num_rows > 0) {
-    // Update profile (all columns)
-    $stmt = $conn->prepare("
-        UPDATE profiles SET 
-            branch = ?, skills = ?, expertise_area = ?, company = ?, designation = ?, bio = ?,
-            github_url = ?, leetcode_url = ?, portfolio_url = ?, hobbies = ?, target_role = ?,
-            is_alumni = ?, college_name = ?, graduation_year = ?, degree = ?, experience_years = ?,
-            teaching_interests = ?, is_cc = ?, cc_class = ?, cc_semester = ?
-        WHERE user_id = ?
-    ");
-    $stmt->bind_param(
-        "sssssssssssississssii", 
-        $branch, $skills, $expertise_area, $company, $designation, $bio,
-        $github_url, $leetcode_url, $portfolio_url, $hobbies, $target_role,
-        $is_alumni, $college_name, $graduation_year, $degree, $experience_years,
-        $teaching_interests, $is_cc, $cc_class, $cc_semester,
-        $user_id
-    );
-} else {
-    // Insert profile
-    $stmt = $conn->prepare("
-        INSERT INTO profiles (
-            user_id, branch, skills, expertise_area, company, designation, bio,
-            github_url, leetcode_url, portfolio_url, hobbies, target_role,
-            is_alumni, college_name, graduation_year, degree, experience_years,
-            teaching_interests, is_cc, cc_class, cc_semester
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ");
-    $stmt->bind_param(
-        "isssssssssssississssi",
-        $user_id, $branch, $skills, $expertise_area, $company, $designation, $bio,
-        $github_url, $leetcode_url, $portfolio_url, $hobbies, $target_role,
-        $is_alumni, $college_name, $graduation_year, $degree, $experience_years,
-        $teaching_interests, $is_cc, $cc_class, $cc_semester
-    );
-}
+$pStmt = $conn->prepare("
+    INSERT INTO profiles (user_id, linkedin_url, github_url, leetcode_url, portfolio_url, skills, hobbies, bio)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE 
+        linkedin_url = VALUES(linkedin_url),
+        github_url = VALUES(github_url),
+        leetcode_url = VALUES(leetcode_url),
+        portfolio_url = VALUES(portfolio_url),
+        skills = VALUES(skills),
+        hobbies = VALUES(hobbies),
+        bio = VALUES(bio)
+");
+$pStmt->bind_param("isssssss", $user_id, $linkedin_url, $github_url, $leetcode_url, $portfolio_url, $skills, $hobbies, $bio);
+$pStmt->execute();
 
-if ($stmt->execute()) {
+// --- 3. Role-Specific Data ---
+try {
+    if ($role === 'student') {
+        $class_id    = (int) ($_POST['class_id'] ?? 0);
+        $roll_no     = strtoupper(trim($_POST['roll_no'] ?? ''));
+        $gr_no       = trim($_POST['gr_no'] ?? '');
+        $target_role = trim($_POST['target_role'] ?? '');
+
+        if (!$class_id || !$roll_no) {
+            throw new Exception("Class and Roll Number are required for students.");
+        }
+
+        // Generate a GR Number if not provided (it's NOT NULL UNIQUE)
+        if (empty($gr_no)) {
+            // Check if user already has a GR number
+            $checkGR = $conn->prepare("SELECT gr_no FROM students WHERE user_id = ?");
+            $checkGR->bind_param("i", $user_id);
+            $checkGR->execute();
+            $existing = $checkGR->get_result()->fetch_assoc();
+            if ($existing && !empty($existing['gr_no'])) {
+                $gr_no = $existing['gr_no'];
+            } else {
+                $gr_no = "GR" . str_pad($user_id, 6, "0", STR_PAD_LEFT);
+            }
+        }
+
+        $sStmt = $conn->prepare("
+            INSERT INTO students (user_id, class_id, roll_no, gr_no, target_role)
+            VALUES (?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE 
+                class_id = VALUES(class_id),
+                roll_no = VALUES(roll_no),
+                gr_no = VALUES(gr_no),
+                target_role = VALUES(target_role)
+        ");
+        $sStmt->bind_param("iisss", $user_id, $class_id, $roll_no, $gr_no, $target_role);
+        $sStmt->execute();
+
+    } elseif ($role === 'faculty') {
+        $emp_id             = strtoupper(trim($_POST['emp_id'] ?? ''));
+        $is_cc              = isset($_POST['is_cc']) ? 1 : 0;
+        $teaching_interests = trim($_POST['teaching_interests'] ?? '');
+
+        if (empty($emp_id)) {
+            throw new Exception("Employee ID is required for faculty.");
+        }
+
+        $fStmt = $conn->prepare("
+            INSERT INTO faculty (user_id, emp_id, is_cc, teaching_interests)
+            VALUES (?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE 
+                emp_id = VALUES(emp_id),
+                is_cc = VALUES(is_cc),
+                teaching_interests = VALUES(teaching_interests)
+        ");
+        $fStmt->bind_param("isis", $user_id, $emp_id, $is_cc, $teaching_interests);
+        $fStmt->execute();
+
+    } elseif ($role === 'expert') {
+        $company          = trim($_POST['company'] ?? '');
+        $designation      = trim($_POST['designation'] ?? '');
+        $expertise_area   = trim($_POST['expertise_area'] ?? '');
+        $experience_years = (int) ($_POST['experience_years'] ?? 0);
+        $is_alumni        = isset($_POST['is_alumni']) ? 1 : 0;
+        $college_name     = trim($_POST['college_name'] ?? '');
+        $graduation_year  = trim($_POST['graduation_year'] ?? '');
+        $degree           = trim($_POST['degree'] ?? '');
+
+        if (empty($company) || empty($designation)) {
+            throw new Exception("Company and Designation are required for experts.");
+        }
+
+        $eStmt = $conn->prepare("
+            INSERT INTO experts (user_id, company, designation, expertise_area, experience_years, is_alumni, college_name, graduation_year, degree)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE 
+                company = VALUES(company),
+                designation = VALUES(designation),
+                expertise_area = VALUES(expertise_area),
+                experience_years = VALUES(experience_years),
+                is_alumni = VALUES(is_alumni),
+                college_name = VALUES(college_name),
+                graduation_year = VALUES(graduation_year),
+                degree = VALUES(degree)
+        ");
+        $eStmt->bind_param("isssiisss", $user_id, $company, $designation, $expertise_area, $experience_years, $is_alumni, $college_name, $graduation_year, $degree);
+        $eStmt->execute();
+    }
+
     $_SESSION['profile_success'] = "Profile updated successfully!";
     header("Location: ../../../public/community/profile.php");
-} else {
-    $_SESSION['profile_error'] = "Database error: " . $conn->error;
+} catch (Exception $e) {
+    $_SESSION['profile_error'] = $e->getMessage();
     header("Location: ../../../public/community/profile.php");
 }
 ?>

@@ -56,7 +56,7 @@ try {
             }
 
             // Check if profile exists
-            $ps = $conn->prepare("SELECT id FROM profiles WHERE user_id = ?");
+            $ps = $conn->prepare("SELECT user_id FROM profiles WHERE user_id = ?");
             if (!$ps) {
                 throw new Exception("DB Error (profiles): " . $conn->error);
             }

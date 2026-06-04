@@ -5,24 +5,46 @@ require_once __DIR__ . '/../../app/config/db.php';
 $user_id = (int) $_SESSION['user_id'];
 $role = $_SESSION['role'];
 
-// Fetch from users table
-$uStmt = $conn->prepare("SELECT name, class_name, semester, roll_no, emp_id, linkedin_url FROM users WHERE id = ?");
+// 1. Fetch from users table
+$uStmt = $conn->prepare("SELECT name FROM users WHERE id = ?");
 $uStmt->bind_param("i", $user_id);
 $uStmt->execute();
 $user_data = $uStmt->get_result()->fetch_assoc();
 
-
-// Fetch from profiles table (Updated with all new columns)
+// 2. Fetch from profiles table (Common fields)
 $pStmt = $conn->prepare("
-    SELECT branch, skills, expertise_area, company, designation, bio, 
-           github_url, leetcode_url, portfolio_url, hobbies, target_role,
-           is_alumni, college_name, graduation_year, degree, experience_years,
-           teaching_interests, is_cc, cc_class, cc_semester
+    SELECT bio, github_url, leetcode_url, linkedin_url, portfolio_url, skills, hobbies, community_score 
     FROM profiles WHERE user_id = ?
 ");
 $pStmt->bind_param("i", $user_id);
 $pStmt->execute();
 $profile_data = $pStmt->get_result()->fetch_assoc() ?? [];
+
+// 3. Role-specific data
+$role_data = [];
+if ($role === 'student') {
+    $stmt = $conn->prepare("SELECT gr_no, roll_no, class_id, batch, target_role, pac_category FROM students WHERE user_id = ?");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $role_data = $stmt->get_result()->fetch_assoc() ?? [];
+} elseif ($role === 'faculty') {
+    $stmt = $conn->prepare("SELECT emp_id, is_cc, teaching_interests FROM faculty WHERE user_id = ?");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $role_data = $stmt->get_result()->fetch_assoc() ?? [];
+} elseif ($role === 'expert') {
+    $stmt = $conn->prepare("SELECT company, designation, expertise_area, experience_years, is_alumni, college_name, graduation_year, degree FROM experts WHERE user_id = ?");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $role_data = $stmt->get_result()->fetch_assoc() ?? [];
+}
+
+// 4. Fetch all classes for selection (mainly for students)
+$classes = [];
+$cRes = $conn->query("SELECT id, name, semester, branch FROM classes ORDER BY name, semester");
+while ($row = $cRes->fetch_assoc()) {
+    $classes[] = $row;
+}
 
 $error = $_SESSION['profile_error'] ?? '';
 $success = $_SESSION['profile_success'] ?? '';
@@ -49,7 +71,7 @@ include __DIR__ . '/../../app/includes/header.php';
                     <div class="grid-2">
                         <div class="form-group">
                             <label>Full Name <span style="color:red;">*</span></label>
-                            <input type="text" name="name" value="<?= htmlspecialchars($user_data['name']) ?>" required placeholder="Enter your full name">
+                            <input type="text" name="name" value="<?= htmlspecialchars($user_data['name'] ?? '') ?>" required placeholder="Enter your full name">
                         </div>
                         <div class="form-group">
                             <label>Account Role</label>
@@ -57,15 +79,9 @@ include __DIR__ . '/../../app/includes/header.php';
                         </div>
                     </div>
 
-                    <div class="grid-2">
-                        <div class="form-group">
-                            <label>Branch / Department <span style="color:red;">*</span></label>
-                            <input type="text" name="branch" value="<?= htmlspecialchars($profile_data['branch'] ?? '') ?>" required placeholder="e.g. Information Technology">
-                        </div>
-                        <div class="form-group">
-                            <label>LinkedIn Profile URL</label>
-                            <input type="text" name="linkedin_url" value="<?= htmlspecialchars($user_data['linkedin_url'] ?? '') ?>" placeholder="https://linkedin.com/in/username">
-                        </div>
+                    <div class="form-group">
+                        <label>LinkedIn Profile URL</label>
+                        <input type="text" name="linkedin_url" value="<?= htmlspecialchars($profile_data['linkedin_url'] ?? '') ?>" placeholder="https://linkedin.com/in/username">
                     </div>
                 </div>
 
@@ -74,42 +90,31 @@ include __DIR__ . '/../../app/includes/header.php';
                     <h2 style="font-size: 1.25rem; margin-bottom: 1rem; color: var(--accent);">2. <?= ucfirst($role) ?> Specific Details</h2>
 
                     <?php if ($role === 'student'): ?>
-                        <!-- STUDENT FIELDS -->
-                        <?php 
-                        $is_class_set = !empty($user_data['class_name']) && !empty($user_data['semester']);
-                        ?>
                         <div class="grid-2">
                             <div class="form-group">
-                                <label>Class Name <span style="color:red;">*</span></label>
-                                <?php if ($is_class_set): ?>
-                                    <input type="text" name="class_name" value="<?= htmlspecialchars($user_data['class_name']) ?>" readonly style="background: var(--bg-2);">
-                                    <small style="color: var(--text-2);">Contact CC to change class</small>
-                                <?php else: ?>
-                                    <input type="text" name="class_name" value="<?= htmlspecialchars($user_data['class_name'] ?? '') ?>" required placeholder="e.g. 4EK1">
-                                <?php endif; ?>
+                                <label>Assigned Class <span style="color:red;">*</span></label>
+                                <select name="class_id" required>
+                                    <option value="">-- Select Your Class --</option>
+                                    <?php foreach ($classes as $c): ?>
+                                        <option value="<?= $c['id'] ?>" <?= ($role_data['class_id'] ?? '') == $c['id'] ? 'selected' : '' ?>>
+                                            <?= htmlspecialchars($c['name']) ?> (Sem <?= $c['semester'] ?> - <?= htmlspecialchars($c['branch']) ?>)
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
                             <div class="form-group">
-                                <label>Semester <span style="color:red;">*</span></label>
-                                <?php if ($is_class_set): ?>
-                                    <input type="text" name="semester" value="<?= htmlspecialchars($user_data['semester']) ?>" readonly style="background: var(--bg-2);">
-                                <?php else: ?>
-                                    <select name="semester" required>
-                                        <option value="">-- Select Semester --</option>
-                                        <?php for($i=1; $i<=8; $i++): ?>
-                                            <option value="<?= $i ?>" <?= ($user_data['semester'] ?? '') == $i ? 'selected' : '' ?>><?= $i ?></option>
-                                        <?php endfor; ?>
-                                    </select>
-                                <?php endif; ?>
+                                <label>Roll Number <span style="color:red;">*</span></label>
+                                <input type="text" name="roll_no" value="<?= htmlspecialchars($role_data['roll_no'] ?? '') ?>" required placeholder="e.g. 21IT001">
                             </div>
                         </div>
                         <div class="grid-2">
                             <div class="form-group">
-                                <label>Roll Number <span style="color:red;">*</span></label>
-                                <input type="text" name="roll_no" value="<?= htmlspecialchars($user_data['roll_no'] ?? '') ?>" required placeholder="e.g. 21IT001">
+                                <label>GR Number (if assigned)</label>
+                                <input type="text" name="gr_no" value="<?= htmlspecialchars($role_data['gr_no'] ?? '') ?>" placeholder="Unique ID">
                             </div>
                             <div class="form-group">
                                 <label>Target Career Role</label>
-                                <input type="text" name="target_role" value="<?= htmlspecialchars($profile_data['target_role'] ?? '') ?>" placeholder="e.g. Full Stack Developer, Data Scientist">
+                                <input type="text" name="target_role" value="<?= htmlspecialchars($role_data['target_role'] ?? '') ?>" placeholder="e.g. Full Stack Developer">
                             </div>
                         </div>
 
@@ -133,61 +138,40 @@ include __DIR__ . '/../../app/includes/header.php';
                     <?php endif; ?>
 
                     <?php if (in_array($role, ['faculty', 'admin'])): ?>
-                        <!-- FACULTY FIELDS -->
                         <div class="grid-2">
                             <div class="form-group">
                                 <label>Faculty ID / Employee ID <span style="color:red;">*</span></label>
-                                <input type="text" name="emp_id" value="<?= htmlspecialchars($user_data['emp_id'] ?? '') ?>" required placeholder="e.g. EMP123">
+                                <input type="text" name="emp_id" value="<?= htmlspecialchars($role_data['emp_id'] ?? '') ?>" required placeholder="e.g. EMP123">
                             </div>
-                            <div class="form-group">
-                                <label>Designation <span style="color:red;">*</span></label>
-                                <select name="designation" required>
-                                    <option value="">-- Select Designation --</option>
-                                    <?php 
-                                    $designations = ['Professor', 'Associate Professor', 'Assistant Professor', 'Lab Assistant', 'Guest Faculty'];
-                                    foreach($designations as $d): ?>
-                                        <option value="<?= $d ?>" <?= ($profile_data['designation'] ?? '') === $d ? 'selected' : '' ?>><?= $d ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="form-group" style="margin-top: 1rem;">
-                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                                <input type="checkbox" name="is_cc" value="1" <?= ($profile_data['is_cc'] ?? 0) ? 'checked' : '' ?> onchange="toggleCCFields(this.checked)">
-                                <strong>Are you a Class Coordinator (CC)?</strong>
-                            </label>
-                        </div>
-
-                        <div id="ccFields" style="display: <?= ($profile_data['is_cc'] ?? 0) ? 'block' : 'none' ?>; background: var(--bg-2); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-                            <div class="grid-2">
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label>CC for Class</label>
-                                    <input type="text" name="cc_class" value="<?= htmlspecialchars($profile_data['cc_class'] ?? '') ?>" placeholder="e.g. ICT-A">
-                                </div>
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label>CC for Semester</label>
-                                    <select name="cc_semester">
-                                        <option value="">-- Select Semester --</option>
-                                        <?php for($i=1; $i<=8; $i++): ?>
-                                            <option value="<?= $i ?>" <?= ($profile_data['cc_semester'] ?? '') == $i ? 'selected' : '' ?>><?= $i ?></option>
-                                        <?php endfor; ?>
-                                    </select>
-                                </div>
+                            <div class="form-group" style="padding-top: 1.8rem;">
+                                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                    <input type="checkbox" name="is_cc" value="1" <?= ($role_data['is_cc'] ?? 0) ? 'checked' : '' ?>>
+                                    <strong>Are you a Class Coordinator (CC)?</strong>
+                                </label>
                             </div>
                         </div>
 
                         <div class="form-group">
                             <label>Teaching Interests / Research Areas</label>
-                            <textarea name="teaching_interests" placeholder="e.g. Operating Systems, Network Security, Machine Learning" style="height: 80px;"><?= htmlspecialchars($profile_data['teaching_interests'] ?? '') ?></textarea>
+                            <textarea name="teaching_interests" placeholder="e.g. Operating Systems, AI/ML" style="height: 80px;"><?= htmlspecialchars($role_data['teaching_interests'] ?? '') ?></textarea>
                         </div>
                     <?php endif; ?>
 
                     <?php if ($role === 'expert'): ?>
-                        <!-- EXPERT FIELDS -->
+                        <div class="grid-2">
+                            <div class="form-group">
+                                <label>Current Company <span style="color:red;">*</span></label>
+                                <input type="text" name="company" value="<?= htmlspecialchars($role_data['company'] ?? '') ?>" required placeholder="e.g. Google">
+                            </div>
+                            <div class="form-group">
+                                <label>Current Designation <span style="color:red;">*</span></label>
+                                <input type="text" name="designation" value="<?= htmlspecialchars($role_data['designation'] ?? '') ?>" required placeholder="e.g. Senior Software Engineer">
+                            </div>
+                        </div>
+
                         <div class="form-group">
                             <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                                <input type="checkbox" name="is_alumni" id="is_alumni" value="1" <?= ($profile_data['is_alumni'] ?? 0) ? 'checked' : '' ?> onchange="handleAlumniToggle(this.checked)">
+                                <input type="checkbox" name="is_alumni" id="is_alumni" value="1" <?= ($role_data['is_alumni'] ?? 0) ? 'checked' : '' ?> onchange="handleAlumniToggle(this.checked)">
                                 <strong>Are you an Alumni of this Institute?</strong>
                             </label>
                         </div>
@@ -195,39 +179,28 @@ include __DIR__ . '/../../app/includes/header.php';
                         <div class="grid-2">
                             <div class="form-group">
                                 <label>College / University <span style="color:red;">*</span></label>
-                                <input type="text" name="college_name" id="college_name" value="<?= htmlspecialchars($profile_data['college_name'] ?? '') ?>" required placeholder="Enter College Name">
+                                <input type="text" name="college_name" id="college_name" value="<?= htmlspecialchars($role_data['college_name'] ?? '') ?>" required placeholder="Enter College Name">
                             </div>
                             <div class="form-group">
                                 <label>Degree Completed <span style="color:red;">*</span></label>
-                                <input type="text" name="degree" value="<?= htmlspecialchars($profile_data['degree'] ?? '') ?>" required placeholder="e.g. B.Tech in IT">
+                                <input type="text" name="degree" value="<?= htmlspecialchars($role_data['degree'] ?? '') ?>" required placeholder="e.g. B.Tech in IT">
                             </div>
                         </div>
 
                         <div class="grid-2">
                             <div class="form-group">
                                 <label>Graduation Year <span style="color:red;">*</span></label>
-                                <input type="text" name="graduation_year" value="<?= htmlspecialchars($profile_data['graduation_year'] ?? '') ?>" required placeholder="e.g. 2020">
+                                <input type="text" name="graduation_year" value="<?= htmlspecialchars($role_data['graduation_year'] ?? '') ?>" required placeholder="e.g. 2020">
                             </div>
                             <div class="form-group">
                                 <label>Years of Experience <span style="color:red;">*</span></label>
-                                <input type="number" name="experience_years" value="<?= htmlspecialchars($profile_data['experience_years'] ?? '') ?>" required placeholder="e.g. 5">
-                            </div>
-                        </div>
-
-                        <div class="grid-2">
-                            <div class="form-group">
-                                <label>Current Company <span style="color:red;">*</span></label>
-                                <input type="text" name="company" value="<?= htmlspecialchars($profile_data['company'] ?? '') ?>" required placeholder="e.g. Google">
-                            </div>
-                            <div class="form-group">
-                                <label>Current Designation <span style="color:red;">*</span></label>
-                                <input type="text" name="designation" value="<?= htmlspecialchars($profile_data['designation'] ?? '') ?>" required placeholder="e.g. Senior Software Engineer">
+                                <input type="number" name="experience_years" value="<?= htmlspecialchars($role_data['experience_years'] ?? '') ?>" required placeholder="e.g. 5">
                             </div>
                         </div>
 
                         <div class="form-group">
                             <label>Primary Expertise Area <span style="color:red;">*</span></label>
-                            <input type="text" name="expertise_area" value="<?= htmlspecialchars($profile_data['expertise_area'] ?? '') ?>" required placeholder="e.g. Cloud Computing, AI/ML">
+                            <input type="text" name="expertise_area" value="<?= htmlspecialchars($role_data['expertise_area'] ?? '') ?>" required placeholder="e.g. Cloud Computing">
                         </div>
                     <?php endif; ?>
                 </div>
@@ -237,17 +210,17 @@ include __DIR__ . '/../../app/includes/header.php';
                     <h2 style="font-size: 1.25rem; margin-bottom: 1rem; color: var(--accent);">3. Personal Summary</h2>
                     <div class="form-group">
                         <label>Technical Skills <span class="text-muted">(comma separated)</span></label>
-                        <textarea name="skills" placeholder="e.g. PHP, JavaScript, Java, Docker, AWS" style="height: 80px;"><?= htmlspecialchars($profile_data['skills'] ?? '') ?></textarea>
+                        <textarea name="skills" placeholder="e.g. PHP, JavaScript, Docker" style="height: 80px;"><?= htmlspecialchars($profile_data['skills'] ?? '') ?></textarea>
                     </div>
 
                     <div class="form-group">
                         <label>Hobbies & Extracurriculars</label>
-                        <textarea name="hobbies" placeholder="e.g. Competitive Programming, Open Source Contributing, Photography, Traveling" style="height: 80px;"><?= htmlspecialchars($profile_data['hobbies'] ?? '') ?></textarea>
+                        <textarea name="hobbies" placeholder="e.g. Photography, Traveling" style="height: 80px;"><?= htmlspecialchars($profile_data['hobbies'] ?? '') ?></textarea>
                     </div>
 
                     <div class="form-group">
                         <label>Bio / About Me</label>
-                        <textarea name="bio" placeholder="Tell us about yourself and your journey..." style="height: 120px;"><?= htmlspecialchars($profile_data['bio'] ?? '') ?></textarea>
+                        <textarea name="bio" placeholder="Tell us about yourself..." style="height: 120px;"><?= htmlspecialchars($profile_data['bio'] ?? '') ?></textarea>
                     </div>
                 </div>
 
@@ -260,17 +233,10 @@ include __DIR__ . '/../../app/includes/header.php';
 </div>
 
 <script>
-    function toggleCCFields(isChecked) {
-        const ccFields = document.getElementById('ccFields');
-        ccFields.style.display = isChecked ? 'block' : 'none';
-        const inputs = ccFields.querySelectorAll('input');
-        inputs.forEach(input => input.required = isChecked);
-    }
-
     function handleAlumniToggle(isChecked) {
         const collegeInput = document.getElementById('college_name');
         if (isChecked) {
-            collegeInput.value = "ICT Department, Current Institute";
+            collegeInput.value = "ICT Department, Local Institute";
             collegeInput.style.background = "var(--bg-2)";
             collegeInput.readOnly = true;
         } else {
@@ -280,7 +246,6 @@ include __DIR__ . '/../../app/includes/header.php';
         }
     }
 
-    // Initialize state on load
     window.addEventListener('DOMContentLoaded', () => {
         const isAlumni = document.getElementById('is_alumni');
         if (isAlumni && isAlumni.checked) {
