@@ -14,8 +14,9 @@ if (!$request_id) {
     exit;
 }
 
-$stmt = $conn->prepare("UPDATE review_requests SET status = 'accepted' WHERE id = ? AND status = 'pending'");
-$stmt->bind_param("i", $request_id);
+$reviewer_id = $_SESSION['user_id'];
+$stmt = $conn->prepare("UPDATE review_requests SET status = 'accepted', reviewer_id = ? WHERE id = ? AND status = 'pending'");
+$stmt->bind_param("ii", $reviewer_id, $request_id);
 $stmt->execute();
 
 header("Location: ../../../public/community/reviewer_dashboard.php?accepted=" . $request_id);

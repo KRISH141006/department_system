@@ -85,7 +85,7 @@ try {
         $sStmt->bind_param("iisss", $user_id, $class_id, $roll_no, $gr_no, $target_role);
         $sStmt->execute();
 
-    } elseif ($role === 'faculty') {
+    } elseif ($role === 'faculty' || $role === 'admin') {
         $emp_id             = strtoupper(trim($_POST['emp_id'] ?? ''));
         $is_cc              = isset($_POST['is_cc']) ? 1 : 0;
         $teaching_interests = trim($_POST['teaching_interests'] ?? '');

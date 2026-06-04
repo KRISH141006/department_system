@@ -10,7 +10,7 @@ if (!has_permission('view_student_dashboard')) {
 $user_id = (int) $_SESSION['user_id'];
 
 // Ensure profile exists
-$chk = $conn->prepare("SELECT id FROM profiles WHERE user_id = ?");
+$chk = $conn->prepare("SELECT user_id FROM profiles WHERE user_id = ?");
 $chk->bind_param("i", $user_id);
 $chk->execute();
 if ($chk->get_result()->num_rows === 0) {
@@ -26,7 +26,7 @@ $stmt = $conn->prepare("
     SELECT r.skill, r.status, r.created_at,
            rev.marks, rev.comment, rev.created_at AS reviewed_at,
            u.name AS reviewer_name
-    FROM requests r
+    FROM review_requests r
     LEFT JOIN reviews rev ON rev.request_id = r.id
     LEFT JOIN users u ON u.id = rev.reviewer_id
     WHERE r.user_id = ? 

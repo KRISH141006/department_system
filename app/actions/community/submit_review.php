@@ -42,14 +42,14 @@ try {
         $upd_points->execute();
 
         // Automated Badges (Normalized logic)
-        $award_badge = function($sid, $name, $icon) use ($conn) {
+        $award_badge = function($sid, $name, $icon) use ($conn, $reviewer_id) {
             // Find or create the badge in 'badges' table
             $b_stmt = $conn->prepare("SELECT id FROM badges WHERE name = ?");
             $b_stmt->bind_param("s", $name);
             $b_stmt->execute();
             $res = $b_stmt->get_result();
             if ($res->num_rows === 0) {
-                $ins_b = $conn->prepare("INSERT INTO badges (name, icon_class) VALUES (?, ?)");
+                $ins_b = $conn->prepare("INSERT INTO badges (name, icon) VALUES (?, ?)");
                 $ins_b->bind_param("ss", $name, $icon);
                 $ins_b->execute();
                 $badge_id = $conn->insert_id;
@@ -62,8 +62,8 @@ try {
             $check->bind_param("ii", $sid, $badge_id);
             $check->execute();
             if ($check->get_result()->num_rows === 0) {
-                $ins = $conn->prepare("INSERT INTO user_badges (user_id, badge_id) VALUES (?, ?)");
-                $ins->bind_param("ii", $sid, $badge_id);
+                $ins = $conn->prepare("INSERT INTO user_badges (user_id, badge_id, awarded_by) VALUES (?, ?, ?)");
+                $ins->bind_param("iii", $sid, $badge_id, $reviewer_id);
                 $ins->execute();
             }
         };

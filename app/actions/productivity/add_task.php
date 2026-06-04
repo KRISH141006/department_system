@@ -28,7 +28,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
     }
 
-    $stmt = $conn->prepare("INSERT INTO tasks (user_id, task, deadline, category_id, priority_id) VALUES (?, ?, ?, ?, ?)");
+    $stmt = $conn->prepare("INSERT INTO tasks (user_id, title, deadline, category_id, priority_id) VALUES (?, ?, ?, ?, ?)");
     $stmt->bind_param("issii", $user_id, $task, $deadline, $category_id, $priority_id);
     $stmt->execute();
 
