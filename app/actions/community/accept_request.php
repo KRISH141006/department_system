@@ -14,7 +14,7 @@ if (!$request_id) {
     exit;
 }
 
-$stmt = $conn->prepare("UPDATE requests SET status = 'accepted' WHERE id = ? AND status = 'pending'");
+$stmt = $conn->prepare("UPDATE review_requests SET status = 'accepted' WHERE id = ? AND status = 'pending'");
 $stmt->bind_param("i", $request_id);
 $stmt->execute();
 

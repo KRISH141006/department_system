@@ -40,21 +40,28 @@ $base_path = rtrim($base_path, '/');
           require_once __DIR__ . '/../config/db.php';
           // Check for live meetings
           $student_id = $_SESSION['user_id'];
-          $s_sql = "SELECT class_name, semester FROM users WHERE id = ?";
+          $s_sql = "SELECT class_id FROM students WHERE user_id = ?";
           $s_stmt = $conn->prepare($s_sql);
           $s_stmt->bind_param("i", $student_id);
           $s_stmt->execute();
           $s_user = $s_stmt->get_result()->fetch_assoc();
           
-          $m_sql = "SELECT lm.*, u.name as faculty_name FROM live_meetings lm 
-                    JOIN users u ON lm.faculty_id = u.id 
-                    WHERE lm.class_name = ? AND lm.semester = ? AND lm.status = 'live' 
-                    ORDER BY lm.created_at DESC";
-          $m_stmt = $conn->prepare($m_sql);
-          $m_stmt->bind_param("si", $s_user['class_name'], $s_user['semester']);
-          $m_stmt->execute();
-          $live_meetings = $m_stmt->get_result();
-          $has_live = $live_meetings->num_rows > 0;
+          $has_live = false;
+          $live_meetings = null;
+          if ($s_user && !empty($s_user['class_id'])) {
+              $m_sql = "SELECT ls.*, u.name as faculty_name, COALESCE(t.name, s.name) as topic 
+                        FROM live_sessions ls 
+                        JOIN users u ON ls.faculty_id = u.id 
+                        LEFT JOIN topics t ON ls.topic_id = t.id
+                        LEFT JOIN subjects s ON ls.subject_id = s.id
+                        WHERE ls.class_id = ? AND ls.status = 'live' 
+                        ORDER BY ls.started_at DESC";
+              $m_stmt = $conn->prepare($m_sql);
+              $m_stmt->bind_param("i", $s_user['class_id']);
+              $m_stmt->execute();
+              $live_meetings = $m_stmt->get_result();
+              $has_live = $live_meetings->num_rows > 0;
+          }
           ?>
           <div class="notification-container" style="position: relative; display: inline-flex; align-items: center; cursor: pointer; margin: 0 1rem;" onclick="toggleNotifications()">
               <div class="bell-icon <?= $has_live ? 'ringing' : '' ?>" style="font-size: 20px;">🔔</div>
@@ -67,7 +74,7 @@ $base_path = rtrim($base_path, '/');
                               <p style="margin: 0; font-weight: 700; color: #ef4444; font-size: 11px;">🔴 LIVE NOW</p>
                               <p style="margin: 5px 0; font-size: 13px;"><strong><?= htmlspecialchars($m['topic']) ?></strong></p>
                               <p style="margin: 0; font-size: 11px; color: #64748b;">By <?= htmlspecialchars($m['faculty_name']) ?></p>
-                              <a href="<?= $base_path ?>/public/academics/join_class.php?room=<?= $m['room_code'] ?>" class="btn btn-sm btn-primary" style="width: 100%; margin-top: 10px; text-align: center; display: block; text-decoration: none;">Join Classroom</a>
+                              <a href="<?= $base_path ?>/public/academics/join_class.php?room=<?= htmlspecialchars($m['room_code']) ?>" class="btn btn-sm btn-primary" style="width: 100%; margin-top: 10px; text-align: center; display: block; text-decoration: none;">Join Classroom</a>
                           </div>
                       <?php endwhile; ?>
                   </div>

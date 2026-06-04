@@ -14,20 +14,22 @@ $open_request_id = isset($_GET['accepted']) ? (int)$_GET['accepted'] : 0;
 
 // Fetch pending requests
 $pending = $conn->query("
-    SELECT r.*, p.branch, u.name AS student_name
-    FROM requests r
+    SELECT r.*, c.branch, u.name AS student_name
+    FROM review_requests r
     JOIN users u ON u.id = r.user_id
-    JOIN profiles p ON p.user_id = r.user_id
+    JOIN students s ON s.user_id = r.user_id
+    JOIN classes c ON c.id = s.class_id
     WHERE r.status = 'pending'
     ORDER BY r.created_at ASC
 ")->fetch_all(MYSQLI_ASSOC);
 
 // Fetch accepted (open) requests — for review forms
 $accepted = $conn->query("
-    SELECT r.*, p.branch, u.name AS student_name
-    FROM requests r
+    SELECT r.*, c.branch, u.name AS student_name
+    FROM review_requests r
     JOIN users u ON u.id = r.user_id
-    JOIN profiles p ON p.user_id = r.user_id
+    JOIN students s ON s.user_id = r.user_id
+    JOIN classes c ON c.id = s.class_id
     WHERE r.status = 'accepted'
     ORDER BY r.created_at ASC
 ")->fetch_all(MYSQLI_ASSOC);
@@ -38,8 +40,8 @@ $completed = $conn->query("
            u.name AS student_name,
            rev.marks, rev.comment, rev.created_at AS reviewed_at
     FROM reviews rev
-    JOIN requests r   ON r.id        = rev.request_id
-    JOIN users u      ON u.id        = r.user_id
+    JOIN review_requests r ON r.id        = rev.request_id
+    JOIN users u           ON u.id        = r.user_id
     WHERE rev.reviewer_id = $reviewer_id
     ORDER BY rev.created_at DESC
     LIMIT 100

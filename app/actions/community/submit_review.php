@@ -20,7 +20,7 @@ if (!$request_id || $marks < 0 || $marks > 100) {
 try {
     $conn->begin_transaction();
 
-    // Insert review
+    // Insert review (Table name matches schema)
     $stmt = $conn->prepare(
         "INSERT INTO reviews (request_id, reviewer_id, marks, comment) VALUES (?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE marks=VALUES(marks), comment=VALUES(comment)"
@@ -28,8 +28,8 @@ try {
     $stmt->bind_param("iiis", $request_id, $reviewer_id, $marks, $comment);
     $stmt->execute();
 
-    // Get the student's ID for points and badges
-    $req_stmt = $conn->prepare("SELECT user_id FROM requests WHERE id = ?");
+    // Get the student's ID for points and badges (Table name: review_requests)
+    $req_stmt = $conn->prepare("SELECT user_id FROM review_requests WHERE id = ?");
     $req_stmt->bind_param("i", $request_id);
     $req_stmt->execute();
     $student_id = $req_stmt->get_result()->fetch_assoc()['user_id'] ?? 0;
@@ -41,14 +41,29 @@ try {
         $upd_points->bind_param("ii", $points, $student_id);
         $upd_points->execute();
 
-        // Automated Badges
+        // Automated Badges (Normalized logic)
         $award_badge = function($sid, $name, $icon) use ($conn) {
-            $check = $conn->prepare("SELECT 1 FROM student_badges WHERE student_id = ? AND badge_name = ?");
-            $check->bind_param("is", $sid, $name);
+            // Find or create the badge in 'badges' table
+            $b_stmt = $conn->prepare("SELECT id FROM badges WHERE name = ?");
+            $b_stmt->bind_param("s", $name);
+            $b_stmt->execute();
+            $res = $b_stmt->get_result();
+            if ($res->num_rows === 0) {
+                $ins_b = $conn->prepare("INSERT INTO badges (name, icon_class) VALUES (?, ?)");
+                $ins_b->bind_param("ss", $name, $icon);
+                $ins_b->execute();
+                $badge_id = $conn->insert_id;
+            } else {
+                $badge_id = $res->fetch_assoc()['id'];
+            }
+
+            // Award to student in 'user_badges' table
+            $check = $conn->prepare("SELECT 1 FROM user_badges WHERE user_id = ? AND badge_id = ?");
+            $check->bind_param("ii", $sid, $badge_id);
             $check->execute();
             if ($check->get_result()->num_rows === 0) {
-                $ins = $conn->prepare("INSERT INTO student_badges (student_id, badge_name, icon_class) VALUES (?, ?, ?)");
-                $ins->bind_param("iss", $sid, $name, $icon);
+                $ins = $conn->prepare("INSERT INTO user_badges (user_id, badge_id) VALUES (?, ?)");
+                $ins->bind_param("ii", $sid, $badge_id);
                 $ins->execute();
             }
         };
@@ -71,8 +86,8 @@ try {
         if ($total_score >= 100) $award_badge($student_id, 'Community Legend', 'fa-crown');
     }
 
-    // Mark request completed
-    $stmt2 = $conn->prepare("UPDATE requests SET status = 'completed' WHERE id = ?");
+    // Mark request completed (Table name: review_requests)
+    $stmt2 = $conn->prepare("UPDATE review_requests SET status = 'completed' WHERE id = ?");
     $stmt2->bind_param("i", $request_id);
     $stmt2->execute();
 
@@ -80,7 +95,7 @@ try {
     $_SESSION['msg_success'] = "Review submitted successfully!";
 } catch (Exception $e) {
     $conn->rollback();
-    $_SESSION['msg_error'] = "Action partially failed. Please ensure you have imported the latest department_system.sql file. Error: " . $e->getMessage();
+    $_SESSION['msg_error'] = "Action failed. Error: " . $e->getMessage();
 }
 
 header("Location: ../../../public/community/reviewer_dashboard.php");
