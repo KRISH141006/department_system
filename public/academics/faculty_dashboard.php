@@ -10,22 +10,26 @@ if (!has_permission('view_faculty_dashboard')) {
 $faculty_id = (int) $_SESSION['user_id'];
 $today = date('Y-m-d');
 
-$stmt = $conn->prepare("SELECT name, class_name, semester, emp_id FROM users WHERE id = ?");
+// 1. Fetch Faculty identity - Updated for normalized schema
+$stmt = $conn->prepare("SELECT u.name, f.emp_id FROM users u JOIN faculty f ON u.id = f.user_id WHERE u.id = ?");
 $stmt->bind_param("i", $faculty_id);
 $stmt->execute();
 $uRow = $stmt->get_result()->fetch_assoc();
 
 $name = $uRow['name'] ?? 'Faculty';
 $emp_id = $uRow['emp_id'] ?? 'N/A';
-$class_name = $uRow['class_name'] ?? 'N/A';
-$semester = $uRow['semester'] ?? 'N/A';
 
-// Check if CC
-$ccStmt = $conn->prepare("SELECT is_cc, cc_class, cc_semester FROM profiles WHERE user_id = ?");
+// 2. Check if CC - Updated to use new coordinated_class_id
+$ccStmt = $conn->prepare("
+    SELECT f.is_cc, c.name as class_name, c.semester, c.id as class_id 
+    FROM faculty f 
+    LEFT JOIN classes c ON f.coordinated_class_id = c.id 
+    WHERE f.user_id = ?
+");
 $ccStmt->bind_param("i", $faculty_id);
 $ccStmt->execute();
-$ccProfile = $ccStmt->get_result()->fetch_assoc();
-$is_cc = $ccProfile['is_cc'] ?? 0;
+$ccInfo = $ccStmt->get_result()->fetch_assoc();
+$is_cc = $ccInfo['is_cc'] ?? 0;
 
 $page_title = "Faculty Dashboard";
 require_once __DIR__ . '/../../app/includes/header.php';
@@ -44,7 +48,7 @@ require_once __DIR__ . '/../../app/includes/header.php';
             <a href="manage_class.php" class="card" style="text-decoration: none; color: inherit; background: var(--bg-2); border: 2px solid var(--accent);">
                 <div style="font-size: 32px; margin-bottom: 12px;">🏫</div>
                 <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600; color: var(--accent);">Manage My Class</h3>
-                <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">View roster, add or remove students for <strong><?= htmlspecialchars($ccProfile['cc_class']) ?></strong>.</p>
+                <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">View roster, add or remove students for <strong><?= htmlspecialchars($ccInfo['class_name']) ?> (Sem <?= $ccInfo['semester'] ?>)</strong>.</p>
             </a>
         <?php endif; ?>
 
@@ -75,7 +79,7 @@ require_once __DIR__ . '/../../app/includes/header.php';
         <a href="host_meeting.php" class="card" style="text-decoration: none; color: inherit; border-left: 4px solid #ef4444;">
             <div style="font-size: 32px; margin-bottom: 12px;">🎥</div>
             <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600; color: #ef4444;">Host Live Class</h3>
-            <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">Start a Zoom-like video class for your students with screen sharing and chat.</p>
+            <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">Start a video class for your students with screen sharing and chat.</p>
         </a>
 
         <a href="submissions.php" class="card" style="text-decoration: none; color: inherit; border-left: 4px solid #22c55e;">
@@ -92,8 +96,14 @@ require_once __DIR__ . '/../../app/includes/header.php';
 
         <a href="select_student.php" class="card" style="text-decoration: none; color: inherit;">
             <?php 
-            $countStmt = $conn->prepare("SELECT COUNT(*) as count FROM feedback_selector WHERE selected_date = ? AND subject_id IN (SELECT id FROM faculty_subjects WHERE faculty_id = ?)");
-            $countStmt->bind_param("si", $today, $faculty_id);
+            // Count active verification assignments for this faculty's subjects today
+            $countStmt = $conn->prepare("
+                SELECT COUNT(*) as count 
+                FROM verification_assignments va 
+                JOIN lecture_records lr ON va.lecture_record_id = lr.id 
+                WHERE lr.faculty_id = ? AND DATE(va.assigned_at) = ?
+            ");
+            $countStmt->bind_param("is", $faculty_id, $today);
             $countStmt->execute();
             $assignedCount = $countStmt->get_result()->fetch_assoc()['count'] ?? 0;
             ?>
@@ -109,12 +119,12 @@ require_once __DIR__ . '/../../app/includes/header.php';
 
         <a href="syllabus_verification.php" class="card" style="text-decoration: none; color: inherit; border-top: 4px solid var(--accent);">
             <?php 
-            // Count today's updates for faculty's subjects (only unverified)
+            // Count today's unverified records for faculty's subjects
             $updStmt = $conn->prepare("
                 SELECT COUNT(*) as count 
-                FROM topic_progress tp
-                JOIN faculty_subjects fs ON fs.subject_name = tp.subject
-                WHERE fs.faculty_id = ? AND DATE(tp.updated_at) = ? AND tp.is_covered = 1 AND tp.is_verified = 0
+                FROM lecture_records lr 
+                LEFT JOIN lecture_verifications lv ON lr.id = lv.lecture_record_id 
+                WHERE lr.faculty_id = ? AND DATE(lr.lecture_date) = ? AND (lv.status IS NULL OR lv.status = 'pending')
             ");
             $updStmt->bind_param("is", $faculty_id, $today);
             $updStmt->execute();
@@ -140,10 +150,17 @@ require_once __DIR__ . '/../../app/includes/header.php';
         
         <div class="grid-2">
             <?php 
+            // 3. Fetch Taught Subjects - Updated junction logic
             $subQuery = $conn->prepare("
-                SELECT fs.id, fs.subject_name, fs.class_name, fs.semester, fs.is_elective,
-                       (SELECT COUNT(*) FROM feedback_selector s WHERE s.subject_id = fs.id AND s.selected_date = ?) as assigned_count
-                FROM faculty_subjects fs
+                SELECT s.id as subject_id, s.name as subject_name, c.name as class_name, c.semester, s.type, cs.id as class_subject_id,
+                       (SELECT COUNT(*) 
+                        FROM verification_assignments va 
+                        JOIN lecture_records lr ON va.lecture_record_id = lr.id 
+                        WHERE lr.subject_id = s.id AND lr.class_id = c.id AND DATE(va.assigned_at) = ?) as assigned_count
+                FROM faculty_subjects fs 
+                JOIN class_subjects cs ON fs.class_subject_id = cs.id 
+                JOIN subjects s ON cs.subject_id = s.id 
+                JOIN classes c ON cs.class_id = c.id 
                 WHERE fs.faculty_id = ?
             ");
             $subQuery->bind_param("si", $today, $faculty_id);
@@ -158,12 +175,13 @@ require_once __DIR__ . '/../../app/includes/header.php';
 
             while ($sub = $subjects->fetch_assoc()) {
                 $hasAssignments = $sub['assigned_count'] > 0;
+                $isElective = $sub['type'] === 'elective';
             ?>
-                <div class="card" style="display: flex; justify-content: space-between; align-items: center; border-left: 4px solid <?php echo $sub['is_elective'] ? 'var(--primary)' : ($hasAssignments ? 'var(--success)' : 'transparent'); ?>;">
+                <div class="card" style="display: flex; justify-content: space-between; align-items: center; border-left: 4px solid <?php echo $isElective ? 'var(--primary)' : ($hasAssignments ? 'var(--success)' : 'transparent'); ?>;">
                     <div>
                         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
                             <h3 style="margin: 0; font-size: 1.15rem;"><?php echo htmlspecialchars($sub['subject_name']); ?></h3>
-                            <?php if ($sub['is_elective']): ?>
+                            <?php if ($isElective): ?>
                                 <span class="badge" style="background: var(--primary); color: #fff; font-size: 10px;">Elective</span>
                             <?php endif; ?>
                             <?php if ($hasAssignments): ?>
@@ -181,12 +199,12 @@ require_once __DIR__ . '/../../app/includes/header.php';
                         <?php endif; ?>
                     </div>
                     <div style="display: flex; gap: 8px;">
-                        <?php if ($sub['is_elective']): ?>
-                            <a href="manage_elective_students.php?id=<?php echo $sub['id']; ?>" class="btn btn-sm btn-primary">Students</a>
+                        <?php if ($isElective): ?>
+                            <a href="manage_elective_students.php?id=<?php echo $sub['subject_id']; ?>" class="btn btn-sm btn-primary">Students</a>
                         <?php endif; ?>
-                        <a href="create_subject.php?id=<?php echo $sub['id']; ?>" class="btn btn-sm btn-secondary">Edit</a>
-                        <a href="units.php?subject_id=<?php echo $sub['id']; ?>" class="btn btn-sm btn-secondary">Units</a>
-                        <a href="select_student.php?class_name=<?php echo urlencode($sub['class_name']); ?>&semester=<?php echo urlencode($sub['semester']); ?>" class="btn btn-sm <?php echo $hasAssignments ? 'btn-secondary' : 'btn-primary'; ?>">
+                        <a href="create_subject.php?id=<?php echo $sub['subject_id']; ?>" class="btn btn-sm btn-secondary">Edit</a>
+                        <a href="units.php?subject_id=<?php echo $sub['subject_id']; ?>" class="btn btn-sm btn-secondary">Units</a>
+                        <a href="select_student.php?class_id=<?php echo $sub['class_subject_id']; ?>" class="btn btn-sm <?php echo $hasAssignments ? 'btn-secondary' : 'btn-primary'; ?>">
                             <?php echo $hasAssignments ? 'Show Details' : 'Verify'; ?>
                         </a>
                     </div>
@@ -200,35 +218,34 @@ require_once __DIR__ . '/../../app/includes/header.php';
         <h2 style="margin-bottom: 24px;">Quick Statistics</h2>
         <div class="grid-2" style="grid-template-columns: repeat(3, 1fr);">
             <?php
-            // 1. Total Topics Covered
+            // 1. Total Topics Covered - Updated to lecture_records
             $tcStmt = $conn->prepare("
-                SELECT COUNT(*) as count 
-                FROM topic_progress tp
-                JOIN faculty_subjects fs ON fs.subject_name = tp.subject
-                WHERE fs.faculty_id = ? AND tp.is_covered = 1
+                SELECT COUNT(DISTINCT topic_id) as count 
+                FROM lecture_records 
+                WHERE faculty_id = ?
             ");
             $tcStmt->bind_param("i", $faculty_id);
             $tcStmt->execute();
             $totalCovered = $tcStmt->get_result()->fetch_assoc()['count'] ?? 0;
 
-            // 2. Average Rating
+            // 2. Average Rating - Updated to feedback_responses
             $arStmt = $conn->prepare("
                 SELECT AVG(rating) as avg_rating 
-                FROM student_faculty_feedback sff
-                JOIN faculty_feedback_forms fff ON fff.id = sff.form_id
-                WHERE fff.faculty_id = ?
+                FROM feedback_responses fr 
+                JOIN feedback_forms ff ON fr.form_id = ff.id 
+                WHERE ff.faculty_id = ?
             ");
             $arStmt->bind_param("i", $faculty_id);
             $arStmt->execute();
             $avgRating = $arStmt->get_result()->fetch_assoc()['avg_rating'];
             $displayRating = $avgRating ? round($avgRating, 1) : '0.0';
 
-            // 3. Pending Tasks (Topics covered but not verified)
+            // 3. Pending Verifications
             $ptStmt = $conn->prepare("
                 SELECT COUNT(*) as count 
-                FROM topic_progress tp
-                JOIN faculty_subjects fs ON fs.subject_name = tp.subject
-                WHERE fs.faculty_id = ? AND tp.is_covered = 1 AND tp.is_verified = 0
+                FROM verification_assignments va 
+                JOIN lecture_records lr ON va.lecture_record_id = lr.id 
+                WHERE lr.faculty_id = ? AND va.lecture_record_id NOT IN (SELECT lecture_record_id FROM lecture_verifications)
             ");
             $ptStmt->bind_param("i", $faculty_id);
             $ptStmt->execute();

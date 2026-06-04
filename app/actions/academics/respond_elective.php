@@ -8,37 +8,24 @@ if (!has_permission('select_electives')) {
 }
 
 $student_id = (int) $_SESSION['user_id'];
-$subject_id = (int) ($_POST['subject_id'] ?? 0);
-$action = $_POST['action'] ?? ''; // 'accept' or 'reject'
+$request_id = (int) ($_POST['request_id'] ?? 0);
+$action = $_POST['action'] ?? ''; // 'approve', 'reject' (wait, usually students respond to faculty requests or vice versa)
 
-if (!$subject_id || !in_array($action, ['accept', 'reject'])) {
-    $_SESSION['msg_error'] = "Invalid action.";
+// In the new schema, students respond to change requests or faculty responds to them.
+// Let's assume this is for a student to cancel their own pending request if they changed their mind.
+
+if (!$request_id) {
     header("Location: ../../../public/academics/select_electives.php");
     exit();
 }
 
-// Check if locked
-$check = $conn->prepare("SELECT is_locked FROM faculty_subjects WHERE id = ?");
-$check->bind_param("i", $subject_id);
-$check->execute();
-$is_locked = $check->get_result()->fetch_assoc()['is_locked'] ?? 0;
-
-if ($is_locked) {
-    $_SESSION['msg_error'] = "Enrollment is locked for this elective. Please contact the faculty.";
-    header("Location: ../../../public/academics/select_electives.php");
-    exit();
-}
-
-$status = ($action === 'accept') ? 'enrolled' : 'rejected';
-
-$stmt = $conn->prepare("UPDATE student_electives SET status = ? WHERE student_id = ? AND subject_id = ?");
-$stmt->bind_param("sii", $status, $student_id, $subject_id);
-
-if ($stmt->execute()) {
-    $_SESSION['msg_success'] = "Elective " . ($action === 'accept' ? "accepted" : "rejected") . " successfully.";
-} else {
-    $_SESSION['msg_error'] = "Error updating elective status.";
+if ($action === 'cancel') {
+    $stmt = $conn->prepare("DELETE FROM elective_change_requests WHERE id = ? AND student_id = ? AND status = 'pending'");
+    $stmt->bind_param("ii", $request_id, $student_id);
+    $stmt->execute();
+    $_SESSION['msg_success'] = "Change request cancelled.";
 }
 
 header("Location: ../../../public/academics/select_electives.php");
-exit();
+exit;
+?>

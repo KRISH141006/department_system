@@ -7,228 +7,124 @@ if (!has_permission('view_student_dashboard')) {
     exit();
 }
 
-$page_title = "Lecture Feedback";
+$student_id = (int) $_SESSION['user_id'];
+$today = date('Y-m-d');
+
+// 1. Fetch pending verifications for this student - Updated for normalized schema
+$stmt = $conn->prepare("
+    SELECT va.lecture_record_id, lr.lecture_date, s.name as subject_name, t.name as topic_name, u.name as faculty_name
+    FROM verification_assignments va 
+    JOIN lecture_records lr ON va.lecture_record_id = lr.id 
+    JOIN subjects s ON lr.subject_id = s.id 
+    JOIN topics t ON lr.topic_id = t.id
+    JOIN users u ON lr.faculty_id = u.id
+    WHERE va.student_id = ? 
+    AND va.lecture_record_id NOT IN (SELECT lecture_record_id FROM lecture_verifications WHERE student_id = ?)
+    ORDER BY lr.lecture_date DESC
+");
+$stmt->bind_param("ii", $student_id, $student_id);
+$stmt->execute();
+$pending = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+// 2. Fetch completed verifications
+$stmt2 = $conn->prepare("
+    SELECT lv.status, lv.verified_at, lr.lecture_date, s.name as subject_name, t.name as topic_name
+    FROM lecture_verifications lv
+    JOIN lecture_records lr ON lv.lecture_record_id = lr.id 
+    JOIN subjects s ON lr.subject_id = s.id 
+    JOIN topics t ON lr.topic_id = t.id
+    WHERE lv.student_id = ?
+    ORDER BY lv.verified_at DESC
+    LIMIT 20
+");
+$stmt2->bind_param("i", $student_id);
+$stmt2->execute();
+$history = $stmt2->get_result()->fetch_all(MYSQLI_ASSOC);
+
+$page_title = "Lecture Verification";
 require_once __DIR__ . '/../../app/includes/header.php';
 ?>
 
 <div class="wrapper" style="padding: 2rem;">
-    <div class="card" style="max-width: 800px; margin: 0 auto;">
-        <h2 style="margin-bottom: 1.5rem;">Today's Lecture Feedback</h2>
+    <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem; margin-bottom: 2rem;">Syllabus Verification</h1>
 
-        <form action="../../app/actions/academics/submit_lecture_feedback.php" method="POST">
-            <?php
-            // Get student's class and semester
-            $student_id = $_SESSION['user_id'];
-            $today = date('Y-m-d');
+    <div class="grid-2" style="grid-template-columns: 1.5fr 1fr; gap: 2rem;">
+        <!-- PENDING VERIFICATIONS -->
+        <div>
+            <h2 style="font-size: 1.5rem; margin-bottom: 1.5rem;">Required Verifications</h2>
+            <?php if (empty($pending)): ?>
+                <div class="card" style="text-align: center; padding: 3rem;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">✅</div>
+                    <h3>All Caught Up!</h3>
+                    <p style="color: var(--text-2);">You have no pending lectures to verify.</p>
+                </div>
+            <?php else: ?>
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    <?php foreach ($pending as $p): ?>
+                        <div class="card" style="border-left: 5px solid var(--accent);">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                <div>
+                                    <p style="font-size: 0.8rem; color: var(--text-3); font-weight: 700; text-transform: uppercase;">Lecture: <?= date('d M Y', strtotime($p['lecture_date'])) ?></p>
+                                    <h3 style="font-size: 1.25rem; margin-top: 5px;"><?= htmlspecialchars($p['subject_name']) ?></h3>
+                                    <p style="margin-top: 8px;">Topic: <strong><?= htmlspecialchars($p['topic_name']) ?></strong></p>
+                                    <p style="font-size: 0.9rem; color: var(--text-2); margin-top: 4px;">Faculty: <?= htmlspecialchars($p['faculty_name']) ?></p>
+                                </div>
+                            </div>
+                            
+                            <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
+                                <form action="../../app/actions/academics/submit_lecture_feedback.php" method="POST" style="display: flex; gap: 10px; flex-direction: column;">
+                                    <input type="hidden" name="lecture_record_id" value="<?= $p['lecture_record_id'] ?>">
+                                    <div class="form-group">
+                                        <label style="font-size: 13px;">Optional Remarks (e.g. if topic was only partially covered)</label>
+                                        <textarea name="remarks" placeholder="Any comments..." style="height: 60px; font-size: 13px;"></textarea>
+                                    </div>
+                                    <div style="display: flex; gap: 10px;">
+                                        <button type="submit" name="status" value="verified" class="btn btn-primary" style="flex: 1;">Yes, Topic was Covered</button>
+                                        <button type="submit" name="status" value="disputed" class="btn btn-secondary" style="color: var(--error); border-color: var(--error);">No, It was Not</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
 
-            $uStmt = $conn->prepare("SELECT class_name, semester FROM users WHERE id = ?");
-            $uStmt->bind_param("i", $student_id);
-            $uStmt->execute();
-            $uRow = $uStmt->get_result()->fetch_assoc();
-            $class_name = $uRow['class_name'] ?? '';
-            $semester = $uRow['semester'] ?? '';
-
-            // Check if student is assigned for any subject today for verification
-            $assignStmt = $conn->prepare("
-                SELECT s.subject_id, fs.subject_name 
-                FROM feedback_selector s
-                JOIN faculty_subjects fs ON fs.id = s.subject_id
-                WHERE s.selected_student_id = ? AND s.selected_date = ?
-            ");
-            $assignStmt->bind_param("is", $student_id, $today);
-            $assignStmt->execute();
-            $assignedRes = $assignStmt->get_result();
-            $assignedSubjects = $assignedRes->fetch_all(MYSQLI_ASSOC);
-            $is_assigned = count($assignedSubjects) > 0;
-
-            // Create a simple array of assigned subject IDs for JS
-            $assignedIds = array_column($assignedSubjects, 'subject_id');
-            ?>
-
-            <script>
-                // Store assigned subject IDs for client-side check
-                const assignedSubjectIds = <?= json_encode($assignedIds) ?>;
-            </script>
-
-            <?php
-            // Fetch all subjects for this class (if not assigned, or to allow selection)
-            $subQuery = $conn->prepare("SELECT id, subject_name FROM faculty_subjects WHERE class_name = ? AND semester = ?");
-            $subQuery->bind_param("si", $class_name, $semester);
-            $subQuery->execute();
-            $allSubjects = $subQuery->get_result()->fetch_all(MYSQLI_ASSOC);
-            ?>
-            
-            <div class="grid-2">
-                <div class="form-group">
-                    <label>Select Subject:</label>
-                    <select name="subject_id" id="subjectSelect" required onchange="loadTopics()">
-                        <?php if ($is_assigned): ?>
-                            <option value="">-- Assigned Subjects --</option>
-                            <?php foreach ($assignedSubjects as $sub): ?>
-                                <option value="<?= $sub['subject_id'] ?>" selected><?= htmlspecialchars($sub['subject_name']) ?> (Assigned)</option>
-                            <?php endforeach; ?>
-                            <hr>
-                            <option value="">-- Other Subjects --</option>
-                        <?php else: ?>
-                            <option value="">-- Choose Subject --</option>
+        <!-- HISTORY -->
+        <div>
+            <h2 style="font-size: 1.5rem; margin-bottom: 1.5rem;">Your Recent Verifications</h2>
+            <div class="card" style="padding: 0; overflow: hidden;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                    <thead style="background: var(--bg-2); border-bottom: 1px solid var(--border);">
+                        <tr>
+                            <th style="padding: 1rem; font-size: 13px;">Subject & Topic</th>
+                            <th style="padding: 1rem; font-size: 13px; text-align: center;">Result</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php if (empty($history)): ?>
+                            <tr><td colspan="2" style="padding: 2rem; text-align: center; color: var(--text-3); font-size: 14px;">No history available.</td></tr>
                         <?php endif; ?>
-                        
-                        <?php foreach ($allSubjects as $sub): ?>
-                            <?php 
-                            // Skip if already in assigned list to avoid duplicates
-                            $is_already_shown = false;
-                            foreach($assignedSubjects as $as) if($as['subject_id'] == $sub['id']) $is_already_shown = true;
-                            if($is_already_shown) continue;
-                            ?>
-                            <option value="<?= $sub['id'] ?>"><?= htmlspecialchars($sub['subject_name']) ?></option>
+                        <?php foreach ($history as $h): ?>
+                            <tr style="border-bottom: 1px solid var(--border);">
+                                <td style="padding: 1rem;">
+                                    <div style="font-weight: 600; font-size: 14px;"><?= htmlspecialchars($h['subject_name']) ?></div>
+                                    <div style="font-size: 11px; color: var(--text-2);"><?= htmlspecialchars($h['topic_name']) ?></div>
+                                </td>
+                                <td style="padding: 1rem; text-align: center;">
+                                    <?php if ($h['status'] === 'verified'): ?>
+                                        <span style="color: var(--success); font-weight: 700;">✅</span>
+                                    <?php else: ?>
+                                        <span style="color: var(--error); font-weight: 700;">❌</span>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
                         <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Topic Covered Type:</label>
-                    <select name="topic_type" required>
-                        <option value="Syllabus Topic">Syllabus Topic</option>
-                        <option value="Other Extra Knowledge">Other Extra Knowledge</option>
-                        <option value="Exam Related Discussion">Exam Related Discussion</option>
-                    </select>
-                </div>
+                    </tbody>
+                </table>
             </div>
-
-            <script>
-                // Auto-load topics if a subject is already selected (e.g., when assigned)
-                window.addEventListener('DOMContentLoaded', (event) => {
-                    const select = document.getElementById('subjectSelect');
-                    if (select.value) {
-                        loadTopics();
-                    }
-                });
-            </script>
-
-            <div class="grid-2">
-                <div class="form-group">
-                    <label>Lecture Start Time:</label>
-                    <input type="time" name="lecture_start_time" required>
-                </div>
-                <div class="form-group">
-                    <label>Lecture End Time:</label>
-                    <input type="time" name="lecture_end_time" required>
-                </div>
-            </div>
-
-            <!-- TOPICS SECTION (DYNAMICALY LOADED) -->
-            <div id="topicsWrapper" style="display:none; margin-top: 1rem; padding: 1.5rem; background: var(--bg-2); border-radius: 8px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h3 style="font-size: 1.1rem; margin: 0;">Select Covered Topics</h3>
-                    <div id="unitSelectorContainer" style="width: 200px;">
-                        <!-- Unit Dropdown will be injected here -->
-                    </div>
-                </div>
-                
-                <div id="topicsContainer">
-                    <!-- Topics per Unit will be loaded here -->
-                </div>
-            </div>
-
-            <div class="form-group" style="margin-top: 1.5rem;">
-                <label>Any Assignment from Faculty:</label>
-                <textarea name="assignment" placeholder="Write assignment details" style="height: 80px;"></textarea>
-            </div>
-
-            <div style="margin-top: 2rem;">
-                <button type="submit" class="btn btn-primary btn-full">Submit Feedback</button>
-            </div>
-        </form>
+        </div>
     </div>
 </div>
 
-<script>
-    async function loadTopics() {
-        const subId = document.getElementById('subjectSelect').value;
-        const wrapper = document.getElementById('topicsWrapper');
-        const container = document.getElementById('topicsContainer');
-        const unitSelectorContainer = document.getElementById('unitSelectorContainer');
-        
-        if (!subId) {
-            wrapper.style.display = 'none';
-            return;
-        }
-
-        // Check if student is assigned to this specific subject
-        // assignedSubjectIds is populated from PHP
-        if (!assignedSubjectIds.includes(subId.toString()) && !assignedSubjectIds.includes(parseInt(subId))) {
-            wrapper.style.display = 'none';
-            return;
-        }
-
-        container.innerHTML = '<p style="color:var(--text-2);">Loading units and topics...</p>';
-        unitSelectorContainer.innerHTML = '';
-        wrapper.style.display = 'block';
-
-        try {
-            const response = await fetch(`get_topics_ajax.php?subject_id=${subId}`);
-            const result = await response.json();
-
-            if (result.status === 'success') {
-                if (result.data.length === 0) {
-                    container.innerHTML = '<p>No topics found for this subject.</p>';
-                    return;
-                }
-
-                // Create Unit Dropdown
-                let unitSelectHtml = `<select id="unitSelect" onchange="showUnitTopics()" style="padding: 6px 12px; font-size: 13px;">`;
-                unitSelectHtml += `<option value="">-- Select Unit --</option>`;
-                
-                let topicsHtml = '';
-                result.data.forEach((unit, index) => {
-                    unitSelectHtml += `<option value="unit_${unit.id}">Unit ${unit.unit_no}</option>`;
-                    
-                    topicsHtml += `
-                        <div id="unit_${unit.id}" class="unit-topics-box" style="display: none;">
-                            <p style="font-weight: bold; color: var(--accent); font-size: 13px; text-transform: uppercase; margin-bottom: 12px;">Unit ${unit.unit_no}: ${unit.unit_name}</p>
-                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px;">
-                    `;
-                    unit.topics.forEach(topic => {
-                        topicsHtml += `
-                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 10px; background: var(--bg); border-radius: 6px; border: 1px solid var(--border);">
-                                <input type="checkbox" name="topics[]" value="${topic.topic_name}" style="width: 18px; height: 18px;">
-                                <span style="font-size: 14px;">${topic.topic_name}</span>
-                            </label>
-                        `;
-                    });
-                    topicsHtml += `</div></div>`;
-                });
-                unitSelectHtml += `</select>`;
-                
-                unitSelectorContainer.innerHTML = unitSelectHtml;
-                container.innerHTML = topicsHtml;
-
-                // Auto-select first unit if available
-                if (result.data.length > 0) {
-                    const select = document.getElementById('unitSelect');
-                    select.selectedIndex = 1;
-                    showUnitTopics();
-                }
-
-            } else {
-                container.innerHTML = `<p style="color:var(--error);">${result.message}</p>`;
-            }
-        } catch (error) {
-            container.innerHTML = '<p style="color:var(--error);">Failed to load topics.</p>';
-        }
-    }
-
-    function showUnitTopics() {
-        const selectedUnitId = document.getElementById('unitSelect').value;
-        const boxes = document.querySelectorAll('.unit-topics-box');
-        
-        boxes.forEach(box => {
-            if (box.id === selectedUnitId) {
-                box.style.display = 'block';
-            } else {
-                box.style.display = 'none';
-            }
-        });
-    }
-</script>
-
-<?php require_once __DIR__ . '/../../app/includes/header.php'; ?>
+<?php require_once __DIR__ . '/../../app/includes/footer.php'; ?>

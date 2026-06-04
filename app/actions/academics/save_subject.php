@@ -8,88 +8,115 @@ if (!has_permission('view_faculty_dashboard')) {
 }
 
 $faculty_id = $_SESSION['user_id'];
-$subject_id = (int) ($_POST['subject_id'] ?? 0);
-$subject_name = $_POST['subject_name'];
-$branch = $_POST['branch'] ?? '';
+$subject_id = (int) ($_POST['subject_id'] ?? 0); // This was previously faculty_subjects.id, now it will refer to subjects.id or a lookup
+$subject_name = trim($_POST['subject_name'] ?? '');
+$subject_code = strtoupper(trim($_POST['subject_code'] ?? '')); 
+$branch = trim($_POST['branch'] ?? 'IT');
 $semester = (int) ($_POST['semester'] ?? 0);
 $is_elective = isset($_POST['is_elective']) ? 1 : 0;
-$class_name = strtoupper(trim($_POST['class_name'] ?? 'N/A'));
+$class_name = strtoupper(trim($_POST['class_name'] ?? ''));
 
-if ($is_elective) {
-    $class_name = 'ALL'; 
-} else if ($semester > 0 && !empty($class_name) && $class_name !== 'N/A') {
-    $class_pure = preg_replace('/^[\d\s\-_]+/', '', $class_name);
-    $class_pure = str_replace(['-', ' '], '', $class_pure);
-    $class_name = $semester . $class_pure;
+// Fallback for subject_code if not provided by old form
+if (empty($subject_code)) {
+    $subject_code = strtoupper(substr($branch, 0, 2)) . ($semester ?: '0') . strtoupper(substr($subject_name, 0, 3));
 }
 
-if ($subject_id > 0) {
-    // Update existing subject (Remove enrollment_closed from query)
-    $stmt = $conn->prepare("UPDATE faculty_subjects SET subject_name = ?, branch = ?, class_name = ?, semester = ?, is_elective = ? WHERE id = ? AND faculty_id = ?");
-    if (!$stmt) {
-        $_SESSION['msg_error'] = "Database error: " . $conn->error;
-        header("Location: ../../../public/academics/create_subject.php?id=" . $subject_id);
-        exit();
-    }
-    $stmt->bind_param("sssiiii", $subject_name, $branch, $class_name, $semester, $is_elective, $subject_id, $faculty_id);
-    $stmt->execute();
-
-    $delUnits = $conn->prepare("DELETE FROM faculty_units WHERE subject_id = ?");
-    $delUnits->bind_param("i", $subject_id);
-    $delUnits->execute();
-} else {
-    // Create new subject
-    $stmt = $conn->prepare("INSERT INTO faculty_subjects (faculty_id, subject_name, branch, class_name, semester, is_elective) VALUES (?, ?, ?, ?, ?, ?)");
-    if (!$stmt) {
-        $_SESSION['msg_error'] = "Database error: " . $conn->error;
-        header("Location: ../../../public/academics/create_subject.php");
-        exit();
-    }
-    $stmt->bind_param("isssii", $faculty_id, $subject_name, $branch, $class_name, $semester, $is_elective);
-    $stmt->execute();
-    $subject_id = $conn->insert_id;
-
-    // ONLY add pending requests for NEW subjects
-    if ($is_elective) {
-        $student_stmt = $conn->prepare("SELECT id FROM users WHERE role = 'student' AND semester = ?");
-        $student_stmt->bind_param("i", $semester);
-        $student_stmt->execute();
-        $students = $student_stmt->get_result();
-
-        $ins_request = $conn->prepare("INSERT INTO student_electives (student_id, subject_id, semester, status) VALUES (?, ?, ?, 'pending')");
-        while ($student = $students->fetch_assoc()) {
-            $ins_request->bind_param("iii", $student['id'], $subject_id, $semester);
-            $ins_request->execute();
-        }
-    }
+if (empty($subject_name) || empty($class_name) || $semester === 0) {
+    $_SESSION['msg_error'] = "Required fields missing.";
+    header("Location: ../../../public/academics/create_subject.php");
+    exit();
 }
 
-$unit_names = $_POST['unit_names'] ?? [];
-$unit_topics = $_POST['unit_topics'] ?? [];
+try {
+    $conn->begin_transaction();
 
-foreach ($unit_names as $index => $unit_name) {
-    if (!empty($unit_name)) {
-        $unit_no = $index + 1;
-        $uStmt = $conn->prepare("INSERT INTO faculty_units (subject_id, unit_no, unit_name) VALUES (?, ?, ?)");
-        $uStmt->bind_param("iis", $subject_id, $unit_no, $unit_name);
-        $uStmt->execute();
-        $unit_id = $conn->insert_id;
+    // 1. Ensure Class Exists
+    $cStmt = $conn->prepare("SELECT id FROM classes WHERE name = ? AND semester = ? AND branch = ?");
+    $cStmt->bind_param("sis", $class_name, $semester, $branch);
+    $cStmt->execute();
+    $cRes = $cStmt->get_result();
+    if ($cRes->num_rows > 0) {
+        $class_id = $cRes->fetch_assoc()['id'];
+    } else {
+        $insC = $conn->prepare("INSERT INTO classes (name, semester, branch, program) VALUES (?, ?, ?, 'B.E.')");
+        $insC->bind_param("sis", $class_name, $semester, $branch);
+        $insC->execute();
+        $class_id = $conn->insert_id;
+    }
 
-        $topics_text = $unit_topics[$index] ?? '';
-        if (!empty($topics_text)) {
-            $topics = explode("\n", trim($topics_text));
-            foreach ($topics as $topic) {
-                $t = trim($topic);
-                if (!empty($t)) {
-                    $tStmt = $conn->prepare("INSERT INTO faculty_topics (unit_id, topic_name) VALUES (?, ?)");
-                    $tStmt->bind_param("is", $unit_id, $t);
-                    $tStmt->execute();
+    // 2. Ensure Subject Exists
+    $sType = $is_elective ? 'elective' : 'core';
+    $sStmt = $conn->prepare("SELECT id FROM subjects WHERE code = ?");
+    $sStmt->bind_param("s", $subject_code);
+    $sStmt->execute();
+    $sRes = $sStmt->get_result();
+    if ($sRes->num_rows > 0) {
+        $target_subject_id = $sRes->fetch_assoc()['id'];
+        $updS = $conn->prepare("UPDATE subjects SET name = ?, type = ? WHERE id = ?");
+        $updS->bind_param("ssi", $subject_name, $sType, $target_subject_id);
+        $updS->execute();
+    } else {
+        $insS = $conn->prepare("INSERT INTO subjects (name, code, type) VALUES (?, ?, ?)");
+        $insS->bind_param("sss", $subject_name, $subject_code, $sType);
+        $insS->execute();
+        $target_subject_id = $conn->insert_id;
+    }
+
+    // 3. Link Class to Subject
+    $csStmt = $conn->prepare("INSERT IGNORE INTO class_subjects (class_id, subject_id) VALUES (?, ?)");
+    $csStmt->bind_param("ii", $class_id, $target_subject_id);
+    $csStmt->execute();
+    
+    // Get actual class_subject_id
+    $getCs = $conn->prepare("SELECT id FROM class_subjects WHERE class_id = ? AND subject_id = ?");
+    $getCs->bind_param("ii", $class_id, $target_subject_id);
+    $getCs->execute();
+    $class_subject_id = $getCs->get_result()->fetch_assoc()['id'];
+
+    // 4. Assign Faculty to Class-Subject
+    $fsStmt = $conn->prepare("INSERT IGNORE INTO faculty_subjects (faculty_id, class_subject_id) VALUES (?, ?)");
+    $fsStmt->bind_param("ii", $faculty_id, $class_subject_id);
+    $fsStmt->execute();
+
+    // 5. Handle Units and Topics (Subject-centric)
+    // First, clear existing units for this subject to overwrite
+    $delU = $conn->prepare("DELETE FROM units WHERE subject_id = ?");
+    $delU->bind_param("i", $target_subject_id);
+    $delU->execute();
+
+    $unit_names = $_POST['unit_names'] ?? [];
+    $unit_topics = $_POST['unit_topics'] ?? [];
+
+    foreach ($unit_names as $index => $unit_name) {
+        if (!empty($unit_name)) {
+            $unit_no = $index + 1;
+            $uStmt = $conn->prepare("INSERT INTO units (subject_id, unit_no, name) VALUES (?, ?, ?)");
+            $uStmt->bind_param("iis", $target_subject_id, $unit_no, $unit_name);
+            $uStmt->execute();
+            $unit_id = $conn->insert_id;
+
+            $topics_text = $unit_topics[$index] ?? '';
+            if (!empty($topics_text)) {
+                $topics = explode("\n", trim($topics_text));
+                foreach ($topics as $topic) {
+                    $t = trim($topic);
+                    if (!empty($t)) {
+                        $tStmt = $conn->prepare("INSERT INTO topics (unit_id, name) VALUES (?, ?)");
+                        $tStmt->bind_param("is", $unit_id, $t);
+                        $tStmt->execute();
+                    }
                 }
             }
         }
     }
-}
 
-$_SESSION['msg_success'] = ($subject_id > 0 && isset($_POST['subject_id'])) ? "Subject updated successfully" : "Subject created successfully";
-header("Location: ../../../public/academics/faculty_dashboard.php");
+    $conn->commit();
+    $_SESSION['msg_success'] = "Subject and syllabus structure updated successfully.";
+    header("Location: ../../../public/academics/faculty_dashboard.php");
+
+} catch (Exception $e) {
+    $conn->rollback();
+    $_SESSION['msg_error'] = "Failed to save subject: " . $e->getMessage();
+    header("Location: ../../../public/academics/create_subject.php" . ($subject_id ? "?id=$subject_id" : ""));
+}
 ?>

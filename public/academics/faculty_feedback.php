@@ -7,88 +7,86 @@ if (!has_permission('view_student_dashboard')) {
     exit();
 }
 
+$student_id = (int) $_SESSION['user_id'];
 $form_id = (int) ($_GET['form_id'] ?? 0);
+
 if (!$form_id) {
     header("Location: student_dashboard.php");
     exit();
 }
 
-$student_id = (int) $_SESSION['user_id'];
+// 1. Fetch Form Details - Updated for normalized schema
+$stmt = $conn->prepare("
+    SELECT ff.*, u.name as faculty_name, s.name as subject_name 
+    FROM feedback_forms ff
+    JOIN users u ON ff.faculty_id = u.id
+    JOIN class_subjects cs ON ff.class_subject_id = cs.id
+    JOIN subjects s ON cs.subject_id = s.id
+    WHERE ff.id = ? AND ff.status = 'active'
+");
+$stmt->bind_param("i", $form_id);
+$stmt->execute();
+$form = $stmt->get_result()->fetch_assoc();
 
-// Check if already submitted
-$checkFeedback = $conn->query("SELECT 1 FROM student_faculty_feedback WHERE form_id = $form_id AND student_id = $student_id LIMIT 1");
-if ($checkFeedback->num_rows > 0) {
-    $_SESSION['msg_error'] = "You have already submitted feedback for this form.";
+if (!$form) {
+    $_SESSION['msg_error'] = "Form not found or has been closed.";
     header("Location: student_dashboard.php");
     exit();
 }
 
-$questions = $conn->query("SELECT * FROM faculty_feedback_questions WHERE form_id = $form_id");
+// 2. Fetch Questions
+$qStmt = $conn->prepare("SELECT * FROM feedback_questions WHERE form_id = ?");
+$qStmt->bind_param("i", $form_id);
+$qStmt->execute();
+$questions = $qStmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-$page_title = "Faculty Feedback";
+$page_title = "Evaluation: " . htmlspecialchars($form['faculty_name']);
 require_once __DIR__ . '/../../app/includes/header.php';
 ?>
 
 <div class="wrapper" style="padding: 2rem;">
-    <div class="dashboard-header" style="margin-bottom: 2rem;">
-        <div class="dashboard-title">
-            <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem; color: var(--text);">Faculty Evaluation</h1>
-            <p style="color: var(--text-2);">Please provide your honest feedback. Your responses help improve teaching quality.</p>
+    <div class="card" style="max-width: 700px; margin: 0 auto; padding: 2.5rem;">
+        <div style="text-align: center; margin-bottom: 2.5rem;">
+            <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem; margin-bottom: 0.5rem;"><?= htmlspecialchars($form['title']) ?></h1>
+            <p style="color: var(--text-2);">Faculty: <strong><?= htmlspecialchars($form['faculty_name']) ?></strong> | Subject: <strong><?= htmlspecialchars($form['subject_name']) ?></strong></p>
+            <?php if ($form['description']): ?>
+                <div style="margin-top: 1rem; font-size: 14px; color: var(--text-3); font-style: italic;">"<?= htmlspecialchars($form['description']) ?>"</div>
+            <?php endif; ?>
         </div>
-        <div class="dashboard-actions">
-            <a href="student_dashboard.php" class="btn btn-secondary">Cancel</a>
-        </div>
-    </div>
 
-    <div class="card" style="max-width: 800px; margin: 0 auto;">
         <form action="../../app/actions/academics/submit_faculty_feedback.php" method="POST">
-            <input type="hidden" name="form_id" value="<?php echo $form_id; ?>">
-            
-            <?php while ($q = $questions->fetch_assoc()): ?>
-                <div class="form-group" style="margin-bottom: 2.5rem; padding-bottom: 2rem; border-bottom: 1px solid var(--border);">
-                    <label style="font-size: 1.15rem; margin-bottom: 1.25rem; display: block; font-weight: 500;">
-                        <?php echo htmlspecialchars($q['question_text']); ?>
+            <input type="hidden" name="form_id" value="<?= $form_id ?>">
+
+            <?php foreach ($questions as $index => $q): ?>
+                <div class="form-group" style="margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border);">
+                    <label style="display: block; margin-bottom: 1rem; font-weight: 600; font-size: 1.1rem;">
+                        <?= ($index + 1) ?>. <?= htmlspecialchars($q['question_text']) ?>
                     </label>
 
                     <?php if ($q['question_type'] === 'rating'): ?>
-                        <div style="display: flex; gap: 30px; align-items: center; justify-content: center; background: #f9fafb; padding: 1.5rem; border-radius: 8px;">
+                        <div style="display: flex; justify-content: space-between; gap: 10px; max-width: 400px; margin: 0 auto;">
                             <?php for ($i = 1; $i <= 5; $i++): ?>
-                                <label style="display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-                                    <input type="radio" name="responses[<?php echo $q['id']; ?>][rating]" value="<?php echo $i; ?>" required style="width: 24px; height: 24px; cursor: pointer;">
-                                    <span style="font-size: 14px; margin-top: 8px; font-weight: 600; color: var(--text-2);"><?php echo $i; ?></span>
+                                <label style="display: flex; flex-direction: column; align-items: center; gap: 8px; cursor: pointer;">
+                                    <input type="radio" name="responses[<?= $q['id'] ?>]" value="<?= $i ?>" required style="width: 20px; height: 20px;">
+                                    <span style="font-size: 12px; font-weight: 700; color: var(--text-3);"><?= $i ?></span>
                                 </label>
                             <?php endfor; ?>
                         </div>
-                        <input type="hidden" name="responses[<?php echo $q['id']; ?>][type]" value="rating">
-
-                    <?php elseif ($q['question_type'] === 'mcq'): 
-                        $options = explode(',', $q['options']);
-                    ?>
-                        <div style="display: flex; flex-direction: column; gap: 12px; background: #f9fafb; padding: 1.5rem; border-radius: 8px;">
-                            <?php foreach ($options as $opt): 
-                                $opt = trim($opt);
-                                if (empty($opt)) continue;
-                            ?>
-                                <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; padding: 8px; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#edf2f7'">
-                                    <input type="radio" name="responses[<?php echo $q['id']; ?>][answer_text]" value="<?php echo htmlspecialchars($opt); ?>" required style="width: 18px; height: 18px;">
-                                    <span style="font-size: 1rem; color: var(--text);"><?php echo htmlspecialchars($opt); ?></span>
-                                </label>
-                            <?php endforeach; ?>
+                        <div style="display: flex; justify-content: space-between; max-width: 400px; margin: 5px auto 0; font-size: 10px; color: var(--text-3); text-transform: uppercase;">
+                            <span>Poor</span>
+                            <span>Excellent</span>
                         </div>
-                        <input type="hidden" name="responses[<?php echo $q['id']; ?>][type]" value="mcq">
-
                     <?php elseif ($q['question_type'] === 'text'): ?>
-                        <div style="background: #f9fafb; padding: 1.5rem; border-radius: 8px;">
-                            <textarea name="responses[<?php echo $q['id']; ?>][answer_text]" required placeholder="Write your comments here..." style="width: 100%; height: 120px; padding: 12px; border: 1px solid #cbd5e0; border-radius: 6px; font-family: inherit; resize: vertical;"></textarea>
-                        </div>
-                        <input type="hidden" name="responses[<?php echo $q['id']; ?>][type]" value="text">
+                        <textarea name="responses[<?= $q['id'] ?>]" placeholder="Your answer..." style="width: 100%; height: 80px; padding: 10px; border-radius: 8px; border: 1px solid var(--border);"></textarea>
                     <?php endif; ?>
                 </div>
-            <?php endwhile; ?>
+            <?php endforeach; ?>
 
-            <div style="text-align: right; margin-top: 3rem;">
-                <button type="submit" class="btn btn-primary btn-lg" style="padding: 12px 40px; font-size: 1.1rem;">Submit My Feedback</button>
+            <div class="alert alert-info" style="margin-top: 2rem; font-size: 13px;">
+                <strong>Note:</strong> Your feedback is strictly anonymous. The faculty will only see consolidated ratings and comments without names.
             </div>
+
+            <button type="submit" class="btn btn-primary btn-full" style="margin-top: 2rem; padding: 1rem;">Submit Evaluation</button>
         </form>
     </div>
 </div>

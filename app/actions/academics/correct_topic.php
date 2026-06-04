@@ -7,27 +7,32 @@ if (!has_permission('view_faculty_dashboard')) {
     exit();
 }
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $topic_id = (int)($_POST['topic_id'] ?? 0);
-    $action = $_POST['action'] ?? ''; // 'verify' or 'discard'
+$lecture_record_id = (int) ($_POST['lecture_record_id'] ?? 0);
+$action = $_POST['action'] ?? ''; // 'confirm_not_covered', 'confirm_covered'
 
-    if ($topic_id > 0) {
-        if ($action === 'discard') {
-            // Unmark as covered
-            $stmt = $conn->prepare("UPDATE topic_progress SET is_covered = 0, is_verified = 1, updated_at = updated_at WHERE id = ?");
-            $stmt->bind_param("i", $topic_id);
-            $stmt->execute();
-            $_SESSION['msg_success'] = "Topic progress discarded successfully.";
-        } else {
-            // Mark as verified
-            $stmt = $conn->prepare("UPDATE topic_progress SET is_verified = 1, updated_at = updated_at WHERE id = ?");
-            $stmt->bind_param("i", $topic_id);
-            $stmt->execute();
-            $_SESSION['msg_success'] = "Topic progress verified.";
-        }
+if (!$lecture_record_id) {
+    header("Location: ../../../public/academics/syllabus_verification.php");
+    exit();
+}
+
+try {
+    if ($action === 'confirm_not_covered') {
+        // Delete the lecture record entirely if it was a mistake
+        $stmt = $conn->prepare("DELETE FROM lecture_records WHERE id = ?");
+        $stmt->bind_param("i", $lecture_record_id);
+        $stmt->execute();
+        $_SESSION['msg_success'] = "Lecture record removed and progress reset.";
+    } elseif ($action === 'confirm_covered') {
+        // Mark all disputed verifications as resolved (forced 'verified')
+        $stmt = $conn->prepare("UPDATE lecture_verifications SET status = 'verified', remarks = CONCAT(remarks, ' [Resolved by Faculty]') WHERE lecture_record_id = ? AND status = 'disputed'");
+        $stmt->bind_param("i", $lecture_record_id);
+        $stmt->execute();
+        $_SESSION['msg_success'] = "Disputes resolved. Topic remains marked as covered.";
     }
+} catch (Exception $e) {
+    $_SESSION['msg_error'] = "Failed to resolve: " . $e->getMessage();
 }
 
 header("Location: ../../../public/academics/syllabus_verification.php");
-exit();
+exit;
 ?>

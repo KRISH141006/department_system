@@ -2,60 +2,63 @@
 require_once __DIR__ . '/../../middleware/auth.php';
 require_once __DIR__ . '/../../config/db.php';
 
-if (!has_permission('view_student_dashboard')) {
-    header("Location: ../../../public/academics/student_dashboard.php");
+if (!has_permission('view_faculty_dashboard')) {
+    header("Location: ../../../public/dashboard.php");
     exit();
 }
 
+$faculty_id = (int) $_SESSION['user_id'];
 $subject_id = (int) ($_POST['subject_id'] ?? 0);
-$unit_id = (int) ($_POST['unit_id'] ?? 0);
-$selectedTopics = $_POST['topics'] ?? [];
+$class_id   = (int) ($_POST['class_id'] ?? 0);
+$topic_ids  = $_POST['topic_ids'] ?? []; // Array of topic IDs selected as covered
 
-if (!$subject_id || !$unit_id) {
-    header("Location: ../../../public/academics/student_dashboard.php");
+if (!$subject_id || !$class_id || empty($topic_ids)) {
+    $_SESSION['msg_error'] = "No topics selected.";
+    header("Location: ../../../public/academics/units.php?subject_id=$subject_id");
     exit();
 }
 
-// Fetch subject name and unit_no for topic_progress compatibility
-$sStmt = $conn->prepare("SELECT subject_name FROM faculty_subjects WHERE id = ?");
-$sStmt->bind_param("i", $subject_id);
-$sStmt->execute();
-$subject_name = $sStmt->get_result()->fetch_assoc()['subject_name'];
+try {
+    $conn->begin_transaction();
 
-$uStmt = $conn->prepare("SELECT unit_no FROM faculty_units WHERE id = ?");
-$uStmt->bind_param("i", $unit_id);
-$uStmt->execute();
-$unit_no = $uStmt->get_result()->fetch_assoc()['unit_no'];
+    foreach ($topic_ids as $topic_id) {
+        $topic_id = (int) $topic_id;
 
-// Reset progress for this unit
-$stmt = $conn->prepare("UPDATE topic_progress SET is_covered = 0 WHERE subject=? AND unit_no=?");
-$stmt->bind_param("si", $subject_name, $unit_no);
-$stmt->execute();
+        // 1. Create a Lecture Record - Updated to new schema
+        $insLR = $conn->prepare("
+            INSERT INTO lecture_records (faculty_id, class_id, subject_id, topic_id, lecture_date) 
+            VALUES (?, ?, ?, ?, NOW())
+        ");
+        $insLR->bind_param("iiii", $faculty_id, $class_id, $subject_id, $topic_id);
+        $insLR->execute();
+        $lecture_record_id = $conn->insert_id;
 
-foreach ($selectedTopics as $topic) {
-    $check = $conn->prepare("SELECT id FROM topic_progress WHERE subject=? AND unit_no=? AND topic_name=?");
-    $check->bind_param("sis", $subject_name, $unit_no, $topic);
-    $check->execute();
-    $result = $check->get_result();
+        // 2. Randomly select 5 students for verification (Phase 4 Logic)
+        // Selecting: 2 Premium, 2 Average, 1 Challenged (if categories exist)
+        // For now, selecting any 5 students from this class
+        $getStudents = $conn->prepare("
+            SELECT user_id FROM students 
+            WHERE class_id = ? 
+            ORDER BY RAND() LIMIT 5
+        ");
+        $getStudents->bind_param("i", $class_id);
+        $getStudents->execute();
+        $students = $getStudents->get_result()->fetch_all(MYSQLI_ASSOC);
 
-    if ($result->num_rows > 0) {
-        $update = $conn->prepare("UPDATE topic_progress SET is_covered=1, is_verified=0 WHERE subject=? AND unit_no=? AND topic_name=?");
-        $update->bind_param("sis", $subject_name, $unit_no, $topic);
-        $update->execute();
-    } else {
-        $insert = $conn->prepare("INSERT INTO topic_progress (subject, unit_no, topic_name, is_covered, is_verified) VALUES (?, ?, ?, 1, 0)");
-        $insert->bind_param("sis", $subject_name, $unit_no, $topic);
-        $insert->execute();
+        $insVA = $conn->prepare("INSERT INTO verification_assignments (lecture_record_id, student_id) VALUES (?, ?)");
+        foreach ($students as $student) {
+            $insVA->bind_param("ii", $lecture_record_id, $student['user_id']);
+            $insVA->execute();
+        }
     }
+
+    $conn->commit();
+    $_SESSION['msg_success'] = "Lecture records created and verification assigned to random students.";
+} catch (Exception $e) {
+    $conn->rollback();
+    $_SESSION['msg_error'] = "Failed to update progress: " . $e->getMessage();
 }
 
-$from_feedback = isset($_POST['from']) && $_POST['from'] == 'feedback';
-
-if ($from_feedback) {
-    $_SESSION['msg_success'] = "Topics selected successfully";
-    header("Location: ../../../public/academics/lecture_feedback.php?subject_id=$subject_id");
-} else {
-    $_SESSION['msg_success'] = "Covered topics confirmed successfully";
-    header("Location: ../../../public/academics/units.php?subject_id=$subject_id&unit_id=$unit_id");
-}
+header("Location: ../../../public/academics/faculty_dashboard.php");
+exit;
 ?>

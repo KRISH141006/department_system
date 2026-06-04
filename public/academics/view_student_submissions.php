@@ -7,133 +7,105 @@ if (!has_permission('view_faculty_dashboard')) {
     exit();
 }
 
-if (!isset($_GET['student_id'])) {
-    header("Location: submissions.php");
+$submission_id = (int) ($_GET['submission_id'] ?? 0);
+
+if (!$submission_id) {
+    header("Location: assigned_tasks_history.php");
     exit();
 }
 
-$student_id = $_GET['student_id'];
-$faculty_id = $_SESSION['user_id'];
-
-// Fetch student info
-$s_stmt = $conn->prepare("SELECT name, roll_no, class_name, semester FROM users WHERE id = ?");
-$s_stmt->bind_param("i", $student_id);
-$s_stmt->execute();
-$student = $s_stmt->get_result()->fetch_assoc();
-
-if (!$student) {
-    header("Location: submissions.php");
-    exit();
-}
-
-// Fetch all assignments and submissions for this student
-$stmt = $conn->prepare("
-    SELECT t.id as task_id, t.task as task_name, t.deadline, fa.created_at as assigned_at,
-    ss.id as submission_id, ss.submission_path, ss.submission_name, ss.submitted_at, ss.grade, ss.feedback,
-    fu.name as assigned_by
-    FROM tasks t
-    JOIN faculty_assignments fa ON t.faculty_assignment_id = fa.id
-    JOIN users fu ON fa.faculty_id = fu.id
-    LEFT JOIN student_submissions ss ON ss.task_id = t.id
-    WHERE t.user_id = ?
-    ORDER BY fa.created_at DESC
-");
-$stmt->bind_param("i", $student_id);
+// Fetch submission details - Updated for normalized schema
+$query = "
+    SELECT sub.*, u.name as student_name, a.title as assignment_title, s.name as subject_name
+    FROM submissions sub
+    JOIN assignments a ON sub.assignment_id = a.id
+    JOIN users u ON sub.student_id = u.id
+    JOIN class_subjects cs ON a.class_subject_id = cs.id
+    JOIN subjects s ON cs.subject_id = s.id
+    WHERE sub.id = ?
+";
+$stmt = $conn->prepare($query);
+$stmt->bind_param("i", $submission_id);
 $stmt->execute();
-$assignments = $stmt->get_result();
+$submission = $stmt->get_result()->fetch_assoc();
 
-$page_title = "Submissions: " . $student['name'];
+if (!$submission) {
+    header("Location: assigned_tasks_history.php");
+    exit();
+}
+
+$page_title = "Review Submission: " . htmlspecialchars($submission['student_name']);
 require_once __DIR__ . '/../../app/includes/header.php';
 ?>
 
-<div class="wrapper" style="padding: 2rem; margin-bottom: 4rem;">
-    <div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
-        <a href="submissions.php?class_name=<?= urlencode($_GET['class_name'] ?? '') ?>&semester=<?= $_GET['semester'] ?? '' ?>" class="btn btn-secondary">← Back to List</a>
-        <div style="text-align: right;">
-            <h1 style="font-family: 'DM Serif Display', serif; font-size: 2rem; margin: 0;"><?= htmlspecialchars($student['name']) ?></h1>
-            <p style="color: var(--text-2); margin: 0;">Roll No: <?= htmlspecialchars($student['roll_no']) ?> | <?= htmlspecialchars($student['class_name']) ?> Sem <?= htmlspecialchars($student['semester']) ?></p>
+<div class="wrapper" style="padding: 2rem;">
+    <div style="max-width: 800px; margin: 0 auto;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem;">
+            <div>
+                <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem;"><?= htmlspecialchars($submission['student_name']) ?></h1>
+                <p style="color: var(--text-2);">
+                    For: <strong><?= htmlspecialchars($submission['assignment_title']) ?></strong> (<?= htmlspecialchars($submission['subject_name']) ?>)
+                </p>
+            </div>
+            <a href="submissions.php?assignment_id=<?= $submission['assignment_id'] ?>" class="btn btn-secondary">Back to List</a>
         </div>
-    </div>
 
-    <div class="grid-1" style="gap: 2rem;">
-        <?php while ($row = $assignments->fetch_assoc()): ?>
-            <?php 
-                $is_graded = !empty($row['grade']);
-                $border_color = 'var(--warning)';
-                if ($row['submission_id']) {
-                    $border_color = $is_graded ? 'var(--success)' : '#3b82f6'; // success for graded, blue for submitted
-                }
-            ?>
-            <div class="card" style="border: 2px solid var(--border); border-left: 8px solid <?= $border_color ?>; <?= $is_graded ? 'background: #f0fdf4;' : '' ?>">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
-                    <div>
-                        <h3 style="margin: 0; font-size: 1.3rem;"><?= htmlspecialchars($row['task_name']) ?></h3>
-                        <span style="font-size: 12px; color: var(--text-2);">Assigned by <?= htmlspecialchars($row['assigned_by']) ?> on <?= date('M d, Y', strtotime($row['assigned_at'])) ?></span>
+        <div class="grid-2" style="grid-template-columns: 2fr 1fr; gap: 2rem;">
+            <!-- SUBMISSION CONTENT -->
+            <div>
+                <div class="card" style="margin-bottom: 2rem;">
+                    <h3 style="margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 10px;">Submission Details</h3>
+                    <div style="margin-bottom: 1.5rem;">
+                        <p style="font-size: 0.75rem; color: var(--text-3); text-transform: uppercase; font-weight: 700; margin-bottom: 5px;">Student Message / Description</p>
+                        <div style="font-size: 15px; line-height: 1.6; white-space: pre-wrap;"><?= htmlspecialchars($submission['submission_text'] ?: 'No message provided.') ?></div>
                     </div>
-                    <div style="display: flex; gap: 8px;">
-                        <?php if ($row['submission_id']): ?>
-                            <span class="badge" style="background: #3b82f6; color: white;">Submitted</span>
-                            <?php if ($is_graded): ?>
-                                <span class="badge badge-success">Graded: <?= htmlspecialchars($row['grade']) ?></span>
-                            <?php else: ?>
-                                <span class="badge" style="background: #ef4444; color: white;">Not Graded</span>
-                            <?php endif; ?>
-                        <?php else: ?>
-                            <span class="badge badge-warning">No Submission</span>
-                        <?php endif; ?>
-                    </div>
-                </div>
 
-                <?php if ($row['submission_id']): ?>
-                    <div class="grid-2" style="background: white; padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border);">
-                        <div>
-                            <span style="display: block; font-size: 10px; font-weight: 800; text-transform: uppercase; color: var(--text-2); margin-bottom: 10px;">Submission Details</span>
-                            <p style="margin-bottom: 15px;">Submitted on <strong><?= date('M d, Y h:i A', strtotime($row['submitted_at'])) ?></strong></p>
-                            
-                            <div style="background: var(--bg-2); padding: 1rem; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 15px;">
-                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                                    <span style="font-size: 12px; font-weight: 700;">📄 <?= htmlspecialchars($row['submission_name'] ?: 'View Submission') ?></span>
-                                    <a href="<?= $base_path ?>/public/<?= htmlspecialchars($row['submission_path']) ?>" download="<?= htmlspecialchars($row['submission_name']) ?>" class="btn btn-sm btn-secondary">Download</a>
+                    <?php if ($submission['file_path']): ?>
+                        <div style="background: var(--bg-2); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border);">
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <div style="font-size: 2rem;">📎</div>
+                                <div style="flex: 1;">
+                                    <p style="font-weight: 600; margin-bottom: 4px;">Attachment Provided</p>
+                                    <p style="font-size: 12px; color: var(--text-3);"><?= basename($submission['file_path']) ?></p>
                                 </div>
-                                <?php 
-                                $ext = strtolower(pathinfo($row['submission_path'], PATHINFO_EXTENSION));
-                                $file_url = $base_path . '/public/' . htmlspecialchars($row['submission_path']);
-                                ?>
-                                <?php if ($ext === 'pdf'): ?>
-                                    <iframe src="<?= $file_url ?>" style="width: 100%; height: 300px; border: 1px solid var(--border); border-radius: 4px;"></iframe>
-                                <?php elseif (in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'])): ?>
-                                    <img src="<?= $file_url ?>" style="max-width: 100%; max-height: 300px; border: 1px solid var(--border); border-radius: 4px; display: block; margin: 0 auto;">
-                                <?php endif; ?>
+                                <a href="<?= htmlspecialchars($submission['file_path']) ?>" class="btn btn-sm btn-primary" target="_blank">Download File</a>
                             </div>
                         </div>
-                        <div style="border-left: 2px dashed var(--border); padding-left: 2rem;">
-                            <span style="display: block; font-size: 10px; font-weight: 800; text-transform: uppercase; color: var(--text-2); margin-bottom: 10px;">Grading & Feedback</span>
-                            <form action="../../app/actions/academics/save_grade.php" method="POST">
-                                <input type="hidden" name="submission_id" value="<?= $row['submission_id'] ?>">
-                                <input type="hidden" name="student_id" value="<?= $student_id ?>">
-                                <input type="hidden" name="class_name" value="<?= $_GET['class_name'] ?? '' ?>">
-                                <input type="hidden" name="semester" value="<?= $_GET['semester'] ?? '' ?>">
-                                
-                                <div style="margin-bottom: 15px;">
-                                    <label style="display: block; font-size: 12px; margin-bottom: 5px;">Grade (e.g. A, B, 90/100)</label>
-                                    <input type="text" name="grade" value="<?= htmlspecialchars($row['grade'] ?? '') ?>" placeholder="Enter grade" required style="width: 100%; padding: 8px; border: 2px solid #1a1a1a; border-radius: 6px;">
-                                </div>
-                                <div style="margin-bottom: 15px;">
-                                    <label style="display: block; font-size: 12px; margin-bottom: 5px;">Feedback</label>
-                                    <textarea name="feedback" rows="2" placeholder="Enter feedback..." style="width: 100%; padding: 8px; border: 2px solid #1a1a1a; border-radius: 6px; resize: vertical;"><?= htmlspecialchars($row['feedback'] ?? '') ?></textarea>
-                                </div>
-                                <button type="submit" class="btn btn-sm <?= $is_graded ? 'btn-secondary' : 'btn-success' ?>" style="width: 100%; border: 2px solid #1a1a1a; box-shadow: 4px 4px 0px #1a1a1a; font-weight: 800;"><?= $is_graded ? 'Update Grade' : 'Submit Grade' ?></button>
-                            </form>
-                        </div>
-                    </div>
-                <?php else: ?>
-                    <div style="text-align: center; padding: 2rem; background: var(--bg-2); border-radius: 12px; border: 1px dashed var(--border);">
-                        <p style="color: var(--text-2); margin: 0;">Student has not submitted this assignment yet.</p>
-                        <p style="font-size: 12px; color: #ef4444; margin-top: 5px;">Deadline: <?= $row['deadline'] ? date('M d, Y h:i A', strtotime($row['deadline'])) : 'No Deadline' ?></p>
-                    </div>
-                <?php endif; ?>
+                    <?php endif; ?>
+                </div>
             </div>
-        <?php endwhile; ?>
+
+            <!-- GRADING SIDEBAR -->
+            <div>
+                <div class="card" style="position: sticky; top: 2rem;">
+                    <h3 style="margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 10px;">Grade Work</h3>
+                    <form action="../../app/actions/academics/save_grade.php" method="POST">
+                        <input type="hidden" name="submission_id" value="<?= $submission_id ?>">
+                        <input type="hidden" name="assignment_id" value="<?= $submission['assignment_id'] ?>">
+
+                        <div class="form-group">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 700; text-transform: uppercase; font-size: 0.7rem;">Select Grade / Score</label>
+                            <select name="grade" required style="width: 100%; padding: 10px; border: 2px solid var(--border); border-radius: 8px; background: var(--bg);">
+                                <option value="">-- Assign Grade --</option>
+                                <option value="A+" <?= $submission['grade'] == 'A+' ? 'selected' : '' ?>>A+ (Excellent)</option>
+                                <option value="A" <?= $submission['grade'] == 'A' ? 'selected' : '' ?>>A (Very Good)</option>
+                                <option value="B" <?= $submission['grade'] == 'B' ? 'selected' : '' ?>>B (Good)</option>
+                                <option value="C" <?= $submission['grade'] == 'C' ? 'selected' : '' ?>>C (Average)</option>
+                                <option value="D" <?= $submission['grade'] == 'D' ? 'selected' : '' ?>>D (Needs Improvement)</option>
+                                <option value="F" <?= $submission['grade'] == 'F' ? 'selected' : '' ?>>F (Fail)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group" style="margin-top: 1.5rem;">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 700; text-transform: uppercase; font-size: 0.7rem;">Feedback for Student</label>
+                            <textarea name="feedback" placeholder="Write comments..." style="width: 100%; height: 100px; padding: 10px; border: 2px solid var(--border); border-radius: 8px; background: var(--bg); font-size: 13px;"><?= htmlspecialchars($submission['feedback'] ?? '') ?></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-full" style="margin-top: 1.5rem;">Save Grade</button>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 

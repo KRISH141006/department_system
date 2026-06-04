@@ -8,45 +8,55 @@ if (!has_permission('view_student_dashboard')) {
 }
 
 $student_id = (int) $_SESSION['user_id'];
-$form_id = (int) ($_POST['form_id'] ?? 0);
-$responses = $_POST['responses'] ?? [];
+$form_id    = (int) ($_POST['form_id'] ?? 0);
+$responses  = $_POST['responses'] ?? []; // Array of [question_id => answer]
 
 if (!$form_id || empty($responses)) {
-    $_SESSION['msg_error'] = "Invalid feedback submission.";
-    header("Location: ../../../public/academics/student_dashboard.php");
+    $_SESSION['msg_error'] = "No responses submitted.";
+    header("Location: ../../../public/academics/faculty_feedback.php?form_id=$form_id");
     exit();
 }
-
-// CHECK DUPLICATE
-$check = $conn->query("SELECT 1 FROM student_faculty_feedback WHERE form_id = $form_id AND student_id = $student_id LIMIT 1");
-if ($check->num_rows > 0) {
-    $_SESSION['msg_error'] = "Feedback already submitted for this form.";
-    header("Location: ../../../public/academics/student_dashboard.php");
-    exit();
-}
-
-$conn->begin_transaction();
 
 try {
-    foreach ($responses as $q_id => $data) {
-        $q_id = (int) $q_id;
-        $type = $data['type'] ?? 'rating';
-        
-        $rating = ($type === 'rating') ? (int) ($data['rating'] ?? 0) : NULL;
-        $answer_text = ($type !== 'rating') ? trim($data['answer_text'] ?? '') : NULL;
+    $conn->begin_transaction();
 
-        $stmt = $conn->prepare("INSERT INTO student_faculty_feedback (form_id, question_id, student_id, rating, answer_text) VALUES (?, ?, ?, ?, ?)");
+    // 1. Verify form is active
+    $check = $conn->prepare("SELECT status FROM feedback_forms WHERE id = ?");
+    $check->bind_param("i", $form_id);
+    $check->execute();
+    if ($check->get_result()->fetch_assoc()['status'] !== 'active') {
+        throw new Exception("This feedback form is no longer active.");
+    }
+
+    // 2. Insert responses - Updated to 'feedback_responses' table
+    $stmt = $conn->prepare("
+        INSERT INTO feedback_responses (form_id, question_id, student_id, rating, answer_text) 
+        VALUES (?, ?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE rating = VALUES(rating), answer_text = VALUES(answer_text)
+    ");
+
+    foreach ($responses as $q_id => $answer) {
+        $q_id = (int) $q_id;
+        $rating = null;
+        $answer_text = null;
+
+        if (is_numeric($answer)) {
+            $rating = (int) $answer;
+        } else {
+            $answer_text = trim($answer);
+        }
+
         $stmt->bind_param("iiiis", $form_id, $q_id, $student_id, $rating, $answer_text);
         $stmt->execute();
     }
 
     $conn->commit();
-    $_SESSION['msg_success'] = "Thank you! Your feedback has been submitted.";
+    $_SESSION['msg_success'] = "Your evaluation has been submitted anonymously. Thank you!";
 } catch (Exception $e) {
     $conn->rollback();
-    $_SESSION['msg_error'] = "Error submitting feedback: " . $e->getMessage();
+    $_SESSION['msg_error'] = "Failed to submit: " . $e->getMessage();
 }
 
 header("Location: ../../../public/academics/student_dashboard.php");
-exit();
+exit;
 ?>

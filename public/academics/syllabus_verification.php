@@ -8,111 +8,92 @@ if (!has_permission('view_faculty_dashboard')) {
 }
 
 $faculty_id = (int) $_SESSION['user_id'];
-$today = date('Y-m-d');
 
-// Fetch topics updated today for subjects taught by this faculty
-$query = "
-    SELECT tp.*, 'Anonymous Student' as student_name
-    FROM topic_progress tp
-    JOIN faculty_subjects fs ON fs.subject_name = tp.subject
-    WHERE fs.faculty_id = ? 
-    AND DATE(tp.updated_at) = ?
-    AND tp.is_covered = 1
-    AND tp.is_verified = 0
-    ORDER BY tp.updated_at DESC
-";
-
-$stmt = $conn->prepare($query);
-$stmt->bind_param("is", $faculty_id, $today);
+// 1. Fetch recent lecture records for this faculty - Updated for normalized schema
+$stmt = $conn->prepare("
+    SELECT lr.*, s.name as subject_name, c.name as class_name, t.name as topic_name,
+           (SELECT COUNT(*) FROM verification_assignments va WHERE va.lecture_record_id = lr.id) as assigned_count,
+           (SELECT COUNT(*) FROM lecture_verifications lv WHERE lv.lecture_record_id = lr.id AND lv.status = 'verified') as verified_count,
+           (SELECT COUNT(*) FROM lecture_verifications lv WHERE lv.lecture_record_id = lr.id AND lv.status = 'disputed') as dispute_count
+    FROM lecture_records lr
+    JOIN subjects s ON lr.subject_id = s.id
+    JOIN classes c ON lr.class_id = c.id
+    JOIN topics t ON lr.topic_id = t.id
+    WHERE lr.faculty_id = ?
+    ORDER BY lr.lecture_date DESC
+    LIMIT 50
+");
+$stmt->bind_param("i", $faculty_id);
 $stmt->execute();
-$results = $stmt->get_result();
+$records = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-$page_title = "Syllabus Progress Review";
+$page_title = "Progress Review & Verification";
 require_once __DIR__ . '/../../app/includes/header.php';
 ?>
 
 <div class="wrapper" style="padding: 2rem;">
-    <div class="dashboard-header" style="margin-bottom: 2rem;">
-        <div class="dashboard-title">
-            <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem; color: var(--text);">Today's Syllabus Updates</h1>
-            <p style="color: var(--text-2);">Review and verify topics marked as covered by students today.</p>
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem;">
+        <div>
+            <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem;">Syllabus Verification</h1>
+            <p style="color: var(--text-2);">Monitor student feedback on your covered topics.</p>
         </div>
-        <div class="dashboard-actions">
-            <a href="faculty_dashboard.php" class="btn btn-secondary">Back to Dashboard</a>
-        </div>
+        <a href="faculty_dashboard.php" class="btn btn-secondary">Back to Dashboard</a>
     </div>
-
-    <?php if (isset($_SESSION['msg_success'])): ?>
-        <div class="alert alert-success" style="margin-bottom: 2rem;">
-            <?= $_SESSION['msg_success']; unset($_SESSION['msg_success']); ?>
-        </div>
-    <?php endif; ?>
 
     <div class="card" style="padding: 0; overflow: hidden;">
-        <div class="table-wrap">
-            <table class="table-minimal" style="width: 100%; border-collapse: collapse;">
-                <thead>
-                    <tr style="text-align: left; border-bottom: 1px solid var(--border); background: #f9fafb;">
-                        <th style="padding: 12px 24px;">Subject</th>
-                        <th style="padding: 12px 24px;">Unit & Topic</th>
-                        <th style="padding: 12px 24px;">Updated By</th>
-                        <th style="padding: 12px 24px;">Time</th>
-                        <th style="padding: 12px 24px; text-align: right;">Action</th>
+        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead style="background: var(--bg-2); border-bottom: 1px solid var(--border);">
+                <tr>
+                    <th style="padding: 1.25rem;">Lecture Date</th>
+                    <th style="padding: 1.25rem;">Subject & Class</th>
+                    <th style="padding: 1.25rem;">Topic Covered</th>
+                    <th style="padding: 1.25rem; text-align: center;">Verification Status</th>
+                    <th style="padding: 1.25rem; text-align: right;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($records)): ?>
+                    <tr><td colspan="5" style="padding: 3rem; text-align: center; color: var(--text-3);">No lecture records found. Start by marking topics in the Units section.</td></tr>
+                <?php endif; ?>
+                <?php foreach ($records as $r): ?>
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 1.25rem; font-size: 14px;">
+                            <strong><?= date('d M Y', strtotime($r['lecture_date'])) ?></strong><br>
+                            <span style="color: var(--text-3); font-size: 12px;"><?= date('h:i A', strtotime($r['lecture_date'])) ?></span>
+                        </td>
+                        <td style="padding: 1.25rem;">
+                            <div style="font-weight: 600;"><?= htmlspecialchars($r['subject_name']) ?></div>
+                            <div style="font-size: 12px; color: var(--text-2);"><?= htmlspecialchars($r['class_name']) ?></div>
+                        </td>
+                        <td style="padding: 1.25rem;">
+                            <div style="font-size: 14px;"><?= htmlspecialchars($r['topic_name']) ?></div>
+                        </td>
+                        <td style="padding: 1.25rem; text-align: center;">
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                                <?php if ($r['dispute_count'] > 0): ?>
+                                    <span class="badge" style="background: var(--error); color: #fff; font-size: 10px;">⚠️ <?= $r['dispute_count'] ?> DISPUTES</span>
+                                <?php endif; ?>
+                                <div style="font-size: 12px; font-weight: 600;">
+                                    <?= $r['verified_count'] ?> / <?= $r['assigned_count'] ?> Verified
+                                </div>
+                                <div style="width: 100px; height: 6px; background: var(--bg-2); border-radius: 10px; overflow: hidden;">
+                                    <?php $pct = $r['assigned_count'] > 0 ? ($r['verified_count'] / $r['assigned_count']) * 100 : 0; ?>
+                                    <div style="width: <?= $pct ?>%; height: 100%; background: var(--success);"></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="padding: 1.25rem; text-align: right;">
+                            <?php if ($r['dispute_count'] > 0): ?>
+                                <a href="correct_topic.php?id=<?= $r['id'] ?>" class="btn btn-sm btn-error">Resolve Dispute</a>
+                            <?php else: ?>
+                                <span style="color: var(--text-3); font-size: 12px; font-style: italic;">All Clear</span>
+                            <?php endif; ?>
+                        </td>
                     </tr>
-                </thead>
-                <tbody>
-                    <?php if ($results->num_rows === 0): ?>
-                        <tr>
-                            <td colspan="5" style="padding: 3rem; text-align: center; color: var(--text-2);">
-                                No syllabus updates found for today.
-                            </td>
-                        </tr>
-                    <?php else: ?>
-                        <?php while ($row = $results->fetch_assoc()): ?>
-                            <tr style="border-bottom: 1px solid var(--border);">
-                                <td style="padding: 12px 24px;">
-                                    <div style="font-weight: 600;"><?= htmlspecialchars($row['subject']) ?></div>
-                                </td>
-                                <td style="padding: 12px 24px;">
-                                    <div style="font-size: 13px; color: var(--text-2);">Unit <?= htmlspecialchars($row['unit_no']) ?></div>
-                                    <div style="font-weight: 500;"><?= htmlspecialchars($row['topic_name']) ?></div>
-                                </td>
-                                <td style="padding: 12px 24px;">
-                                    <div style="font-size: 14px;"><?= htmlspecialchars($row['student_name']) ?></div>
-                                </td>
-                                <td style="padding: 12px 24px;">
-                                    <div style="font-size: 13px; color: var(--text-2);"><?= date('H:i', strtotime($row['updated_at'])) ?></div>
-                                </td>
-                                <td style="padding: 12px 24px; text-align: right;">
-                                    <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                                        <form action="../../app/actions/academics/correct_topic.php" method="POST" style="display: inline;">
-                                            <input type="hidden" name="topic_id" value="<?= $row['id'] ?>">
-                                            <input type="hidden" name="action" value="verify">
-                                            <button type="submit" class="btn btn-sm btn-success" style="padding: 4px 12px; font-size: 11px;">Verify</button>
-                                        </form>
-                                        <form action="../../app/actions/academics/correct_topic.php" method="POST" style="display: inline;">
-                                            <input type="hidden" name="topic_id" value="<?= $row['id'] ?>">
-                                            <input type="hidden" name="action" value="discard">
-                                            <button type="submit" class="btn btn-sm btn-error" style="padding: 4px 12px; font-size: 11px; background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca;">Discard</button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php endwhile; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <div style="margin-top: 2rem; background: #fffbeb; padding: 1.5rem; border-radius: 8px; border: 1px solid #fef3c7;">
-        <h4 style="color: #92400e; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 8px;">
-            <span>💡</span> Faculty Authority
-        </h4>
-        <p style="font-size: 13px; color: #b45309; line-height: 1.5;">
-            As a faculty member, you have the final say on syllabus progress. If a student incorrectly marked a topic as "covered" during their lecture feedback, use the <strong>Discard</strong> button to revert the status. This ensures your academic reports remain accurate.
-        </p>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
     </div>
 </div>
 
-<?php require_once __DIR__ . '/../../app/includes/header.php'; ?>
+<?php require_once __DIR__ . '/../../app/includes/footer.php'; ?>

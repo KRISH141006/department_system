@@ -66,6 +66,7 @@ CREATE TABLE faculty (
     user_id             INT PRIMARY KEY,
     emp_id              VARCHAR(50) NOT NULL UNIQUE,
     is_cc               TINYINT(1) NOT NULL DEFAULT 0,  -- is class coordinator
+    coordinated_class_id INT NULL,
     teaching_interests  TEXT,
     CONSTRAINT fk_faculty_user
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -120,6 +121,11 @@ ALTER TABLE students
     ADD CONSTRAINT fk_students_class
         FOREIGN KEY (class_id) REFERENCES classes(id);
 
+-- Link faculty CCs to their class
+ALTER TABLE faculty
+    ADD CONSTRAINT fk_faculty_coordinated_class
+        FOREIGN KEY (coordinated_class_id) REFERENCES classes(id) ON DELETE SET NULL;
+
 CREATE TABLE subjects (
     id         INT AUTO_INCREMENT PRIMARY KEY,
     name       VARCHAR(150) NOT NULL,
@@ -152,6 +158,7 @@ CREATE TABLE class_subjects (
     id         INT AUTO_INCREMENT PRIMARY KEY,
     class_id   INT NOT NULL,
     subject_id INT NOT NULL,
+    is_locked  TINYINT(1) NOT NULL DEFAULT 0,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uq_class_subject (class_id, subject_id),
     CONSTRAINT fk_cs_class

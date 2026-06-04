@@ -7,50 +7,66 @@ if (!has_permission('view_faculty_dashboard')) {
     exit();
 }
 
-$faculty_id = $_SESSION['user_id'];
-$questions = $_POST['questions'] ?? [];
-
-if (empty($questions)) {
-    $_SESSION['msg_error'] = "At least one question is required.";
-    header("Location: ../../../public/academics/create_feedback.php");
-    exit();
-}
-
-// Transaction for atomicity
-$conn->begin_transaction();
+$faculty_id = (int) $_SESSION['user_id'];
+$form_id = (int) ($_POST['form_id'] ?? 0);
+$action = $_POST['action'] ?? 'create';
 
 try {
-    // Deactivate previous forms
-    $stmt = $conn->prepare("UPDATE faculty_feedback_forms SET is_active = 0 WHERE faculty_id = ?");
-    $stmt->bind_param("i", $faculty_id);
-    $stmt->execute();
+    $conn->begin_transaction();
 
-    // Create new form
-    $stmt = $conn->prepare("INSERT INTO faculty_feedback_forms (faculty_id, is_active) VALUES (?, 1)");
-    $stmt->bind_param("i", $faculty_id);
-    $stmt->execute();
-    $form_id = $conn->insert_id;
+    if ($action === 'create') {
+        $class_subject_id = (int) ($_POST['class_subject_id'] ?? 0);
+        $title = trim($_POST['title'] ?? '');
+        $description = trim($_POST['description'] ?? '');
 
-    // Insert questions
-    foreach ($questions as $q) {
-        $q_text = trim($q['text'] ?? '');
-        $q_type = $q['type'] ?? 'rating';
-        $q_opts = ($q_type === 'mcq') ? trim($q['options'] ?? '') : NULL;
-
-        if (!empty($q_text)) {
-            $qStmt = $conn->prepare("INSERT INTO faculty_feedback_questions (form_id, question_text, question_type, options) VALUES (?, ?, ?, ?)");
-            $qStmt->bind_param("isss", $form_id, $q_text, $q_type, $q_opts);
-            $qStmt->execute();
+        if (!$class_subject_id || empty($title)) {
+            throw new Exception("Missing form details.");
         }
+
+        // 1. Create the form - Updated for normalized schema
+        $insForm = $conn->prepare("
+            INSERT INTO feedback_forms (faculty_id, class_subject_id, title, description, status) 
+            VALUES (?, ?, ?, ?, 'active')
+        ");
+        $insForm->bind_param("iiss", $faculty_id, $class_subject_id, $title, $description);
+        $insForm->execute();
+        $new_form_id = $conn->insert_id;
+
+        // 2. Add default questions
+        $defaults = [
+            "How clear were the explanations during the lectures?",
+            "Rate the pace of teaching (1-Too Slow, 5-Too Fast, 3-Just Right)",
+            "How effective was the interaction and doubt-solving?",
+            "Rate your overall satisfaction with this course so far."
+        ];
+
+        $insQ = $conn->prepare("INSERT INTO feedback_questions (form_id, question_text, question_type) VALUES (?, ?, 'rating')");
+        foreach ($defaults as $qText) {
+            $insQ->bind_param("is", $new_form_id, $qText);
+            $insQ->execute();
+        }
+
+        $_SESSION['msg_success'] = "Feedback form published successfully.";
+
+    } elseif ($action === 'close') {
+        $stmt = $conn->prepare("UPDATE feedback_forms SET status = 'closed' WHERE id = ? AND faculty_id = ?");
+        $stmt->bind_param("ii", $form_id, $faculty_id);
+        $stmt->execute();
+        $_SESSION['msg_success'] = "Form closed for submissions.";
+
+    } elseif ($action === 'activate') {
+        $stmt = $conn->prepare("UPDATE feedback_forms SET status = 'active' WHERE id = ? AND faculty_id = ?");
+        $stmt->bind_param("ii", $form_id, $faculty_id);
+        $stmt->execute();
+        $_SESSION['msg_success'] = "Form reactivated.";
     }
 
     $conn->commit();
-    $_SESSION['msg_success'] = "Feedback Form launched successfully with custom parameters.";
 } catch (Exception $e) {
     $conn->rollback();
-    $_SESSION['msg_error'] = "Error saving form: " . $e->getMessage();
+    $_SESSION['msg_error'] = "Error: " . $e->getMessage();
 }
 
-header("Location: ../../../public/academics/faculty_dashboard.php");
-exit();
+header("Location: ../../../public/academics/create_feedback.php");
+exit;
 ?>

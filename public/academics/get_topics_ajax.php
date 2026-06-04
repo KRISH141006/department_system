@@ -11,15 +11,16 @@ if (!$subject_id) {
     exit;
 }
 
-// Fetch units and topics
-$uStmt = $conn->prepare("SELECT id, unit_no, unit_name FROM faculty_units WHERE subject_id = ? ORDER BY unit_no ASC");
+// Fetch units and topics - Updated to new tables: units, topics
+$uStmt = $conn->prepare("SELECT id, unit_no, name as unit_name FROM units WHERE subject_id = ? ORDER BY unit_no ASC");
 $uStmt->bind_param("i", $subject_id);
 $uStmt->execute();
 $units = $uStmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
 $data = [];
 foreach ($units as $u) {
-    $tStmt = $conn->prepare("SELECT id, topic_name FROM faculty_topics WHERE unit_id = ?");
+    // Updated table: topics
+    $tStmt = $conn->prepare("SELECT id, name as topic_name FROM topics WHERE unit_id = ?");
     $tStmt->bind_param("i", $u['id']);
     $tStmt->execute();
     $topics = $tStmt->get_result()->fetch_all(MYSQLI_ASSOC);

@@ -8,35 +8,44 @@ if (!has_permission('view_faculty_dashboard')) {
 }
 
 $faculty_id = (int) $_SESSION['user_id'];
-$pStmt = $conn->prepare("SELECT branch FROM profiles WHERE user_id = ?");
+$pStmt = $conn->prepare("SELECT bio FROM profiles WHERE user_id = ?");
 $pStmt->bind_param("i", $faculty_id);
 $pStmt->execute();
 $profile = $pStmt->get_result()->fetch_assoc();
-$branch = $profile['branch'] ?? '';
 
 $subject_id = (int) ($_GET['id'] ?? 0);
 $subject_data = null;
 $units_data = [];
 
 if ($subject_id) {
-    $sStmt = $conn->prepare("SELECT * FROM faculty_subjects WHERE id = ? AND faculty_id = ?");
+    // New query joining through class_subjects and classes
+    $sStmt = $conn->prepare("
+        SELECT s.*, c.name as class_name, c.semester, c.branch 
+        FROM faculty_subjects fs 
+        JOIN class_subjects cs ON fs.class_subject_id = cs.id 
+        JOIN subjects s ON cs.subject_id = s.id 
+        JOIN classes c ON cs.class_id = c.id 
+        WHERE s.id = ? AND fs.faculty_id = ?
+    ");
     $sStmt->bind_param("ii", $subject_id, $faculty_id);
     $sStmt->execute();
     $subject_data = $sStmt->get_result()->fetch_assoc();
 
     if ($subject_data) {
-        $uStmt = $conn->prepare("SELECT * FROM faculty_units WHERE subject_id = ? ORDER BY unit_no ASC");
+        // Updated table: units
+        $uStmt = $conn->prepare("SELECT * FROM units WHERE subject_id = ? ORDER BY unit_no ASC");
         $uStmt->bind_param("i", $subject_id);
         $uStmt->execute();
         $uRes = $uStmt->get_result();
         while ($uRow = $uRes->fetch_assoc()) {
-            $tStmt = $conn->prepare("SELECT topic_name FROM faculty_topics WHERE unit_id = ?");
+            // Updated table: topics
+            $tStmt = $conn->prepare("SELECT name FROM topics WHERE unit_id = ?");
             $tStmt->bind_param("i", $uRow['id']);
             $tStmt->execute();
             $tRes = $tStmt->get_result();
             $topics = [];
             while ($tRow = $tRes->fetch_assoc()) {
-                $topics[] = $tRow['topic_name'];
+                $topics[] = $tRow['name'];
             }
             $uRow['topics'] = implode("\n", $topics);
             $units_data[] = $uRow;
@@ -61,7 +70,7 @@ require_once __DIR__ . '/../../app/includes/header.php';
 
             <div class="form-group" style="margin-bottom: 2rem; padding: 1rem; background: var(--bg-2); border-radius: 8px; border: 1px dashed var(--border);">
                 <label class="checkbox-container" style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                    <input type="checkbox" name="is_elective" id="isElective" value="1" <?= ($subject_data['is_elective'] ?? 0) ? 'checked' : '' ?> style="width: 20px; height: 20px;" onchange="toggleFields()">
+                    <input type="checkbox" name="is_elective" id="isElective" value="1" <?= ($subject_data['type'] ?? '') === 'elective' ? 'checked' : '' ?> style="width: 20px; height: 20px;" onchange="toggleFields()">
                     <span style="font-weight: 600; color: var(--text); font-size: 1.1rem;">Is this an Elective Subject?</span>
                 </label>
                 <p style="font-size: 0.85rem; color: var(--text-2); margin-top: 5px; margin-left: 30px;">
@@ -72,34 +81,39 @@ require_once __DIR__ . '/../../app/includes/header.php';
             <div class="grid-2">
                 <div class="form-group">
                     <label>Subject Name</label>
-                    <input type="text" name="subject_name" value="<?= htmlspecialchars($subject_data['subject_name'] ?? '') ?>" placeholder="e.g. Web Development" required>
+                    <input type="text" name="subject_name" value="<?= htmlspecialchars($subject_data['name'] ?? '') ?>" placeholder="e.g. Web Development" required>
                 </div>
                 <div class="form-group">
-                    <label>Department / Branch</label>
-                    <input type="text" name="branch" value="<?= htmlspecialchars($subject_data['branch'] ?? $branch) ?>" placeholder="e.g. IT" required>
+                    <label>Subject Code <span style="color:red;">*</span></label>
+                    <input type="text" name="subject_code" value="<?= htmlspecialchars($subject_data['code'] ?? '') ?>" placeholder="e.g. IT301" required>
                 </div>
             </div>
 
             <div class="grid-2">
+                <div class="form-group">
+                    <label>Department / Branch</label>
+                    <input type="text" name="branch" value="<?= htmlspecialchars($subject_data['branch'] ?? '') ?>" placeholder="e.g. Information Technology" required>
+                </div>
                 <div class="form-group" id="classGroup">
                     <label>Target Class</label>
                     <input type="text" name="class_name" value="<?= htmlspecialchars($subject_data['class_name'] ?? '') ?>" placeholder="e.g. 4EK1" id="classInput" oninput="autoSelectSemester()">
-                    <p style="font-size: 0.75rem; color: var(--text-3); mt-1">Semester is automatically set based on class code (e.g., 4th for 4EK1).</p>
                 </div>
-                <div class="form-group">
-                    <label>Target Semester</label>
-                    <input type="hidden" name="semester" id="semesterHidden" value="<?= $subject_data['semester'] ?? '' ?>">
-                    <select id="semesterSelect" disabled style="background: var(--bg-2); cursor: not-allowed; opacity: 0.8;">
-                        <option value="">-- Auto-selected --</option>
-                        <?php 
-                        for($i=1; $i<=8; $i++) {
-                            $val = $i;
-                            $sel = ($subject_data && $subject_data['semester'] == $val) ? 'selected' : '';
-                            echo "<option value='{$val}' {$sel}>{$i}</option>";
-                        }
-                        ?>
-                    </select>
-                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Target Semester</label>
+                <input type="hidden" name="semester" id="semesterHidden" value="<?= $subject_data['semester'] ?? '' ?>">
+                <select id="semesterSelect" disabled style="background: var(--bg-2); cursor: not-allowed; opacity: 0.8;">
+                    <option value="">-- Auto-selected --</option>
+                    <?php 
+                    for($i=1; $i<=8; $i++) {
+                        $val = $i;
+                        $sel = ($subject_data && $subject_data['semester'] == $val) ? 'selected' : '';
+                        echo "<option value='{$val}' {$sel}>Semester {$i}</option>";
+                    }
+                    ?>
+                </select>
+                <p style="font-size: 0.75rem; color: var(--text-3); margin-top: 5px;">Semester is derived from class code (e.g., 4th for 4EK1).</p>
             </div>
 
             <div id="unitsContainer">
@@ -112,7 +126,7 @@ require_once __DIR__ . '/../../app/includes/header.php';
                             <h3 style="margin-bottom: 1rem;">Unit <?= $index + 1 ?></h3>
                             <div class="form-group">
                                 <label>Unit Name</label>
-                                <input type="text" name="unit_names[]" value="<?= htmlspecialchars($unit['unit_name']) ?>" placeholder="Unit <?= $index + 1 ?> Name" required>
+                                <input type="text" name="unit_names[]" value="<?= htmlspecialchars($unit['name']) ?>" placeholder="Unit <?= $index + 1 ?> Name" required>
                             </div>
                             <div class="form-group">
                                 <label>Topics (Line by line)</label>
@@ -178,7 +192,7 @@ require_once __DIR__ . '/../../app/includes/header.php';
             classGroup.style.display = 'none';
             classInput.removeAttribute('required');
             classInput.value = 'ALL';
-            semesterSelect.disabled = false; // Allow manual selection for electives if class is ALL
+            semesterSelect.disabled = false;
             semesterSelect.style.cursor = 'default';
             semesterSelect.style.opacity = '1';
         } else {
@@ -192,7 +206,6 @@ require_once __DIR__ . '/../../app/includes/header.php';
         }
     }
 
-    // Run on page load
     window.onload = function() {
         toggleFields();
         if (document.getElementById('classInput').value !== 'ALL') {
@@ -200,7 +213,6 @@ require_once __DIR__ . '/../../app/includes/header.php';
         }
     };
 
-    // Before form submission, ensure hidden semester is updated if elective is manual
     document.getElementById('subjectForm').onsubmit = function() {
         if (document.getElementById('isElective').checked) {
             document.getElementById('semesterHidden').value = document.getElementById('semesterSelect').value;

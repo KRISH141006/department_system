@@ -8,109 +8,62 @@ if (!has_permission('view_faculty_dashboard')) {
 }
 
 $faculty_id = (int) $_SESSION['user_id'];
+$class_subject_id = (int) ($_POST['class_subject_id'] ?? 0);
 $subject_id = (int) ($_POST['subject_id'] ?? 0);
 $action_type = $_POST['action_type'] ?? 'batch_save';
 
-if (!$subject_id) {
-    $_SESSION['msg_error'] = "Invalid subject ID.";
+if (!$class_subject_id) {
+    $_SESSION['msg_error'] = "Invalid class subject mapping.";
     header("Location: ../../../public/academics/faculty_dashboard.php");
     exit();
 }
 
 // Verify faculty owns this subject
-$check = $conn->prepare("SELECT semester, is_locked FROM faculty_subjects WHERE id = ? AND faculty_id = ? AND is_elective = 1");
-$check->bind_param("ii", $subject_id, $faculty_id);
+$check = $conn->prepare("
+    SELECT cs.is_locked 
+    FROM faculty_subjects fs 
+    JOIN class_subjects cs ON fs.class_subject_id = cs.id 
+    WHERE cs.id = ? AND fs.faculty_id = ?
+");
+$check->bind_param("ii", $class_subject_id, $faculty_id);
 $check->execute();
 $sub_data = $check->get_result()->fetch_assoc();
 
 if (!$sub_data) {
-    $_SESSION['msg_error'] = "Access denied or subject is not an elective.";
+    $_SESSION['msg_error'] = "Access denied.";
     header("Location: ../../../public/academics/faculty_dashboard.php");
     exit();
 }
-
-$semester = $sub_data['semester'];
-$is_locked = (int) $sub_data['is_locked'];
-
-// Check for approved unlock request (Manual Mode)
-$req_stmt = $conn->prepare("SELECT id FROM elective_change_requests WHERE subject_id = ? AND status = 'approved' LIMIT 1");
-$req_stmt->bind_param("i", $subject_id);
-$req_stmt->execute();
-$manual_mode = $req_stmt->get_result()->num_rows > 0;
 
 try {
     $conn->begin_transaction();
 
     if ($action_type === 'lock_enrollment') {
-        // 1. Delete all pending requests that weren't accepted
-        $del = $conn->prepare("DELETE FROM student_electives WHERE subject_id = ? AND status = 'pending'");
-        $del->bind_param("i", $subject_id);
-        $del->execute();
-
-        // 2. Set the subject as locked
-        $stmt = $conn->prepare("UPDATE faculty_subjects SET is_locked = 1 WHERE id = ?");
-        $stmt->bind_param("i", $subject_id);
+        // Set the subject as locked for this class
+        $stmt = $conn->prepare("UPDATE class_subjects SET is_locked = 1 WHERE id = ?");
+        $stmt->bind_param("i", $class_subject_id);
         $stmt->execute();
-        $_SESSION['msg_success'] = "Enrollment has been locked successfully. Pending requests have been cleared.";
-
-    } else if ($action_type === 'request_unlock') {
-        $reason = trim($_POST['reason']);
-        if (empty($reason)) {
-            throw new Exception("Reason is required.");
-        }
-        $stmt = $conn->prepare("INSERT INTO elective_change_requests (faculty_id, subject_id, reason, status) VALUES (?, ?, ?, 'pending')");
-        $stmt->bind_param("iis", $faculty_id, $subject_id, $reason);
-        $stmt->execute();
-        $_SESSION['msg_success'] = "Unlock request submitted to Admin.";
+        $_SESSION['msg_success'] = "Enrollment has been locked successfully for this class.";
 
     } else if ($action_type === 'batch_save') {
-        if ($is_locked || !$manual_mode) {
-            throw new Exception("Manual changes are not allowed. Please request an unlock if needed.");
-        }
-        $enrolled_ids = $_POST['enrolled_students'] ?? [];
+        $enrolled_student_ids = $_POST['enrolled_students'] ?? [];
         
-        // 1. First, remove EVERYONE currently associated with this elective
-        $del = $conn->prepare("DELETE FROM student_electives WHERE subject_id = ?");
-        $del->bind_param("i", $subject_id);
+        // 1. Remove current associations for this class-subject
+        $del = $conn->prepare("DELETE FROM student_subjects WHERE class_subject_id = ?");
+        $del->bind_param("i", $class_subject_id);
         $del->execute();
 
-        // 2. Re-insert only the checked students as 'enrolled'
-        if (!empty($enrolled_ids)) {
-            $ins = $conn->prepare("INSERT INTO student_electives (student_id, subject_id, semester, status) VALUES (?, ?, ?, 'enrolled')");
-            foreach ($enrolled_ids as $sid) {
-                $ins->bind_param("iii", $sid, $subject_id, $semester);
+        // 2. Re-insert only the checked students
+        if (!empty($enrolled_student_ids)) {
+            $ins = $conn->prepare("INSERT INTO student_subjects (student_id, class_subject_id) VALUES (?, ?)");
+            foreach ($enrolled_student_ids as $sid) {
+                $sid = (int) $sid;
+                $ins->bind_param("ii", $sid, $class_subject_id);
                 $ins->execute();
             }
         }
         $_SESSION['msg_success'] = "Enrollment list updated successfully.";
 
-    } else if ($action_type === 'quick_add') {
-        if ($is_locked || !$manual_mode) {
-            throw new Exception("Manual changes are not allowed. Please request an unlock if needed.");
-        }
-        $roll_no = trim($_POST['roll_no']);
-        
-        // Find student in this semester by Roll No
-        $find = $conn->prepare("SELECT id FROM users WHERE roll_no = ? AND semester = ? AND role = 'student' LIMIT 1");
-        $find->bind_param("si", $roll_no, $semester);
-        $find->execute();
-        $student = $find->get_result()->fetch_assoc();
-
-        if ($student) {
-            $sid = $student['id'];
-            // Remove existing record if any to prevent duplicate errors
-            $del = $conn->prepare("DELETE FROM student_electives WHERE student_id = ? AND subject_id = ?");
-            $del->bind_param("ii", $sid, $subject_id);
-            $del->execute();
-
-            // Insert as enrolled
-            $stmt = $conn->prepare("INSERT INTO student_electives (student_id, subject_id, semester, status) VALUES (?, ?, ?, 'enrolled')");
-            $stmt->bind_param("iii", $sid, $subject_id, $semester);
-            $stmt->execute();
-            $_SESSION['msg_success'] = "Student added successfully.";
-        } else {
-            $_SESSION['msg_error'] = "Student with that number not found in this semester.";
-        }
     }
 
     $conn->commit();

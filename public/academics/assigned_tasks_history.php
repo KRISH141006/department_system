@@ -7,90 +7,77 @@ if (!has_permission('view_faculty_dashboard')) {
     exit();
 }
 
-$faculty_id = $_SESSION['user_id'];
-$page_title = "Assigned Tasks History";
-require_once __DIR__ . '/../../app/includes/header.php';
+$faculty_id = (int) $_SESSION['user_id'];
 
-// Fetch assignments by this faculty
+// Fetch all assignments created by this faculty - Updated for normalized schema
 $stmt = $conn->prepare("
-    SELECT fa.*, 
-    (SELECT COUNT(*) FROM tasks t WHERE t.faculty_assignment_id = fa.id) as student_count,
-    (SELECT COUNT(*) FROM tasks t WHERE t.faculty_assignment_id = fa.id AND t.is_completed = 1) as completed_count
-    FROM faculty_assignments fa 
-    WHERE fa.faculty_id = ? 
-    ORDER BY fa.created_at DESC
+    SELECT a.*, s.name as subject_name, c.name as class_name, c.semester,
+           (SELECT COUNT(*) FROM submissions sub WHERE sub.assignment_id = a.id) as submission_count
+    FROM assignments a
+    JOIN class_subjects cs ON a.class_subject_id = cs.id
+    JOIN subjects s ON cs.subject_id = s.id
+    JOIN classes c ON cs.class_id = c.id
+    WHERE a.faculty_id = ?
+    ORDER BY a.created_at DESC
 ");
 $stmt->bind_param("i", $faculty_id);
 $stmt->execute();
-$assignments = $stmt->get_result();
+$history = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+$page_title = "Assignment History";
+require_once __DIR__ . '/../../app/includes/header.php';
 ?>
 
-<div class="wrapper" style="padding: 2rem; margin-bottom: 4rem;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+<div class="wrapper" style="padding: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem;">
         <div>
-            <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem; color: var(--text);">Task History</h1>
-            <p style="color: var(--text-2);">Review and monitor tasks you've assigned to students.</p>
+            <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem;">Assignment History</h1>
+            <p style="color: var(--text-2);">Track and manage assignments you've published.</p>
         </div>
-        <a href="assign_task.php" class="btn btn-primary">+ Assign New Task</a>
+        <a href="assign_task.php" class="btn btn-primary">+ New Assignment</a>
     </div>
 
-    <?php if ($assignments->num_rows === 0): ?>
-        <div class="card" style="text-align: center; padding: 4rem;">
-            <div style="font-size: 48px; margin-bottom: 1rem;">📭</div>
-            <h3>No tasks assigned yet.</h3>
-            <p style="color: var(--text-2);">Your assigned task history will appear here.</p>
-        </div>
-    <?php else: ?>
-        <div class="grid-1" style="gap: 1.5rem;">
-            <?php while ($row = $assignments->fetch_assoc()): ?>
-                <div class="card" style="border-left: 5px solid var(--accent);">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
-                        <div>
-                            <h3 style="margin: 0; font-size: 1.4rem; color: var(--text);"><?= htmlspecialchars($row['task_name']) ?></h3>
-                            <span style="font-size: 12px; color: var(--text-2);">Created on <?= date('M d, Y h:i A', strtotime($row['created_at'])) ?></span>
-                        </div>
-                        <div style="text-align: right;">
-                            <span class="badge badge-primary"><?= htmlspecialchars($row['class_name']) ?> | Sem <?= htmlspecialchars($row['semester']) ?></span>
-                            <span class="badge <?= $row['pac_category'] == 'all' ? 'badge-secondary' : 'badge-warning' ?>" style="text-transform: capitalize;"><?= htmlspecialchars($row['pac_category']) ?></span>
-                        </div>
-                    </div>
-
-                    <div style="margin-bottom: 1.5rem; color: var(--text-2); font-size: 0.95rem;">
-                        <?= nl2br(htmlspecialchars($row['task_details'])) ?>
-                    </div>
-
-                    <div class="grid-3" style="background: var(--bg); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
-                        <div>
-                            <span style="display: block; font-size: 12px; color: var(--text-2);">Deadline</span>
-                            <strong style="color: #ef4444;"><?= $row['deadline'] ? date('M d, Y h:i A', strtotime($row['deadline'])) : 'No Deadline' ?></strong>
-                        </div>
-                        <div>
-                            <span style="display: block; font-size: 12px; color: var(--text-2);">Target Students</span>
-                            <strong><?= $row['student_count'] ?> Students</strong>
-                        </div>
-                        <div>
-                            <span style="display: block; font-size: 12px; color: var(--text-2);">Completion</span>
-                            <strong><?= $row['completed_count'] ?> / <?= $row['student_count'] ?> Done</strong>
-                        </div>
-                    </div>
-
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <?php if ($row['resource_path']): ?>
-                                <a href="<?= $base_path ?>/public/<?= htmlspecialchars($row['resource_path']) ?>" target="_blank" class="btn btn-sm" style="background: #e2e8f0; color: #1e293b;">📂 View Resource</a>
-                            <?php endif; ?>
-                        </div>
-                        <div style="width: 200px; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden;">
-                            <?php 
-                            $percent = $row['student_count'] > 0 ? ($row['completed_count'] / $row['student_count']) * 100 : 0;
-                            ?>
-                            <div style="width: <?= $percent ?>%; height: 100%; background: var(--success);"></div>
-                        </div>
-                    </div>
-                </div>
-            <?php endwhile; ?>
-        </div>
-    <?php endif; ?>
+    <div class="card" style="padding: 0; overflow: hidden;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead style="background: var(--bg-2); border-bottom: 1px solid var(--border);">
+                <tr>
+                    <th style="padding: 1.25rem;">Title & Subject</th>
+                    <th style="padding: 1.25rem;">Class</th>
+                    <th style="padding: 1.25rem;">Deadline</th>
+                    <th style="padding: 1.25rem; text-align: center;">Submissions</th>
+                    <th style="padding: 1.25rem; text-align: right;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($history)): ?>
+                    <tr><td colspan="5" style="padding: 3rem; text-align: center; color: var(--text-3);">You haven't created any assignments yet.</td></tr>
+                <?php endif; ?>
+                <?php foreach ($history as $a): ?>
+                    <tr style="border-bottom: 1px solid var(--border);">
+                        <td style="padding: 1.25rem;">
+                            <strong><?= htmlspecialchars($a['title']) ?></strong>
+                            <div style="font-size: 12px; color: var(--text-3);"><?= htmlspecialchars($a['subject_name']) ?></div>
+                        </td>
+                        <td style="padding: 1.25rem;">
+                            <span class="badge badge-primary"><?= htmlspecialchars($a['class_name']) ?> (Sem <?= $a['semester'] ?>)</span>
+                        </td>
+                        <td style="padding: 1.25rem; font-size: 14px;">
+                            <?= date('d M, Y', strtotime($a['deadline'])) ?><br>
+                            <span style="color: var(--text-3); font-size: 12px;"><?= date('h:i A', strtotime($a['deadline'])) ?></span>
+                        </td>
+                        <td style="padding: 1.25rem; text-align: center;">
+                            <span class="badge" style="background: var(--success); color: #fff;"><?= $a['submission_count'] ?> received</span>
+                        </td>
+                        <td style="padding: 1.25rem; text-align: right;">
+                            <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                                <a href="submissions.php?assignment_id=<?= $a['id'] ?>" class="btn btn-sm btn-secondary">View Submissions</a>
+                            </div>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <?php require_once __DIR__ . '/../../app/includes/footer.php'; ?>

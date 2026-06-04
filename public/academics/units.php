@@ -10,8 +10,8 @@ if (!$subject_id) {
     exit();
 }
 
-// Fetch subject info
-$stmt = $conn->prepare("SELECT subject_name FROM faculty_subjects WHERE id = ?");
+// Fetch subject info - Updated to new 'subjects' table
+$stmt = $conn->prepare("SELECT name as subject_name FROM subjects WHERE id = ?");
 $stmt->bind_param("i", $subject_id);
 $stmt->execute();
 $subject = $stmt->get_result()->fetch_assoc();
@@ -26,9 +26,16 @@ $subject_name = $subject['subject_name'];
 $canGiveFeedback = false;
 $student_id = (int) $_SESSION['user_id'];
 $today = date('Y-m-d');
-// Only allow updates if the student is assigned to THIS specific subject today
-$feedChk = $conn->prepare("SELECT 1 FROM feedback_selector WHERE selected_student_id = ? AND selected_date = ? AND subject_id = ?");
-$feedChk->bind_param("isi", $student_id, $today, $subject_id);
+
+// Updated to new 'verification_assignments' table (replaces feedback_selector)
+// Check if student is assigned to verify any lecture for this subject today
+$feedChk = $conn->prepare("
+    SELECT 1 FROM verification_assignments va 
+    JOIN lecture_records lr ON va.lecture_record_id = lr.id 
+    WHERE va.student_id = ? AND lr.subject_id = ? AND DATE(va.assigned_at) = ?
+    LIMIT 1
+");
+$feedChk->bind_param("iis", $student_id, $subject_id, $today);
 $feedChk->execute();
 if ($feedChk->get_result()->num_rows > 0) {
     $canGiveFeedback = true;
@@ -56,7 +63,8 @@ require_once __DIR__ . '/../../app/includes/header.php';
     <?php if ($unit_id == 0) { ?>
         <div class="grid-2">
             <?php 
-            $uStmt = $conn->prepare("SELECT id, unit_no, unit_name FROM faculty_units WHERE subject_id = ? ORDER BY unit_no ASC");
+            // Updated table: units
+            $uStmt = $conn->prepare("SELECT id, unit_no, name as unit_name FROM units WHERE subject_id = ? ORDER BY unit_no ASC");
             $uStmt->bind_param("i", $subject_id);
             $uStmt->execute();
             $unitsRes = $uStmt->get_result();
@@ -64,8 +72,8 @@ require_once __DIR__ . '/../../app/includes/header.php';
             $from_param = isset($_GET['from']) ? '&from=' . urlencode($_GET['from']) : '';
             
             while ($u = $unitsRes->fetch_assoc()) {
-                // Count topics
-                $tCountStmt = $conn->prepare("SELECT COUNT(*) as count FROM faculty_topics WHERE unit_id = ?");
+                // Count topics - Updated table: topics
+                $tCountStmt = $conn->prepare("SELECT COUNT(*) as count FROM topics WHERE unit_id = ?");
                 $tCountStmt->bind_param("i", $u['id']);
                 $tCountStmt->execute();
                 $tCount = $tCountStmt->get_result()->fetch_assoc()['count'];
@@ -82,7 +90,8 @@ require_once __DIR__ . '/../../app/includes/header.php';
             <?php } ?>
         </div>
     <?php } else { 
-        $uInfoStmt = $conn->prepare("SELECT unit_no, unit_name FROM faculty_units WHERE id = ?");
+        // Updated table: units
+        $uInfoStmt = $conn->prepare("SELECT unit_no, name as unit_name FROM units WHERE id = ?");
         $uInfoStmt->bind_param("i", $unit_id);
         $uInfoStmt->execute();
         $unit_info = $uInfoStmt->get_result()->fetch_assoc();
@@ -113,29 +122,29 @@ require_once __DIR__ . '/../../app/includes/header.php';
                     </thead>
                     <tbody>
                         <?php 
-                        $tStmt = $conn->prepare("SELECT topic_name FROM faculty_topics WHERE unit_id = ?");
+                        // Updated table: topics
+                        $tStmt = $conn->prepare("SELECT id, name as topic_name FROM topics WHERE unit_id = ?");
                         $tStmt->bind_param("i", $unit_id);
                         $tStmt->execute();
                         $topicsRes = $tStmt->get_result();
 
                         while ($t = $topicsRes->fetch_assoc()) { 
                             $topic = $t['topic_name'];
+                            $topic_id = $t['id'];
                             $covered = 0;
-                            // Note: we still use subject name and unit_no in topic_progress for now as per schema
-                            // but it's better to use subject_id and unit_id. I'll stick to subject name for compatibility 
-                            // with topic_progress table as it's already there.
-                            $checkTopic = $conn->prepare("SELECT is_covered FROM topic_progress WHERE subject=? AND unit_no=? AND topic_name=?");
-                            $checkTopic->bind_param("sis", $subject_name, $unit_info['unit_no'], $topic);
+                            
+                            // Compatibility check with lecture_records (new topic progress tracker)
+                            $checkTopic = $conn->prepare("SELECT 1 FROM lecture_records WHERE subject_id = ? AND topic_id = ? LIMIT 1");
+                            $checkTopic->bind_param("ii", $subject_id, $topic_id);
                             $checkTopic->execute();
                             $res = $checkTopic->get_result();
                             if ($res->num_rows > 0) {
-                                $data = $res->fetch_assoc();
-                                $covered = $data['is_covered'];
+                                $covered = 1;
                             }
                         ?>
                             <tr style="border-bottom: 1px solid var(--border);">
                                 <td style="padding: 12px;">
-                                    <input type="checkbox" name="topics[]" value="<?php echo htmlspecialchars($topic); ?>" 
+                                    <input type="checkbox" name="topic_ids[]" value="<?php echo $topic_id; ?>" 
                                            <?php if ($covered == 1) echo "checked"; ?>
                                            <?php if (!$canGiveFeedback) echo "disabled"; ?>
                                            style="width: 20px; height: 20px; cursor: pointer;">
@@ -160,4 +169,4 @@ require_once __DIR__ . '/../../app/includes/header.php';
     <?php } ?>
 </div>
 
-<?php require_once __DIR__ . '/../../app/includes/footer.php'; ?>
+<?php require_once __DIR__ . '/../../app/includes/header.php'; ?>

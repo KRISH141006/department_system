@@ -9,24 +9,36 @@ if (!has_permission('view_faculty_dashboard')) {
 
 $faculty_id = (int) $_SESSION['user_id'];
 
-// Check if faculty is a CC
-$ccStmt = $conn->prepare("SELECT is_cc, cc_class, cc_semester FROM profiles WHERE user_id = ?");
+// Check if faculty is a CC and get their coordinated class - Updated for normalized schema
+$ccStmt = $conn->prepare("
+    SELECT f.is_cc, f.coordinated_class_id, c.name as class_name, c.semester, c.branch 
+    FROM faculty f 
+    LEFT JOIN classes c ON f.coordinated_class_id = c.id 
+    WHERE f.user_id = ?
+");
 $ccStmt->bind_param("i", $faculty_id);
 $ccStmt->execute();
 $ccProfile = $ccStmt->get_result()->fetch_assoc();
 
-if (!$ccProfile || !$ccProfile['is_cc']) {
-    $_SESSION['msg_error'] = "You are not designated as a Class Coordinator.";
+if (!$ccProfile || !$ccProfile['is_cc'] || !$ccProfile['coordinated_class_id']) {
+    $_SESSION['msg_error'] = "You are not designated as a Class Coordinator for any class.";
     header("Location: faculty_dashboard.php");
     exit();
 }
 
-$cc_class = $ccProfile['cc_class'];
-$cc_semester = $ccProfile['cc_semester'];
+$class_id = $ccProfile['coordinated_class_id'];
+$cc_class_name = $ccProfile['class_name'];
+$cc_semester = $ccProfile['semester'];
 
-// Fetch students in this class
-$sStmt = $conn->prepare("SELECT id, name, roll_no, email FROM users WHERE role = 'student' AND class_name = ? AND semester = ? ORDER BY roll_no ASC");
-$sStmt->bind_param("si", $cc_class, $cc_semester);
+// Fetch students in this class - Updated to join with students table
+$sStmt = $conn->prepare("
+    SELECT u.id, u.name, s.roll_no, u.email 
+    FROM users u 
+    JOIN students s ON u.id = s.user_id 
+    WHERE s.class_id = ? 
+    ORDER BY s.roll_no ASC
+");
+$sStmt->bind_param("i", $class_id);
 $sStmt->execute();
 $students = $sStmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
@@ -34,13 +46,21 @@ $search_query = $_GET['search'] ?? '';
 $search_results = [];
 if (!empty($search_query)) {
     $searchTerm = "%$search_query%";
-    $searchStmt = $conn->prepare("SELECT id, name, roll_no, class_name, semester FROM users WHERE role = 'student' AND (name LIKE ? OR roll_no LIKE ? OR email LIKE ?) LIMIT 10");
+    // Search for students and show their current class info
+    $searchStmt = $conn->prepare("
+        SELECT u.id, u.name, s.roll_no, c.name as class_name, c.semester 
+        FROM users u 
+        LEFT JOIN students s ON u.id = s.user_id 
+        LEFT JOIN classes c ON s.class_id = c.id
+        WHERE u.role = 'student' AND (u.name LIKE ? OR s.roll_no LIKE ? OR u.email LIKE ?) 
+        LIMIT 10
+    ");
     $searchStmt->bind_param("sss", $searchTerm, $searchTerm, $searchTerm);
     $searchStmt->execute();
     $search_results = $searchStmt->get_result()->fetch_all(MYSQLI_ASSOC);
 }
 
-$page_title = "Manage Class: $cc_class (Sem $cc_semester)";
+$page_title = "Manage Class: $cc_class_name (Sem $cc_semester)";
 require_once __DIR__ . '/../../app/includes/header.php';
 ?>
 
@@ -48,7 +68,7 @@ require_once __DIR__ . '/../../app/includes/header.php';
     <div class="dashboard-header" style="margin-bottom: 2rem;">
         <div>
             <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem; color: var(--text);">Manage Class</h1>
-            <p style="color: var(--text-2);">Class: <strong><?= htmlspecialchars($cc_class) ?></strong> | Semester: <strong><?= htmlspecialchars($cc_semester) ?></strong></p>
+            <p style="color: var(--text-2);">Class: <strong><?= htmlspecialchars($cc_class_name) ?></strong> | Semester: <strong><?= htmlspecialchars($cc_semester) ?></strong> | Branch: <strong><?= htmlspecialchars($ccProfile['branch']) ?></strong></p>
         </div>
         <div>
             <a href="faculty_dashboard.php" class="btn btn-secondary">Back to Dashboard</a>
@@ -77,7 +97,7 @@ require_once __DIR__ . '/../../app/includes/header.php';
                                     <div style="display: flex; justify-content: space-between; align-items: center;">
                                         <div>
                                             <div style="font-weight: 600; font-size: 14px;"><?= htmlspecialchars($s['name']) ?></div>
-                                            <div style="font-size: 12px; color: var(--text-2);">Roll: <?= htmlspecialchars($s['roll_no']) ?> | Current: <?= htmlspecialchars($s['class_name'] ?: 'None') ?> (<?= htmlspecialchars($s['semester'] ?: 'None') ?>)</div>
+                                            <div style="font-size: 12px; color: var(--text-2);">Roll: <?= htmlspecialchars($s['roll_no'] ?? 'N/A') ?> | Current: <?= htmlspecialchars($s['class_name'] ?: 'None') ?> (Sem <?= htmlspecialchars($s['semester'] ?: 'None') ?>)</div>
                                         </div>
                                         <form action="../../app/actions/academics/manage_student_class.php" method="POST">
                                             <input type="hidden" name="student_id" value="<?= $s['id'] ?>">
