@@ -24,30 +24,47 @@ try {
     foreach ($topic_ids as $topic_id) {
         $topic_id = (int) $topic_id;
 
-        // 1. Create a Lecture Record - Updated to new schema
+        // 1. Create a Lecture Record - Updated to include required times
+        $start_time = date('H:i:s', time() - 3600); // Default to 1 hour ago
+        $end_time   = date('H:i:s');
+        
         $insLR = $conn->prepare("
-            INSERT INTO lecture_records (faculty_id, class_id, subject_id, topic_id, lecture_date) 
-            VALUES (?, ?, ?, ?, NOW())
+            INSERT INTO lecture_records (faculty_id, class_id, subject_id, topic_id, lecture_date, start_time, end_time) 
+            VALUES (?, ?, ?, ?, CURDATE(), ?, ?)
         ");
-        $insLR->bind_param("iiii", $faculty_id, $class_id, $subject_id, $topic_id);
+        $insLR->bind_param("iiiiss", $faculty_id, $class_id, $subject_id, $topic_id, $start_time, $end_time);
         $insLR->execute();
         $lecture_record_id = $conn->insert_id;
 
-        // 2. Randomly select 5 students for verification (Phase 4 Logic)
-        // Selecting: 2 Premium, 2 Average, 1 Challenged (if categories exist)
-        // For now, selecting any 5 students from this class
-        $getStudents = $conn->prepare("
-            SELECT user_id FROM students 
-            WHERE class_id = ? 
-            ORDER BY RAND() LIMIT 5
-        ");
-        $getStudents->bind_param("i", $class_id);
-        $getStudents->execute();
-        $students = $getStudents->get_result()->fetch_all(MYSQLI_ASSOC);
+        // 2. Select 5 students for verification based on PAC ratio (2 Premium, 2 Average, 1 Challenged)
+        $selected_students = [];
+        
+        $getPremium = $conn->prepare("SELECT user_id FROM students WHERE class_id = ? AND pac_category = 'premium' ORDER BY RAND() LIMIT 2");
+        $getPremium->bind_param("i", $class_id);
+        $getPremium->execute();
+        foreach ($getPremium->get_result()->fetch_all(MYSQLI_ASSOC) as $s) $selected_students[] = $s['user_id'];
+
+        $getAverage = $conn->prepare("SELECT user_id FROM students WHERE class_id = ? AND pac_category = 'average' ORDER BY RAND() LIMIT 2");
+        $getAverage->bind_param("i", $class_id);
+        $getAverage->execute();
+        foreach ($getAverage->get_result()->fetch_all(MYSQLI_ASSOC) as $s) $selected_students[] = $s['user_id'];
+
+        $getChallenged = $conn->prepare("SELECT user_id FROM students WHERE class_id = ? AND pac_category = 'challenged' ORDER BY RAND() LIMIT 1");
+        $getChallenged->bind_param("i", $class_id);
+        $getChallenged->execute();
+        foreach ($getChallenged->get_result()->fetch_all(MYSQLI_ASSOC) as $s) $selected_students[] = $s['user_id'];
+
+        // Fallback: If not enough students in specific categories, pick randomly to reach 5
+        if (count($selected_students) < 5) {
+            $limit = 5 - count($selected_students);
+            $exclude_ids = !empty($selected_students) ? implode(',', $selected_students) : '0';
+            $getFallback = $conn->query("SELECT user_id FROM students WHERE class_id = $class_id AND user_id NOT IN ($exclude_ids) ORDER BY RAND() LIMIT $limit");
+            while ($s = $getFallback->fetch_assoc()) $selected_students[] = $s['user_id'];
+        }
 
         $insVA = $conn->prepare("INSERT INTO verification_assignments (lecture_record_id, student_id) VALUES (?, ?)");
-        foreach ($students as $student) {
-            $insVA->bind_param("ii", $lecture_record_id, $student['user_id']);
+        foreach ($selected_students as $sid) {
+            $insVA->bind_param("ii", $lecture_record_id, $sid);
             $insVA->execute();
         }
     }

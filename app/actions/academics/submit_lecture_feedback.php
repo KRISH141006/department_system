@@ -29,9 +29,9 @@ try {
 
     // 2. Submit verification - Updated to 'lecture_verifications' table
     $stmt = $conn->prepare("
-        INSERT INTO lecture_verifications (lecture_record_id, student_id, status, remarks, verified_at) 
+        INSERT INTO lecture_verifications (lecture_record_id, student_id, status, feedback, verified_at) 
         VALUES (?, ?, ?, ?, NOW())
-        ON DUPLICATE KEY UPDATE status = VALUES(status), remarks = VALUES(remarks), verified_at = NOW()
+        ON DUPLICATE KEY UPDATE status = VALUES(status), feedback = VALUES(feedback), verified_at = NOW()
     ");
     $stmt->bind_param("iiss", $lecture_record_id, $student_id, $status, $remarks);
     $stmt->execute();

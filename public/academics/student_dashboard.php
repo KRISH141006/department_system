@@ -63,7 +63,8 @@ require_once __DIR__ . '/../../app/includes/header.php';
             UNION
             (SELECT s.id, s.name as subject_name, 'elective' as type 
              FROM student_subjects ss 
-             JOIN subjects s ON ss.subject_id = s.id 
+             JOIN class_subjects cs ON ss.class_subject_id = cs.id
+             JOIN subjects s ON cs.subject_id = s.id 
              WHERE ss.student_id = ?)
         ");
         $subQuery->bind_param("ii", $class_id, $student_id);

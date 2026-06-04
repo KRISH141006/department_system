@@ -14,7 +14,7 @@ $stmt = $conn->prepare("
     SELECT lr.*, s.name as subject_name, c.name as class_name, t.name as topic_name,
            (SELECT COUNT(*) FROM verification_assignments va WHERE va.lecture_record_id = lr.id) as assigned_count,
            (SELECT COUNT(*) FROM lecture_verifications lv WHERE lv.lecture_record_id = lr.id AND lv.status = 'verified') as verified_count,
-           (SELECT COUNT(*) FROM lecture_verifications lv WHERE lv.lecture_record_id = lr.id AND lv.status = 'disputed') as dispute_count
+           (SELECT COUNT(*) FROM lecture_verifications lv WHERE lv.lecture_record_id = lr.id AND lv.status = 'discrepancy') as dispute_count
     FROM lecture_records lr
     JOIN subjects s ON lr.subject_id = s.id
     JOIN classes c ON lr.class_id = c.id

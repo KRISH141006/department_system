@@ -80,7 +80,7 @@ require_once __DIR__ . '/../../app/includes/header.php';
                                     </div>
                                     <div style="display: flex; gap: 10px;">
                                         <button type="submit" name="status" value="verified" class="btn btn-primary" style="flex: 1;">Yes, Topic was Covered</button>
-                                        <button type="submit" name="status" value="disputed" class="btn btn-secondary" style="color: var(--error); border-color: var(--error);">No, It was Not</button>
+                                        <button type="submit" name="status" value="discrepancy" class="btn btn-secondary" style="color: var(--error); border-color: var(--error);">No, It was Not</button>
                                     </div>
                                 </form>
                             </div>

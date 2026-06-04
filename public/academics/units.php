@@ -70,6 +70,7 @@ require_once __DIR__ . '/../../app/includes/header.php';
             $unitsRes = $uStmt->get_result();
             
             $from_param = isset($_GET['from']) ? '&from=' . urlencode($_GET['from']) : '';
+            $class_param = isset($_GET['class_id']) ? '&class_id=' . (int)$_GET['class_id'] : '';
             
             while ($u = $unitsRes->fetch_assoc()) {
                 // Count topics - Updated table: topics
@@ -78,7 +79,7 @@ require_once __DIR__ . '/../../app/includes/header.php';
                 $tCountStmt->execute();
                 $tCount = $tCountStmt->get_result()->fetch_assoc()['count'];
             ?>
-                <a href="units.php?subject_id=<?php echo $subject_id; ?>&unit_id=<?php echo $u['id']; ?><?php echo $from_param; ?>" class="card" style="text-decoration: none; color: inherit;">
+                <a href="units.php?subject_id=<?php echo $subject_id; ?>&unit_id=<?php echo $u['id']; ?><?php echo $from_param . $class_param; ?>" class="card" style="text-decoration: none; color: inherit;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                         <div>
                             <p style="color: var(--accent); font-weight: 700; font-size: 13px;">UNIT <?php echo $u['unit_no']; ?></p>
@@ -102,13 +103,17 @@ require_once __DIR__ . '/../../app/includes/header.php';
                     <p style="color: var(--accent); font-weight: 700; font-size: 13px;">UNIT <?php echo $unit_info['unit_no']; ?></p>
                     <h1 style="font-family: 'DM Serif Display', serif;"><?php echo htmlspecialchars($unit_info['unit_name']); ?></h1>
                 </div>
-                <?php $from_param = isset($_GET['from']) ? '&from=' . urlencode($_GET['from']) : ''; ?>
-                <a href="units.php?subject_id=<?php echo $subject_id; ?><?php echo $from_param; ?>" class="btn btn-secondary">All Units</a>
+                <?php 
+                $from_param = isset($_GET['from']) ? '&from=' . urlencode($_GET['from']) : '';
+                $class_param = isset($_GET['class_id']) ? '&class_id=' . (int)$_GET['class_id'] : '';
+                ?>
+                <a href="units.php?subject_id=<?php echo $subject_id; ?><?php echo $from_param . $class_param; ?>" class="btn btn-secondary">All Units</a>
             </div>
 
             <form action="../../app/actions/academics/save_topics.php" method="POST">
                 <input type="hidden" name="subject_id" value="<?php echo $subject_id; ?>">
                 <input type="hidden" name="unit_id" value="<?php echo $unit_id; ?>">
+                <input type="hidden" name="class_id" value="<?php echo (int)($_GET['class_id'] ?? 0); ?>">
                 <?php if (isset($_GET['from'])) { ?>
                     <input type="hidden" name="from" value="<?php echo htmlspecialchars($_GET['from']); ?>">
                 <?php } ?>
@@ -155,13 +160,20 @@ require_once __DIR__ . '/../../app/includes/header.php';
                     </tbody>
                 </table>
 
-                <?php if ($canGiveFeedback) { ?>
+                <?php 
+                $is_faculty = ($_SESSION['role'] === 'faculty' || $_SESSION['role'] === 'admin');
+                if ($is_faculty) { ?>
                     <div style="margin-top: 32px; text-align: right;">
-                        <button type="submit" class="btn btn-primary">Confirm Covered Topics</button>
+                        <button type="submit" class="btn btn-primary">Mark Selected as Covered</button>
+                    </div>
+                <?php } elseif ($canGiveFeedback) { ?>
+                    <div style="margin-top: 32px; padding: 1.5rem; background: var(--bg-2); border-radius: 8px; border: 1px dashed var(--accent); text-align: center;">
+                        <p style="margin-bottom: 1rem; color: var(--text);">You have been assigned to verify today's covered topics.</p>
+                        <a href="lecture_feedback.php" class="btn btn-primary">Go to Verification Panel</a>
                     </div>
                 <?php } else { ?>
                     <p style="margin-top: 24px; color: var(--text-2); font-size: 14px; font-style: italic;">
-                        * You can only mark topics as covered when selected for today's feedback.
+                        * Syllabus tracking is managed by faculty. Students selected for verification will see prompts on their dashboard.
                     </p>
                 <?php } ?>
             </form>

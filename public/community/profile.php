@@ -59,6 +59,7 @@ include __DIR__ . '/../../app/includes/header.php';
         <h1 class="page-title" style="font-family: 'DM Serif Display', serif; font-size: 2.5rem; margin-bottom: 0.5rem;">Complete Your Profile</h1>
         <p style="color: var(--text-2); margin-bottom: 2rem;">Please provide your professional and academic details to help us personalize your experience.</p>
 
+        
         <?php if ($error): ?><div class="alert alert-error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
         <?php if ($success): ?><div class="alert alert-success"><?= htmlspecialchars($success) ?></div><?php endif; ?>
 

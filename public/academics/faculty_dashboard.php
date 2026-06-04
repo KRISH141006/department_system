@@ -19,17 +19,32 @@ $uRow = $stmt->get_result()->fetch_assoc();
 $name = $uRow['name'] ?? 'Faculty';
 $emp_id = $uRow['emp_id'] ?? 'N/A';
 
-// 2. Check if CC - Updated to use new coordinated_class_id
-$ccStmt = $conn->prepare("
-    SELECT f.is_cc, c.name as class_name, c.semester, c.id as class_id 
-    FROM faculty f 
-    LEFT JOIN classes c ON f.coordinated_class_id = c.id 
-    WHERE f.user_id = ?
-");
-$ccStmt->bind_param("i", $faculty_id);
-$ccStmt->execute();
-$ccInfo = $ccStmt->get_result()->fetch_assoc();
-$is_cc = $ccInfo['is_cc'] ?? 0;
+// 2. Check if CC - Updated for V1 schema
+$is_cc = 0;
+$ccInfo = null;
+
+$ccQuery = "SELECT is_cc, coordinated_class_id FROM faculty WHERE user_id = ?";
+$ccStmt = $conn->prepare($ccQuery);
+
+if ($ccStmt) {
+    $ccStmt->bind_param("i", $faculty_id);
+    $ccStmt->execute();
+    $fRow = $ccStmt->get_result()->fetch_assoc();
+    
+    if ($fRow) {
+        $is_cc = (int)$fRow['is_cc'];
+        $class_id = $fRow['coordinated_class_id'];
+        
+        if ($is_cc && $class_id) {
+            $clStmt = $conn->prepare("SELECT name as class_name, semester, id as class_id FROM classes WHERE id = ?");
+            if ($clStmt) {
+                $clStmt->bind_param("i", $class_id);
+                $clStmt->execute();
+                $ccInfo = $clStmt->get_result()->fetch_assoc();
+            }
+        }
+    }
+}
 
 $page_title = "Faculty Dashboard";
 require_once __DIR__ . '/../../app/includes/header.php';
@@ -203,7 +218,7 @@ require_once __DIR__ . '/../../app/includes/header.php';
                             <a href="manage_elective_students.php?id=<?php echo $sub['subject_id']; ?>" class="btn btn-sm btn-primary">Students</a>
                         <?php endif; ?>
                         <a href="create_subject.php?id=<?php echo $sub['subject_id']; ?>" class="btn btn-sm btn-secondary">Edit</a>
-                        <a href="units.php?subject_id=<?php echo $sub['subject_id']; ?>" class="btn btn-sm btn-secondary">Units</a>
+                        <a href="units.php?subject_id=<?php echo $sub['subject_id']; ?>&class_id=<?php echo $sub['class_id']; ?>" class="btn btn-sm btn-secondary">Units</a>
                         <a href="select_student.php?class_id=<?php echo $sub['class_subject_id']; ?>" class="btn btn-sm <?php echo $hasAssignments ? 'btn-secondary' : 'btn-primary'; ?>">
                             <?php echo $hasAssignments ? 'Show Details' : 'Verify'; ?>
                         </a>

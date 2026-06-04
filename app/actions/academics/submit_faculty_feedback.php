@@ -30,23 +30,23 @@ try {
 
     // 2. Insert responses - Updated to 'feedback_responses' table
     $stmt = $conn->prepare("
-        INSERT INTO feedback_responses (form_id, question_id, student_id, rating, answer_text) 
+        INSERT INTO feedback_responses (form_id, question_id, student_id, rating, comment) 
         VALUES (?, ?, ?, ?, ?)
-        ON DUPLICATE KEY UPDATE rating = VALUES(rating), answer_text = VALUES(answer_text)
+        ON DUPLICATE KEY UPDATE rating = VALUES(rating), comment = VALUES(comment)
     ");
 
     foreach ($responses as $q_id => $answer) {
         $q_id = (int) $q_id;
         $rating = null;
-        $answer_text = null;
+        $comment = null;
 
         if (is_numeric($answer)) {
             $rating = (int) $answer;
         } else {
-            $answer_text = trim($answer);
+            $comment = trim($answer);
         }
 
-        $stmt->bind_param("iiiis", $form_id, $q_id, $student_id, $rating, $answer_text);
+        $stmt->bind_param("iiiis", $form_id, $q_id, $student_id, $rating, $comment);
         $stmt->execute();
     }
 
