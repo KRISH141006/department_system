@@ -5,7 +5,7 @@ require_once __DIR__ . '/../includes/env.php';
 $host = $_ENV['DB_HOST'] ?? '127.0.0.1';
 $user = $_ENV['DB_USER'] ?? 'root';
 $pass = $_ENV['DB_PASS'] ?? '';
-$name = $_ENV['DB_NAME'] ?? 'department_system';
+$name = $_ENV['DB_NAME'] ?? 'dept_system';
 
 if ($host === 'localhost') {
     $host = '127.0.0.1';
