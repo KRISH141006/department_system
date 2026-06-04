@@ -9,10 +9,11 @@ if (!has_permission('view_admin_dashboard')) {
 
 // Fetch all pending requests
 $query = "
-    SELECT r.*, u.name as faculty_name, s.subject_name 
+    SELECT r.*, u.name as student_name, s1.name as old_subject, s2.name as new_subject 
     FROM elective_change_requests r
-    JOIN users u ON r.faculty_id = u.id
-    JOIN faculty_subjects s ON r.subject_id = s.id
+    JOIN users u ON r.student_id = u.id
+    JOIN subjects s1 ON r.old_subject_id = s1.id
+    JOIN subjects s2 ON r.new_subject_id = s2.id
     ORDER BY r.created_at DESC
 ";
 $requests = $conn->query($query)->fetch_all(MYSQLI_ASSOC);
@@ -26,7 +27,7 @@ require_once __DIR__ . '/../../app/includes/header.php';
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
             <div>
                 <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem;">Elective Enrollment Requests</h1>
-                <p style="color: var(--text-2);">Review and approve requests from faculty to modify locked elective enrollments.</p>
+                <p style="color: var(--text-2);">Review and approve requests from students to change their elective enrollments.</p>
             </div>
             <a href="../dashboard.php" class="btn btn-secondary">← Back to Dashboard</a>
         </div>
@@ -42,8 +43,9 @@ require_once __DIR__ . '/../../app/includes/header.php';
             <table style="width: 100%; border-collapse: collapse; text-align: left;">
                 <thead style="background: var(--bg-2); border-bottom: 1px solid var(--border);">
                     <tr>
-                        <th style="padding: 1rem;">Faculty</th>
-                        <th style="padding: 1rem;">Subject</th>
+                        <th style="padding: 1rem;">Student</th>
+                        <th style="padding: 1rem;">From Subject</th>
+                        <th style="padding: 1rem;">To Subject</th>
                         <th style="padding: 1rem;">Reason</th>
                         <th style="padding: 1rem;">Status</th>
                         <th style="padding: 1rem;">Action</th>
@@ -52,15 +54,16 @@ require_once __DIR__ . '/../../app/includes/header.php';
                 <tbody>
                     <?php if (empty($requests)): ?>
                         <tr>
-                            <td colspan="5" style="padding: 2rem; text-align: center; color: var(--text-2);">No requests found.</td>
+                            <td colspan="6" style="padding: 2rem; text-align: center; color: var(--text-2);">No requests found.</td>
                         </tr>
                     <?php endif; ?>
                     <?php foreach ($requests as $r): ?>
                         <tr style="border-bottom: 1px solid var(--border);">
                             <td style="padding: 1rem;">
-                                <strong><?= htmlspecialchars($r['faculty_name']) ?></strong>
+                                <strong><?= htmlspecialchars($r['student_name']) ?></strong>
                             </td>
-                            <td style="padding: 1rem;"><?= htmlspecialchars($r['subject_name']) ?></td>
+                            <td style="padding: 1rem; color: var(--error);"><?= htmlspecialchars($r['old_subject']) ?></td>
+                            <td style="padding: 1rem; color: var(--success);"><?= htmlspecialchars($r['new_subject']) ?></td>
                             <td style="padding: 1rem; font-size: 0.9rem; color: var(--text-2);"><?= htmlspecialchars($r['reason']) ?></td>
                             <td style="padding: 1rem;">
                                 <?php if ($r['status'] === 'pending'): ?>

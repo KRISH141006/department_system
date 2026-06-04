@@ -30,7 +30,7 @@ $accepted = $conn->query("
     JOIN users u ON u.id = r.user_id
     JOIN students s ON s.user_id = r.user_id
     JOIN classes c ON c.id = s.class_id
-    WHERE r.status = 'accepted'
+    WHERE r.status = 'accepted' AND r.reviewer_id = $reviewer_id
     ORDER BY r.created_at ASC
 ")->fetch_all(MYSQLI_ASSOC);
 

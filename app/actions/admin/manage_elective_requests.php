@@ -20,7 +20,7 @@ try {
     $conn->begin_transaction();
 
     // Fetch request details
-    $stmt = $conn->prepare("SELECT subject_id FROM elective_change_requests WHERE id = ?");
+    $stmt = $conn->prepare("SELECT id FROM elective_change_requests WHERE id = ?");
     $stmt->bind_param("i", $request_id);
     $stmt->execute();
     $request = $stmt->get_result()->fetch_assoc();
@@ -29,27 +29,22 @@ try {
         throw new Exception("Request not found.");
     }
 
-    $subject_id = $request['subject_id'];
-
     if ($action === 'approve') {
-        // Unlock the subject
-        $uStmt = $conn->prepare("UPDATE faculty_subjects SET is_locked = 0 WHERE id = ?");
-        $uStmt->bind_param("i", $subject_id);
-        $uStmt->execute();
-
         // Mark request as approved
-        $rStmt = $conn->prepare("UPDATE elective_change_requests SET status = 'approved' WHERE id = ?");
-        $rStmt->bind_param("i", $request_id);
+        $rStmt = $conn->prepare("UPDATE elective_change_requests SET status = 'approved', approved_by = ?, approved_at = NOW() WHERE id = ?");
+        $admin_id = $_SESSION['user_id'];
+        $rStmt->bind_param("ii", $admin_id, $request_id);
         $rStmt->execute();
 
-        $_SESSION['msg_success'] = "Request approved and enrollment unlocked.";
+        $_SESSION['msg_success'] = "Elective change request approved.";
     } else {
         // Mark request as rejected
-        $rStmt = $conn->prepare("UPDATE elective_change_requests SET status = 'rejected' WHERE id = ?");
-        $rStmt->bind_param("i", $request_id);
+        $rStmt = $conn->prepare("UPDATE elective_change_requests SET status = 'rejected', approved_by = ?, approved_at = NOW() WHERE id = ?");
+        $admin_id = $_SESSION['user_id'];
+        $rStmt->bind_param("ii", $admin_id, $request_id);
         $rStmt->execute();
 
-        $_SESSION['msg_success'] = "Request rejected.";
+        $_SESSION['msg_success'] = "Elective change request rejected.";
     }
 
     $conn->commit();

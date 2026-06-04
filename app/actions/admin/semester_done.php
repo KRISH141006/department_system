@@ -7,61 +7,33 @@ if (!has_permission('view_admin_dashboard')) {
     exit();
 }
 
-// 1. Fetch all students who have a semester assigned
-$stmt = $conn->prepare("SELECT id, semester, class_name FROM users WHERE role = 'student' AND semester IS NOT NULL");
-$stmt->execute();
-$students = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-
 $conn->begin_transaction();
 
 try {
-    foreach ($students as $student) {
-        $old_sem = (int)$student['semester'];
+    // 1. Fetch all classes that can be promoted (Sem 1 to 7)
+    $stmt = $conn->query("SELECT id, name, semester FROM classes WHERE semester < 8");
+    $classes = $stmt->fetch_all(MYSQLI_ASSOC);
+
+    foreach ($classes as $class) {
+        $old_sem = (int)$class['semester'];
         $new_sem = $old_sem + 1;
         
-        // If semester > 8, they might be graduated, but for now we just increment.
-        if ($new_sem > 8) continue;
+        $old_name = $class['name'];
+        // Replace the leading semester number with the new one
+        $pure_name = preg_replace('/^\d+/', '', $old_name);
+        $new_name = $new_sem . $pure_name;
 
-        $old_class = $student['class_name'];
-        // Ensure new class follows [semester][class] convention without hyphens/spaces
-        $pure_class = preg_replace('/^[\d\s\-_]+/', '', $old_class);
-        $pure_class = str_replace(['-', ' '], '', $pure_class);
-        $new_class = strtoupper($new_sem . $pure_class);
-
-        $upd = $conn->prepare("UPDATE users SET semester = ?, class_name = ? WHERE id = ?");
-        $upd->bind_param("isi", $new_sem, $new_class, $student['id']);
+        $upd = $conn->prepare("UPDATE classes SET semester = ?, name = ? WHERE id = ?");
+        $upd->bind_param("isi", $new_sem, $new_name, $class['id']);
         $upd->execute();
     }
 
-    // 2. Also update CC roles in profiles if they are tied to a class/semester
-    // Usually CC moves with the batch or stays? The user said "students will be redirected to the next sem"
-    // If a CC was for 4EK1, they should now be CC for 5EK1 to follow their students.
-    $ccStmt = $conn->prepare("SELECT user_id, cc_semester, cc_class FROM profiles WHERE is_cc = 1");
-    $ccStmt->execute();
-    $ccs = $ccStmt->get_result()->fetch_all(MYSQLI_ASSOC);
-
-    foreach ($ccs as $cc) {
-        $old_sem = (int)$cc['cc_semester'];
-        $new_sem = $old_sem + 1;
-        if ($new_sem > 8) {
-            // Remove CC status if they passed 8th sem?
-            $updCC = $conn->prepare("UPDATE profiles SET is_cc = 0, cc_semester = NULL, cc_class = NULL WHERE user_id = ?");
-            $updCC->bind_param("i", $cc['user_id']);
-            $updCC->execute();
-            continue;
-        }
-        $old_cc_class = $cc['cc_class'];
-        $pure_cc_class = preg_replace('/^[\d\s\-_]+/', '', $old_cc_class);
-        $pure_cc_class = str_replace(['-', ' '], '', $pure_cc_class);
-        $new_cc_class = strtoupper($new_sem . $pure_cc_class);
-
-        $updCC = $conn->prepare("UPDATE profiles SET cc_semester = ?, cc_class = ? WHERE user_id = ?");
-        $updCC->bind_param("isi", $new_sem, $new_cc_class, $cc['user_id']);
-        $updCC->execute();
-    }
+    // 2. CC logic from original profiles is removed as those columns (cc_semester, cc_class) 
+    // no longer exist in the normalized V1 schema. 
+    // CC status is now a simple boolean in the 'faculty' table.
 
     $conn->commit();
-    $_SESSION['msg_success'] = "Semester transition completed successfully! Students moved to next semester.";
+    $_SESSION['msg_success'] = "Semester transition completed successfully! Classes promoted.";
 } catch (Exception $e) {
     $conn->rollback();
     $_SESSION['msg_error'] = "Error during transition: " . $e->getMessage();

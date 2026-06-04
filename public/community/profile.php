@@ -27,7 +27,7 @@ if ($role === 'student') {
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
     $role_data = $stmt->get_result()->fetch_assoc() ?? [];
-} elseif ($role === 'faculty') {
+} elseif ($role === 'faculty' || $role === 'admin') {
     $stmt = $conn->prepare("SELECT emp_id, is_cc, teaching_interests FROM faculty WHERE user_id = ?");
     $stmt->bind_param("i", $user_id);
     $stmt->execute();

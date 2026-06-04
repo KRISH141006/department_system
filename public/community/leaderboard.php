@@ -43,7 +43,7 @@ $leaders = $leader_query->fetch_all(MYSQLI_ASSOC);
                     foreach ($leaders as $student): 
                         // Fetch badges for this student (Updated table names)
                         $badge_query = $conn->prepare("
-                            SELECT b.name as badge_name, b.icon_class 
+                            SELECT b.name as badge_name, b.icon 
                             FROM user_badges ub 
                             JOIN badges b ON ub.badge_id = b.id 
                             WHERE ub.user_id = ? 
@@ -82,7 +82,7 @@ $leaders = $leader_query->fetch_all(MYSQLI_ASSOC);
                                 <div style="display: flex; gap: 6px;">
                                     <?php foreach ($badges as $badge): ?>
                                         <span title="<?= htmlspecialchars($badge['badge_name']) ?>" style="background: var(--bg-2); width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 0.75rem;">
-                                            <i class="fa <?= $badge['icon_class'] ?>"></i>
+                                            <i class="fa <?= $badge['icon'] ?>"></i>
                                         </span>
                                     <?php endforeach; ?>
                                 </div>

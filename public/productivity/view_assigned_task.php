@@ -7,34 +7,32 @@ if (!isset($_GET['id'])) {
     exit();
 }
 
-$task_id = $_GET['id'];
+$assignment_id = (int)$_GET['id'];
 $user_id = $_SESSION['user_id'];
 
-// Fetch task details
+// Fetch assignment details from the normalized V1 schema
 $stmt = $conn->prepare("
-    SELECT t.*, fa.task_name, fa.task_details, fu.name as faculty_name, 
-    fa.resource_path as assignment_resource, fa.resource_name as assignment_resource_name
-    FROM tasks t
-    JOIN faculty_assignments fa ON t.faculty_assignment_id = fa.id
-    JOIN users fu ON fa.faculty_id = fu.id
-    WHERE t.id = ? AND t.user_id = ?
+    SELECT a.*, fu.name as faculty_name
+    FROM assignments a
+    JOIN users fu ON a.faculty_id = fu.id
+    WHERE a.id = ?
 ");
-$stmt->bind_param("ii", $task_id, $user_id);
+$stmt->bind_param("i", $assignment_id);
 $stmt->execute();
-$task = $stmt->get_result()->fetch_assoc();
+$assignment = $stmt->get_result()->fetch_assoc();
 
-if (!$task) {
+if (!$assignment) {
     header("Location: assigned_tasks.php");
     exit();
 }
 
-// Fetch submission details
-$sub_stmt = $conn->prepare("SELECT * FROM student_submissions WHERE task_id = ? AND student_id = ?");
-$sub_stmt->bind_param("ii", $task_id, $user_id);
+// Fetch submission details from the submissions table
+$sub_stmt = $conn->prepare("SELECT * FROM submissions WHERE assignment_id = ? AND student_id = ?");
+$sub_stmt->bind_param("ii", $assignment_id, $user_id);
 $sub_stmt->execute();
 $submission = $sub_stmt->get_result()->fetch_assoc();
 
-$page_title = "View Task: " . $task['task_name'];
+$page_title = "View Assignment: " . $assignment['title'];
 require_once __DIR__ . '/../../app/includes/header.php';
 
 function getFileIcon($filename) {
@@ -109,51 +107,51 @@ function isImage($filename) {
 
 <div class="page-wrap medium">
     <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
-        <a href="assigned_tasks.php" class="neo-pill">← Back to Tasks</a>
+        <a href="assigned_tasks.php" class="neo-pill">← Back to Assignments</a>
         <div class="creative-pill" style="background: var(--accent); color: #fff;">Assignment Details</div>
     </div>
 
     <div class="detail-card">
-        <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem; margin-bottom: 2rem;"><?= htmlspecialchars($task['task_name']) ?></h1>
+        <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem; margin-bottom: 2rem;"><?= htmlspecialchars($assignment['title']) ?></h1>
         
         <div class="grid-2">
             <div class="meta-item">
                 <span class="meta-label">Assigned By</span>
-                <span class="meta-value">👤 <?= htmlspecialchars($task['faculty_name']) ?></span>
+                <span class="meta-value">👤 <?= htmlspecialchars($assignment['faculty_name']) ?></span>
             </div>
             <div class="meta-item">
                 <span class="meta-label">Deadline</span>
-                <span class="meta-value" style="color: #ef4444;">📅 <?= $task['deadline'] ? date('M d, Y h:i A', strtotime($task['deadline'])) : 'No Deadline' ?></span>
+                <span class="meta-value" style="color: #ef4444;">📅 <?= $assignment['deadline'] ? date('M d, Y h:i A', strtotime($assignment['deadline'])) : 'No Deadline' ?></span>
             </div>
         </div>
 
         <div class="meta-item">
-            <span class="meta-label">Task Instructions</span>
+            <span class="meta-label">Instructions</span>
             <div style="font-size: 1.1rem; line-height: 1.6; background: #f1f5f9; padding: 1.5rem; border-radius: 8px; border: 2px solid #1a1a1a;">
-                <?= nl2br(htmlspecialchars($task['task_details'])) ?>
+                <?= nl2br(htmlspecialchars($assignment['description'])) ?>
             </div>
         </div>
 
-        <?php if ($task['assignment_resource']): ?>
+        <?php if ($assignment['resource_path']): ?>
             <div class="meta-item">
                 <span class="meta-label">Reference Material</span>
                 <div style="background: #f8fafc; padding: 1.5rem; border-radius: 12px; border: 2px solid #1a1a1a;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                         <span style="font-weight: 700;">
-                            <?= getFileIcon($task['assignment_resource']) ?> <?= htmlspecialchars($task['assignment_resource_name'] ?: 'Download Resource') ?>
+                            <?= getFileIcon($assignment['resource_path']) ?> <?= htmlspecialchars($assignment['resource_name'] ?: 'Download Resource') ?>
                         </span>
-                        <a href="<?= $base_path ?>/public/<?= htmlspecialchars($task['assignment_resource']) ?>" download="<?= htmlspecialchars($task['assignment_resource_name']) ?>" class="neo-pill" style="background: #1a1a1a; color: #fff;">Download</a>
+                        <a href="../../public/<?= htmlspecialchars($assignment['resource_path']) ?>" download="<?= htmlspecialchars($assignment['resource_name']) ?>" class="neo-pill" style="background: #1a1a1a; color: #fff;">Download</a>
                     </div>
                     
                     <div class="preview-container">
                         <?php 
-                        $ext = strtolower(pathinfo($task['assignment_resource'], PATHINFO_EXTENSION));
-                        $file_url = $base_path . '/public/' . htmlspecialchars($task['assignment_resource']);
+                        $ext = strtolower(pathinfo($assignment['resource_path'], PATHINFO_EXTENSION));
+                        $file_url = '../../public/' . htmlspecialchars($assignment['resource_path']);
                         ?>
                         
                         <?php if ($ext === 'pdf'): ?>
                             <iframe src="<?= $file_url ?>" class="doc-viewer"></iframe>
-                        <?php elseif (isImage($task['assignment_resource'])): ?>
+                        <?php elseif (isImage($assignment['resource_path'])): ?>
                             <img src="<?= $file_url ?>" class="img-preview" alt="Preview">
                         <?php else: ?>
                             <div style="text-align: center; padding: 2rem; background: #fff; border: 2px dashed #cbd5e0; border-radius: 8px; color: #64748b;">
@@ -183,12 +181,12 @@ function isImage($filename) {
                         <span style="font-weight: 700; color: #1a1a1a;">
                             <?= getFileIcon($submission['submission_path']) ?> <?= htmlspecialchars($submission['submission_name'] ?: 'View Your Upload') ?>
                         </span>
-                        <a href="<?= $base_path ?>/public/<?= htmlspecialchars($submission['submission_path']) ?>" download="<?= htmlspecialchars($submission['submission_name']) ?>" class="btn btn-sm btn-secondary">Download</a>
+                        <a href="../../public/<?= htmlspecialchars($submission['submission_path']) ?>" download="<?= htmlspecialchars($submission['submission_name']) ?>" class="btn btn-sm btn-secondary">Download</a>
                     </div>
 
                     <?php 
                     $sub_ext = strtolower(pathinfo($submission['submission_path'], PATHINFO_EXTENSION));
-                    $sub_url = $base_path . '/public/' . htmlspecialchars($submission['submission_path']);
+                    $sub_url = '../../public/' . htmlspecialchars($submission['submission_path']);
                     ?>
 
                     <?php if ($sub_ext === 'pdf'): ?>
@@ -219,7 +217,7 @@ function isImage($filename) {
             </div>
         <?php else: ?>
             <form action="../../app/actions/productivity/submit_assignment.php" method="POST" enctype="multipart/form-data">
-                <input type="hidden" name="task_id" value="<?= $task_id ?>">
+                <input type="hidden" name="task_id" value="<?= $assignment_id ?>">
                 <div class="upload-zone">
                     <div style="font-size: 3rem; margin-bottom: 1rem;">📁</div>
                     <p style="font-weight: 700; margin-bottom: 1rem;">Select your assignment file to upload</p>

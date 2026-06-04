@@ -6,35 +6,46 @@ require_once __DIR__ . '/../../app/includes/header.php';
 
 $user_id = $_SESSION['user_id'];
 
-// Get counts of assigned tasks
-$count_sql = "SELECT COUNT(*) as count FROM tasks WHERE user_id = ? AND faculty_assignment_id IS NOT NULL";
-$stmt = $conn->prepare($count_sql);
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-$total_assigned = $stmt->get_result()->fetch_assoc()['count'];
+// Fetch Assigned Tasks via subjects the student is enrolled in
+$base_query = "
+    FROM assignments a
+    JOIN users f ON a.faculty_id = f.id
+    JOIN student_subjects ss ON a.class_subject_id = ss.class_subject_id
+    LEFT JOIN submissions sub ON a.id = sub.assignment_id AND sub.student_id = ?
+    WHERE ss.student_id = ?
+";
 
 $sort_by = isset($_GET['sort']) ? $_GET['sort'] : 'newest';
-$order_by = ($sort_by === 'oldest') ? "ORDER BY t.created_at ASC" : "ORDER BY t.created_at DESC";
+$order_by = ($sort_by === 'oldest') ? "ORDER BY a.created_at ASC" : "ORDER BY a.created_at DESC";
 
-// Fetch Assigned Tasks
-$pending_sql = "SELECT t.*, fu.name as faculty_name, fa.resource_name
-                FROM tasks t
-                LEFT JOIN faculty_assignments fa ON t.faculty_assignment_id = fa.id
-                LEFT JOIN users fu ON fa.faculty_id = fu.id
-                WHERE t.user_id = '$user_id' AND t.faculty_assignment_id IS NOT NULL AND t.is_completed = 0
-                $order_by";
-$pending_result = mysqli_query($conn, $pending_sql);
+// Count total assigned
+$count_stmt = $conn->prepare("SELECT COUNT(DISTINCT a.id) as count $base_query");
+$count_stmt->bind_param("ii", $user_id, $user_id);
+$count_stmt->execute();
+$total_assigned = $count_stmt->get_result()->fetch_assoc()['count'];
 
-$completed_sql = "SELECT t.*, fu.name as faculty_name, fa.resource_name
-                  FROM tasks t
-                  LEFT JOIN faculty_assignments fa ON t.faculty_assignment_id = fa.id
-                  LEFT JOIN users fu ON fa.faculty_id = fu.id
-                  WHERE t.user_id = '$user_id' AND t.faculty_assignment_id IS NOT NULL AND t.is_completed = 1
-                  $order_by";
-$completed_result = mysqli_query($conn, $completed_sql);
+// Pending assignments (no submission yet)
+$pending_stmt = $conn->prepare("
+    SELECT a.*, f.name as faculty_name, sub.id as submission_id 
+    $base_query AND sub.id IS NULL
+    $order_by
+");
+$pending_stmt->bind_param("ii", $user_id, $user_id);
+$pending_stmt->execute();
+$pending_result = $pending_stmt->get_result();
 
-$pending_count = mysqli_num_rows($pending_result);
-$completed_count = mysqli_num_rows($completed_result);
+// Completed assignments (has submission)
+$completed_stmt = $conn->prepare("
+    SELECT a.*, f.name as faculty_name, sub.id as submission_id 
+    $base_query AND sub.id IS NOT NULL
+    $order_by
+");
+$completed_stmt->bind_param("ii", $user_id, $user_id);
+$completed_stmt->execute();
+$completed_result = $completed_stmt->get_result();
+
+$pending_count = $pending_result->num_rows;
+$completed_count = $completed_result->num_rows;
 ?>
 
 <style>
@@ -42,14 +53,6 @@ $completed_count = mysqli_num_rows($completed_result);
         --bulb-off: #cbd5e0;
         --bulb-on: #fbbf24;
         --bulb-glow: rgba(251, 191, 36, 0.4);
-    }
-
-    .neo-card {
-        background: #fff;
-        border: 2px solid #1a1a1a;
-        border-radius: 15px;
-        box-shadow: 6px 6px 0px #1a1a1a;
-        padding: 2rem;
     }
 
     .neo-pill {
@@ -102,31 +105,31 @@ $completed_count = mysqli_num_rows($completed_result);
 <div class="page-wrap medium">
     <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
         <a href="index.php" class="neo-pill">← Back to Dashboard</a>
-        <div style="font-family: 'DM Serif Display', serif; font-size: 1.8rem;">Assigned Tasks</div>
+        <div style="font-family: 'DM Serif Display', serif; font-size: 1.8rem;">Assigned Academic Tasks</div>
     </div>
 
     <?php if ($total_assigned == 0): ?>
         <div style="text-align: center; padding: 5rem 0;">
             <div style="font-size: 4rem; margin-bottom: 1.5rem;">🎉</div>
             <h2 style="font-family: 'DM Serif Display', serif;">All caught up!</h2>
-            <p style="color: #64748b; font-weight: 600;">No tasks have been assigned to you yet.</p>
+            <p style="color: #64748b; font-weight: 600;">No academic assignments have been posted for your subjects yet.</p>
         </div>
     <?php else: ?>
         <div class="grid-2" style="gap: 3rem; margin-top: 2rem;">
-            <!-- Pending Tasks -->
+            <!-- Pending Assignments -->
             <div>
                 <h2 style="font-size: 1rem; font-weight: 800; margin-bottom: 1.5rem; color: #64748b; display: flex; align-items: center; gap: 8px;">
-                    🌑 PENDING ASSIGNMENTS (<?= $pending_count ?>)
+                    🌑 PENDING (<?= $pending_count ?>)
                 </h2>
-                <?php while ($row = mysqli_fetch_assoc($pending_result)): ?>
+                <?php while ($row = $pending_result->fetch_assoc()): ?>
                     <?php $is_overdue = $row['deadline'] && strtotime($row['deadline']) < time(); ?>
                     <div class="task-strip" onclick="window.location.href='view_assigned_task.php?id=<?= $row['id'] ?>'" style="cursor: pointer; position: relative;">
                         <div style="display: flex; align-items: flex-start; gap: 1.25rem;">
-                            <div class="bulb-container" onclick="event.stopPropagation(); window.location.href='../../app/actions/productivity/complete_task.php?id=<?= $row['id'] ?>&redirect=assigned'">
+                            <div class="bulb-container">
                                 <svg class="bulb-svg bulb-off" viewBox="0 0 24 24"><path d="M9 21h6v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1l-.85.6V16h-4v-2.3l-.85-.6C8.67 12.05 8 10.58 8 9c0-2.21 1.79-4 4-4s4 1.79 4 4c0 1.58-.67 3.05-2.15 4.1z"/></svg>
                             </div>
                             <div style="flex:1;">
-                                <div style="font-weight: 700; font-size: 1.1rem;"><?= htmlspecialchars($row['task']) ?></div>
+                                <div style="font-weight: 700; font-size: 1.1rem;"><?= htmlspecialchars($row['title']) ?></div>
                                 <div style="display:flex; align-items:center; gap: 8px; margin-top: 4px;">
                                     <span class="creative-pill" style="background: var(--bg-2); border-color: var(--accent);">👤 <?= htmlspecialchars($row['faculty_name']) ?></span>
                                 </div>
@@ -138,41 +141,28 @@ $completed_count = mysqli_num_rows($completed_result);
                                 </div>
                             <?php endif; ?>
                         </div>
-
-                        <?php if ($row['resource_path']): ?>
-                            <div style="margin-top: 12px; padding-left: 45px;">
-                                <a href="<?= $base_path ?>/public/<?= htmlspecialchars($row['resource_path']) ?>" download="<?= htmlspecialchars($row['resource_name']) ?>" class="neo-pill" style="font-size: 0.75rem; padding: 4px 10px; background: #f1f5f9;" onclick="event.stopPropagation();">
-                                    📂 <?= htmlspecialchars($row['resource_name'] ?: 'Download Resource') ?>
-                                </a>
-                            </div>
-                        <?php endif; ?>
                     </div>
                 <?php endwhile; ?>
             </div>
 
-            <!-- Completed Tasks -->
+            <!-- Completed Assignments -->
             <div>
                 <h2 style="font-size: 1rem; font-weight: 800; margin-bottom: 1.5rem; color: #fbbf24; display: flex; align-items: center; gap: 8px;">
-                    ☀️ COMPLETED (<?= $completed_count ?>)
+                    ☀️ SUBMITTED (<?= $completed_count ?>)
                 </h2>
-                <?php while ($row = mysqli_fetch_assoc($completed_result)): ?>
+                <?php while ($row = $completed_result->fetch_assoc()): ?>
                     <div class="task-strip completed" onclick="window.location.href='view_assigned_task.php?id=<?= $row['id'] ?>'" style="cursor: pointer; position: relative;">
                         <div style="display: flex; align-items: flex-start; gap: 1.25rem;">
-                            <div class="bulb-container" onclick="event.stopPropagation(); window.location.href='../../app/actions/productivity/undo_task.php?id=<?= $row['id'] ?>&redirect=assigned'">
+                            <div class="bulb-container">
                                 <svg class="bulb-svg bulb-on" viewBox="0 0 24 24"><path d="M9 21h6v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/></svg>
                             </div>
                             <div style="flex:1;">
-                                <div style="font-weight: 600; color: #94a3b8; text-decoration: line-through; font-size: 1.1rem;"><?= htmlspecialchars($row['task']) ?></div>
+                                <div style="font-weight: 600; color: #94a3b8; text-decoration: line-through; font-size: 1.1rem;"><?= htmlspecialchars($row['title']) ?></div>
                                 <div style="display:flex; align-items:center; gap: 8px; margin-top: 4px;">
                                     <span class="creative-pill" style="opacity: 0.6;">👤 <?= htmlspecialchars($row['faculty_name']) ?></span>
                                 </div>
                             </div>
                         </div>
-                        <?php if ($row['description']): ?>
-                            <div style="margin-top: 12px; padding-left: 45px; color: #94a3b8; font-size: 0.9rem; line-height: 1.4; text-decoration: line-through;">
-                                <?= nl2br(htmlspecialchars($row['description'])) ?>
-                            </div>
-                        <?php endif; ?>
                     </div>
                 <?php endwhile; ?>
             </div>
