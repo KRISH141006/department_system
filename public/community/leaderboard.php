@@ -7,9 +7,11 @@ require_once __DIR__ . '/../../app/includes/header.php';
 
 // Fetch top 10 students by community score
 $leader_query = $conn->query("
-    SELECT u.id, u.name, p.community_score, u.class_name, u.semester
+    SELECT u.id, u.name, p.community_score, c.name as class_name, c.semester
     FROM users u
     JOIN profiles p ON u.id = p.user_id
+    JOIN students s ON u.id = s.user_id
+    JOIN classes c ON s.class_id = c.id
     WHERE u.role = 'student'
     ORDER BY p.community_score DESC, u.name ASC
     LIMIT 10
@@ -39,8 +41,14 @@ $leaders = $leader_query->fetch_all(MYSQLI_ASSOC);
                     <?php 
                     $rank = 1;
                     foreach ($leaders as $student): 
-                        // Fetch badges for this student
-                        $badge_query = $conn->prepare("SELECT badge_name, icon_class FROM student_badges WHERE student_id = ? LIMIT 3");
+                        // Fetch badges for this student (Updated table names)
+                        $badge_query = $conn->prepare("
+                            SELECT b.name as badge_name, b.icon_class 
+                            FROM user_badges ub 
+                            JOIN badges b ON ub.badge_id = b.id 
+                            WHERE ub.user_id = ? 
+                            LIMIT 3
+                        ");
                         $badge_query->bind_param("i", $student['id']);
                         $badge_query->execute();
                         $badges = $badge_query->get_result()->fetch_all(MYSQLI_ASSOC);
