@@ -78,6 +78,24 @@ try {
     $fsStmt->bind_param("ii", $faculty_id, $class_subject_id);
     $fsStmt->execute();
 
+    // 4b. Push 'pending' invitations to students if it's an elective
+    if ($is_elective) {
+        $student_stmt = $conn->prepare("SELECT user_id FROM students WHERE class_id = ?");
+        $student_stmt->bind_param("i", $class_id);
+        $student_stmt->execute();
+        $class_students = $student_stmt->get_result();
+
+        $ins_invitation = $conn->prepare("
+            INSERT INTO student_subjects (student_id, class_subject_id, status) 
+            VALUES (?, ?, 'pending')
+            ON DUPLICATE KEY UPDATE status = status -- Don't overwrite if already 'enrolled'
+        ");
+        while ($student = $class_students->fetch_assoc()) {
+            $ins_invitation->bind_param("ii", $student['user_id'], $class_subject_id);
+            $ins_invitation->execute();
+        }
+    }
+
     // 5. Handle Units and Topics (Subject-centric)
     // First, clear existing units for this subject to overwrite
     $delU = $conn->prepare("DELETE FROM units WHERE subject_id = ?");

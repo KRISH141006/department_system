@@ -31,15 +31,14 @@ if (!$subject) {
 $semester = $subject['semester'];
 $class_subject_id = $subject['class_subject_id'];
 
-// 2. Check if elective window is locked for this semester - Updated to centralized elective_windows
-$window_stmt = $conn->prepare("SELECT is_locked FROM elective_windows WHERE semester = ? ORDER BY opened_at DESC LIMIT 1");
-$window_stmt->bind_param("i", $semester);
-$window_stmt->execute();
-$window = $window_stmt->get_result()->fetch_assoc();
-$is_locked = $window ? (int)$window['is_locked'] : 1; // Default to locked if no window exists
+// 2. Check if specific elective is locked - V1 schema uses class_subjects.is_locked
+$lockStmt = $conn->prepare("SELECT is_locked FROM class_subjects WHERE id = ?");
+$lockStmt->bind_param("i", $class_subject_id);
+$lockStmt->execute();
+$is_locked = (int)($lockStmt->get_result()->fetch_assoc()['is_locked'] ?? 1);
 
 // Check for approved unlock request (Manual Edit Mode)
-$req_stmt = $conn->prepare("SELECT id FROM elective_change_requests WHERE student_id IN (SELECT user_id FROM students WHERE class_id IN (SELECT class_id FROM class_subjects WHERE id = ?)) AND status = 'approved' LIMIT 1");
+$req_stmt = $conn->prepare("SELECT id FROM elective_unlock_requests WHERE class_subject_id = ? AND status = 'approved' LIMIT 1");
 $req_stmt->bind_param("i", $class_subject_id);
 $req_stmt->execute();
 $manual_mode = $req_stmt->get_result()->num_rows > 0;
@@ -48,29 +47,29 @@ $manual_mode = $req_stmt->get_result()->num_rows > 0;
 if ($is_locked) {
     // Only show enrolled students if locked
     $query = "
-        SELECT u.id, u.name, c.name as class_name, s.roll_no, 'enrolled' as status 
+        SELECT u.id, u.name, c.name as class_name, s.roll_no, ss.status 
         FROM users u
         JOIN students s ON u.id = s.user_id
         JOIN classes c ON s.class_id = c.id
         INNER JOIN student_subjects ss ON u.id = ss.student_id AND ss.class_subject_id = ?
-        WHERE u.role = 'student'
+        WHERE u.role = 'student' AND ss.status = 'enrolled'
         ORDER BY u.name
     ";
     $stmt = $conn->prepare($query);
     $stmt->bind_param("i", $class_subject_id);
 } else {
-    // Show all students in this class/semester who COULD be in this elective
+    // Show all students associated with this class-subject (who got invitations)
     $query = "
-        SELECT u.id, u.name, c.name as class_name, s.roll_no, 
-               (SELECT 1 FROM student_subjects ss WHERE ss.student_id = u.id AND ss.class_subject_id = ?) as is_enrolled
+        SELECT u.id, u.name, c.name as class_name, s.roll_no, ss.status
         FROM users u
         JOIN students s ON u.id = s.user_id
         JOIN classes c ON s.class_id = c.id
-        WHERE u.role = 'student' AND c.semester = ?
-        ORDER BY c.name, u.name
+        JOIN student_subjects ss ON u.id = ss.student_id
+        WHERE u.role = 'student' AND ss.class_subject_id = ?
+        ORDER BY u.name
     ";
     $stmt = $conn->prepare($query);
-    $stmt->bind_param("ii", $class_subject_id, $semester);
+    $stmt->bind_param("i", $class_subject_id);
 }
 
 $stmt->execute();
@@ -93,14 +92,53 @@ require_once __DIR__ . '/../../app/includes/header.php';
                 </p>
             </div>
             <div style="display: flex; gap: 10px;">
-                <form action="../../app/actions/academics/toggle_elective_window.php" method="POST">
-                    <input type="hidden" name="semester" value="<?= $semester ?>">
-                    <input type="hidden" name="subject_id" value="<?= $subject_id ?>">
-                    <button type="submit" class="btn <?= $is_locked ? 'btn-primary' : 'btn-error' ?>" style="border: none;">
-                        <?= $is_locked ? 'Unlock Enrollment' : 'Lock Enrollment' ?>
-                    </button>
-                </form>
+                <?php if ($is_locked): ?>
+                    <?php 
+                    // Check for existing pending request
+                    $reqQuery = $conn->prepare("SELECT status FROM elective_change_requests WHERE class_subject_id = ? AND status = 'pending' LIMIT 1");
+                    $reqQuery->bind_param("i", $class_subject_id);
+                    $reqQuery->execute();
+                    $pendingReq = $reqQuery->get_result()->fetch_assoc();
+                    ?>
+
+                    <?php if ($pendingReq): ?>
+                        <button class="btn btn-secondary" disabled style="opacity: 0.7; cursor: not-allowed;">Unlock Request Pending...</button>
+                    <?php else: ?>
+                        <button type="button" class="btn btn-primary" onclick="document.getElementById('unlockRequestModal').style.display='flex'">
+                            Request Admin to Unlock
+                        </button>
+                    <?php endif; ?>
+                <?php else: ?>
+                    <form action="../../app/actions/academics/toggle_elective_window.php" method="POST">
+                        <input type="hidden" name="class_subject_id" value="<?= $class_subject_id ?>">
+                        <input type="hidden" name="subject_id" value="<?= $subject_id ?>">
+                        <input type="hidden" name="action" value="lock">
+                        <button type="submit" class="btn btn-error" style="border: none;">
+                            Lock Enrollment
+                        </button>
+                    </form>
+                <?php endif; ?>
                 <a href="faculty_dashboard.php" class="btn btn-secondary">← Back to Dashboard</a>
+            </div>
+        </div>
+
+        <!-- Unlock Request Modal -->
+        <div id="unlockRequestModal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: 1rem;">
+            <div class="card" style="max-width: 500px; width: 100%;">
+                <h3 style="margin-bottom: 1rem;">Request Enrollment Unlock</h3>
+                <p style="font-size: 14px; color: var(--text-2); margin-bottom: 1.5rem;">Provide a reason for the Admin to unlock this elective selection (e.g. "Student missed deadline").</p>
+                <form action="../../app/actions/academics/request_elective_unlock.php" method="POST">
+                    <input type="hidden" name="class_subject_id" value="<?= $class_subject_id ?>">
+                    <input type="hidden" name="subject_id" value="<?= $subject_id ?>">
+                    <div class="form-group">
+                        <label>Reason for Unlock</label>
+                        <textarea name="reason" required placeholder="Type your reason here..." style="width: 100%; height: 100px; padding: 10px; border-radius: 8px; border: 1px solid var(--border);"></textarea>
+                    </div>
+                    <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 2rem;">
+                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('unlockRequestModal').style.display='none'">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Submit Request</button>
+                    </div>
+                </form>
             </div>
         </div>
 
@@ -141,13 +179,13 @@ require_once __DIR__ . '/../../app/includes/header.php';
                             </tr>
                         <?php endif; ?>
                         <?php foreach ($students as $s): 
-                            $enrolled = isset($s['is_enrolled']) ? $s['is_enrolled'] : ($s['status'] === 'enrolled');
+                            $status = $s['status'];
                         ?>
-                            <tr class="student-row" style="border-bottom: 1px solid var(--border); <?= $enrolled ? 'background: rgba(var(--success-rgb), 0.05);' : '' ?>">
+                            <tr class="student-row" style="border-bottom: 1px solid var(--border); <?= $status === 'enrolled' ? 'background: rgba(var(--success-rgb), 0.05);' : '' ?>">
                                 <?php if (!$is_locked): ?>
                                 <td style="padding: 1rem; text-align: center;">
                                     <input type="checkbox" name="enrolled_students[]" value="<?= $s['id'] ?>" 
-                                        <?= $enrolled ? 'checked' : '' ?>
+                                        <?= $status === 'enrolled' ? 'checked' : '' ?>
                                         style="width: 20px; height: 20px; cursor: pointer;">
                                 </td>
                                 <?php endif; ?>
@@ -157,10 +195,12 @@ require_once __DIR__ . '/../../app/includes/header.php';
                                 <td style="padding: 1rem; color: var(--text-2); font-family: monospace;"><?= htmlspecialchars($s['roll_no'] ?: 'N/A') ?></td>
                                 <td class="student-class" style="padding: 1rem; color: var(--text-2);"><?= htmlspecialchars($s['class_name'] ?: 'N/A') ?></td>
                                 <td style="padding: 1rem; text-align: center;">
-                                    <?php if ($enrolled): ?>
+                                    <?php if ($status === 'enrolled'): ?>
                                         <span class="badge" style="background: var(--success); color: #fff;">Enrolled</span>
+                                    <?php elseif ($status === 'pending'): ?>
+                                        <span class="badge" style="background: var(--warning); color: #000;">Pending Response</span>
                                     <?php else: ?>
-                                        <span class="badge" style="background: var(--warning); color: #000;">Not Enrolled</span>
+                                        <span class="badge" style="background: var(--bg-3); color: var(--text-3);">Rejected / Opted Out</span>
                                     <?php endif; ?>
                                 </td>
                             </tr>

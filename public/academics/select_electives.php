@@ -36,9 +36,9 @@ $window_stmt->execute();
 $window = $window_stmt->get_result()->fetch_assoc();
 $is_window_open = (bool)$window;
 
-// 3. Fetch available elective subjects for this class
+// 3. Fetch available elective subjects for this class - Respect granular locking
 $elective_query = $conn->prepare("
-    SELECT s.id as subject_id, s.name as subject_name, s.code, cs.id as class_subject_id,
+    SELECT s.id as subject_id, s.name as subject_name, s.code, cs.id as class_subject_id, cs.is_locked,
            (SELECT 1 FROM student_subjects ss WHERE ss.student_id = ? AND ss.class_subject_id = cs.id) as is_enrolled
     FROM class_subjects cs
     JOIN subjects s ON cs.subject_id = s.id
@@ -123,11 +123,16 @@ while ($row = $res_reqs->fetch_assoc()) {
                     <input type="hidden" name="class_id" value="<?= $class_id ?>">
                     
                     <div style="display: grid; gap: 1rem;">
-                        <?php foreach ($electives as $sub): ?>
-                            <label class="card" style="padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; cursor: <?= $is_window_open ? 'pointer' : 'default' ?>; border-left: 5px solid <?= $sub['is_enrolled'] ? 'var(--success)' : 'var(--border)' ?>;">
+                        <?php foreach ($electives as $sub): 
+                            $can_edit = $is_window_open && !$sub['is_locked'];
+                        ?>
+                            <label class="card" style="padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; cursor: <?= $can_edit ? 'pointer' : 'default' ?>; border-left: 5px solid <?= $sub['is_enrolled'] ? 'var(--success)' : 'var(--border)' ?>; opacity: <?= $sub['is_locked'] ? '0.7' : '1' ?>;">
                                 <div style="display: flex; align-items: center; gap: 15px;">
-                                    <?php if ($is_window_open): ?>
+                                    <?php if ($can_edit): ?>
                                         <input type="checkbox" name="class_subject_ids[]" value="<?= $sub['class_subject_id'] ?>" <?= $sub['is_enrolled'] ? 'checked' : '' ?> style="width: 20px; height: 20px;">
+                                    <?php elseif ($sub['is_enrolled']): ?>
+                                        <input type="hidden" name="class_subject_ids[]" value="<?= $sub['class_subject_id'] ?>">
+                                        <div style="font-size: 20px;">🔒</div>
                                     <?php endif; ?>
                                     <div>
                                         <h3 style="font-size: 1.15rem; font-weight: 600;"><?= htmlspecialchars($sub['subject_name']) ?></h3>
@@ -135,7 +140,9 @@ while ($row = $res_reqs->fetch_assoc()) {
                                     </div>
                                 </div>
                                 <div>
-                                    <?php if ($sub['is_enrolled']): ?>
+                                    <?php if ($sub['is_locked']): ?>
+                                        <span class="badge" style="background: var(--error); color: #fff;">Enrollment Locked</span>
+                                    <?php elseif ($sub['is_enrolled']): ?>
                                         <span class="badge badge-success">Currently Enrolled</span>
                                     <?php endif; ?>
                                 </div>

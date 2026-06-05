@@ -8,30 +8,22 @@ if (!has_permission('view_faculty_dashboard')) {
 }
 
 $faculty_id = (int) $_SESSION['user_id'];
-$semester = (int) ($_POST['semester'] ?? 0);
+$class_subject_id = (int) ($_POST['class_subject_id'] ?? 0);
 $subject_id = (int) ($_POST['subject_id'] ?? 0);
+$action = $_POST['action'] ?? '';
 
-if (!$semester) {
+if (!$class_subject_id || $action !== 'lock') {
     header("Location: ../../../public/academics/faculty_dashboard.php");
     exit();
 }
 
 try {
-    // Check current state
-    $stmt = $conn->prepare("SELECT is_locked FROM elective_windows WHERE semester = ? ORDER BY opened_at DESC LIMIT 1");
-    $stmt->bind_param("i", $semester);
-    $stmt->execute();
-    $window = $stmt->get_result()->fetch_assoc();
+    // Faculty can only LOCK directly
+    $stmt = $conn->prepare("UPDATE class_subjects SET is_locked = 1 WHERE id = ?");
+    $stmt->bind_param("i", $class_subject_id);
     
-    $new_lock_state = ($window && $window['is_locked'] == 0) ? 1 : 0;
-    
-    // Insert new state record
-    $ins = $conn->prepare("INSERT INTO elective_windows (semester, is_locked, opened_by, closed_at) VALUES (?, ?, ?, ?)");
-    $closed_at = ($new_lock_state == 1) ? date('Y-m-d H:i:s') : null;
-    $ins->bind_param("iiis", $semester, $new_lock_state, $faculty_id, $closed_at);
-    
-    if ($ins->execute()) {
-        $_SESSION['msg_success'] = "Enrollment window for Semester $semester is now " . ($new_lock_state ? "LOCKED" : "OPEN") . ".";
+    if ($stmt->execute()) {
+        $_SESSION['msg_success'] = "Enrollment has been locked for this elective.";
     } else {
         throw new Exception($conn->error);
     }
@@ -39,9 +31,6 @@ try {
     $_SESSION['msg_error'] = "Action failed: " . $e->getMessage();
 }
 
-$redirect = "../../../public/academics/manage_elective_students.php";
-if ($subject_id) $redirect .= "?id=$subject_id";
-
-header("Location: $redirect");
+header("Location: ../../../public/academics/manage_elective_students.php?id=$subject_id");
 exit;
 ?>

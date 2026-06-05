@@ -191,6 +191,7 @@ CREATE TABLE faculty_subjects (
 CREATE TABLE student_subjects (
     student_id       INT NOT NULL,
     class_subject_id INT NOT NULL,          -- changed from subject_id to preserve class context
+    status           ENUM('pending','enrolled','rejected') NOT NULL DEFAULT 'enrolled',
     PRIMARY KEY (student_id, class_subject_id),
     CONSTRAINT fk_ss_student
         FOREIGN KEY (student_id)       REFERENCES students(user_id)      ON DELETE CASCADE,
@@ -216,23 +217,19 @@ CREATE TABLE elective_windows (
 );
 
 CREATE TABLE elective_change_requests (
-    id             INT AUTO_INCREMENT PRIMARY KEY,
-    student_id     INT NOT NULL,
-    old_subject_id INT NOT NULL,
-    new_subject_id INT NOT NULL,
-    reason         TEXT NOT NULL,
-    status         ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
-    approved_by    INT NULL,
-    approved_at    TIMESTAMP NULL,
-    created_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_ecr_student
-        FOREIGN KEY (student_id)     REFERENCES students(user_id) ON DELETE CASCADE,
-    CONSTRAINT fk_ecr_old_subject
-        FOREIGN KEY (old_subject_id) REFERENCES subjects(id)      ON DELETE RESTRICT,
-    CONSTRAINT fk_ecr_new_subject
-        FOREIGN KEY (new_subject_id) REFERENCES subjects(id)      ON DELETE RESTRICT,
-    CONSTRAINT fk_ecr_approved_by
-        FOREIGN KEY (approved_by)    REFERENCES users(id)         ON DELETE SET NULL
+    id               INT AUTO_INCREMENT PRIMARY KEY,
+    faculty_id       INT NOT NULL,
+    class_subject_id INT NOT NULL,
+    reason           TEXT NOT NULL,
+    status           ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+    admin_id         INT NULL,
+    created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_ecr_faculty
+        FOREIGN KEY (faculty_id)       REFERENCES users(id)           ON DELETE CASCADE,
+    CONSTRAINT fk_ecr_class_subject
+        FOREIGN KEY (class_subject_id) REFERENCES class_subjects(id)  ON DELETE CASCADE,
+    CONSTRAINT fk_ecr_admin
+        FOREIGN KEY (admin_id)         REFERENCES users(id)           ON DELETE SET NULL
 );
 
 

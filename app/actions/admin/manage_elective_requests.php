@@ -7,11 +7,12 @@ if (!has_permission('view_admin_dashboard')) {
     exit();
 }
 
+$admin_id = (int) $_SESSION['user_id'];
 $request_id = (int) ($_POST['request_id'] ?? 0);
 $action = $_POST['action'] ?? '';
 
 if (!$request_id || !in_array($action, ['approve', 'reject'])) {
-    $_SESSION['msg_error'] = "Invalid request or action.";
+    $_SESSION['msg_error'] = "Invalid action parameters.";
     header("Location: ../../../public/admin/elective_requests.php");
     exit();
 }
@@ -19,39 +20,44 @@ if (!$request_id || !in_array($action, ['approve', 'reject'])) {
 try {
     $conn->begin_transaction();
 
-    // Fetch request details
-    $stmt = $conn->prepare("SELECT id FROM elective_change_requests WHERE id = ?");
-    $stmt->bind_param("i", $request_id);
-    $stmt->execute();
-    $request = $stmt->get_result()->fetch_assoc();
+    // 1. Fetch request details
+    $reqStmt = $conn->prepare("SELECT class_subject_id, faculty_id FROM elective_change_requests WHERE id = ? AND status = 'pending'");
+    $reqStmt->bind_param("i", $request_id);
+    $reqStmt->execute();
+    $request = $reqStmt->get_result()->fetch_assoc();
 
     if (!$request) {
-        throw new Exception("Request not found.");
+        throw new Exception("Request not found or already processed.");
     }
 
+    $class_subject_id = $request['class_subject_id'];
+    $status = ($action === 'approve') ? 'approved' : 'rejected';
+
+    // 2. Update request status
+    $updReq = $conn->prepare("UPDATE elective_change_requests SET status = ?, admin_id = ? WHERE id = ?");
+    $updReq->bind_param("sii", $status, $admin_id, $request_id);
+    $updReq->execute();
+
     if ($action === 'approve') {
-        // Mark request as approved
-        $rStmt = $conn->prepare("UPDATE elective_change_requests SET status = 'approved', approved_by = ?, approved_at = NOW() WHERE id = ?");
-        $admin_id = $_SESSION['user_id'];
-        $rStmt->bind_param("ii", $admin_id, $request_id);
-        $rStmt->execute();
+        // 3. Perform the actual unlock in class_subjects (v1 schema uses class_subjects.is_locked)
+        $unlock = $conn->prepare("UPDATE class_subjects SET is_locked = 0 WHERE id = ?");
+        $unlock->bind_param("i", $class_subject_id);
+        $unlock->execute();
 
-        $_SESSION['msg_success'] = "Elective change request approved.";
+        // Also ensure elective_windows is updated if needed (v1 tracks window per semester)
+        // For precision, unlocking the specific class_subject is enough for manage_elective_students.php
+        
+        $_SESSION['msg_success'] = "Enrollment unlocked for the requested elective.";
     } else {
-        // Mark request as rejected
-        $rStmt = $conn->prepare("UPDATE elective_change_requests SET status = 'rejected', approved_by = ?, approved_at = NOW() WHERE id = ?");
-        $admin_id = $_SESSION['user_id'];
-        $rStmt->bind_param("ii", $admin_id, $request_id);
-        $rStmt->execute();
-
-        $_SESSION['msg_success'] = "Elective change request rejected.";
+        $_SESSION['msg_success'] = "Unlock request rejected.";
     }
 
     $conn->commit();
 } catch (Exception $e) {
     $conn->rollback();
-    $_SESSION['msg_error'] = "Error: " . $e->getMessage();
+    $_SESSION['msg_error'] = "Action failed: " . $e->getMessage();
 }
 
 header("Location: ../../../public/admin/elective_requests.php");
-exit();
+exit;
+?>
