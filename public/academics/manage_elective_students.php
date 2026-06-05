@@ -93,6 +93,13 @@ require_once __DIR__ . '/../../app/includes/header.php';
                 </p>
             </div>
             <div style="display: flex; gap: 10px;">
+                <form action="../../app/actions/academics/toggle_elective_window.php" method="POST">
+                    <input type="hidden" name="semester" value="<?= $semester ?>">
+                    <input type="hidden" name="subject_id" value="<?= $subject_id ?>">
+                    <button type="submit" class="btn <?= $is_locked ? 'btn-primary' : 'btn-error' ?>" style="border: none;">
+                        <?= $is_locked ? 'Unlock Enrollment' : 'Lock Enrollment' ?>
+                    </button>
+                </form>
                 <a href="faculty_dashboard.php" class="btn btn-secondary">← Back to Dashboard</a>
             </div>
         </div>

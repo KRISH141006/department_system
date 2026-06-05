@@ -32,18 +32,20 @@ try {
         $insForm->execute();
         $new_form_id = $conn->insert_id;
 
-        // 2. Add default questions
-        $defaults = [
-            "How clear were the explanations during the lectures?",
-            "Rate the pace of teaching (1-Too Slow, 5-Too Fast, 3-Just Right)",
-            "How effective was the interaction and doubt-solving?",
-            "Rate your overall satisfaction with this course so far."
-        ];
+        // 2. Add custom questions
+        $questions = $_POST['questions'] ?? [];
+        if (empty($questions)) {
+            // Fallback to minimal defaults if none provided
+            $questions = ["Overall satisfaction with this course so far."];
+        }
 
         $insQ = $conn->prepare("INSERT INTO feedback_questions (form_id, question_text, question_type) VALUES (?, ?, 'rating')");
-        foreach ($defaults as $qText) {
-            $insQ->bind_param("is", $new_form_id, $qText);
-            $insQ->execute();
+        foreach ($questions as $qText) {
+            $qText = trim($qText);
+            if (!empty($qText)) {
+                $insQ->bind_param("is", $new_form_id, $qText);
+                $insQ->execute();
+            }
         }
 
         $_SESSION['msg_success'] = "Feedback form published successfully.";

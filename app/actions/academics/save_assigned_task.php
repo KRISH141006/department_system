@@ -12,6 +12,7 @@ $class_subject_id = (int) ($_POST['class_subject_id'] ?? 0);
 $title = trim($_POST['title'] ?? '');
 $description = trim($_POST['description'] ?? '');
 $deadline = $_POST['deadline'] ?? '';
+$allowed_formats = trim($_POST['allowed_formats'] ?? '');
 
 if (!$class_subject_id || empty($title) || empty($deadline)) {
     $_SESSION['msg_error'] = "Missing assignment details.";
@@ -19,13 +20,32 @@ if (!$class_subject_id || empty($title) || empty($deadline)) {
     exit();
 }
 
+// Handle File Upload
+$resource_path = null;
+$resource_name = null;
+
+if (isset($_FILES['resource_file']) && $_FILES['resource_file']['error'] === UPLOAD_ERR_OK) {
+    $upload_dir = __DIR__ . '/../../../public/uploads/resources/';
+    if (!is_dir($upload_dir)) {
+        mkdir($upload_dir, 0777, true);
+    }
+
+    $file_name = time() . '_' . basename($_FILES['resource_file']['name']);
+    $target_file = $upload_dir . $file_name;
+
+    if (move_uploaded_file($_FILES['resource_file']['tmp_name'], $target_file)) {
+        $resource_path = 'uploads/resources/' . $file_name;
+        $resource_name = $_FILES['resource_file']['name'];
+    }
+}
+
 try {
     // 1. Insert into 'assignments' table - Updated for normalized schema
     $stmt = $conn->prepare("
-        INSERT INTO assignments (faculty_id, class_subject_id, title, description, deadline, created_at) 
-        VALUES (?, ?, ?, ?, ?, NOW())
+        INSERT INTO assignments (faculty_id, class_subject_id, title, description, deadline, resource_path, resource_name, allowed_formats, created_at) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
     ");
-    $stmt->bind_param("iisss", $faculty_id, $class_subject_id, $title, $description, $deadline);
+    $stmt->bind_param("iissssss", $faculty_id, $class_subject_id, $title, $description, $deadline, $resource_path, $resource_name, $allowed_formats);
     
     if ($stmt->execute()) {
         $_SESSION['msg_success'] = "Assignment published to the class successfully.";

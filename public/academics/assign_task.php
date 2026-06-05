@@ -31,7 +31,7 @@ require_once __DIR__ . '/../../app/includes/header.php';
         <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem; margin-bottom: 0.5rem;">Create Assignment</h1>
         <p style="color: var(--text-2); margin-bottom: 2rem;">Publish a new task for your students to complete.</p>
 
-        <form action="../../app/actions/academics/save_assigned_task.php" method="POST">
+        <form action="../../app/actions/academics/save_assigned_task.php" method="POST" enctype="multipart/form-data">
             
             <div class="form-group">
                 <label style="display: block; margin-bottom: 8px; font-weight: 700; text-transform: uppercase; font-size: 0.75rem;">Select Class & Subject</label>
@@ -55,9 +55,20 @@ require_once __DIR__ . '/../../app/includes/header.php';
                 <textarea name="description" placeholder="Describe the task and any requirements..." style="width: 100%; height: 120px; padding: 12px; border: 2px solid var(--border); border-radius: 8px; background: var(--bg);"></textarea>
             </div>
 
+            <div class="grid-2" style="margin-top: 1.5rem;">
+                <div class="form-group">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 700; text-transform: uppercase; font-size: 0.75rem;">Deadline</label>
+                    <input type="datetime-local" name="deadline" required style="width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 8px; background: var(--bg);">
+                </div>
+                <div class="form-group">
+                    <label style="display: block; margin-bottom: 8px; font-weight: 700; text-transform: uppercase; font-size: 0.75rem;">Submission Format</label>
+                    <input type="text" name="allowed_formats" placeholder="e.g. PDF, ZIP, DOCX" style="width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 8px; background: var(--bg);">
+                </div>
+            </div>
+
             <div class="form-group" style="margin-top: 1.5rem;">
-                <label style="display: block; margin-bottom: 8px; font-weight: 700; text-transform: uppercase; font-size: 0.75rem;">Deadline</label>
-                <input type="datetime-local" name="deadline" required style="width: 100%; padding: 12px; border: 2px solid var(--border); border-radius: 8px; background: var(--bg);">
+                <label style="display: block; margin-bottom: 8px; font-weight: 700; text-transform: uppercase; font-size: 0.75rem;">Resource / Reference File (Optional)</label>
+                <input type="file" name="resource_file" style="width: 100%; padding: 10px; border: 2px solid var(--border); border-radius: 8px; background: var(--bg);">
             </div>
 
             <div style="margin-top: 2.5rem; text-align: right;">

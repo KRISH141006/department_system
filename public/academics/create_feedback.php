@@ -71,15 +71,37 @@ require_once __DIR__ . '/../../app/includes/header.php';
                 </div>
 
                 <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border);">
-                    <h4 style="margin-bottom: 1rem; font-size: 0.9rem; color: var(--text-2);">Default Questions Include:</h4>
-                    <ul style="font-size: 13px; color: var(--text-3); padding-left: 20px;">
-                        <li>Clarity of explanations</li>
-                        <li>Pace of teaching</li>
-                        <li>Interaction with students</li>
-                        <li>Overall satisfaction</li>
-                    </ul>
-                    <p style="font-size: 11px; color: var(--text-3); margin-top: 10px; font-style: italic;">* Individual questions will be editable in a future update.</p>
+                    <h4 style="margin-bottom: 1rem; font-size: 0.9rem; color: var(--text-2);">Form Questions:</h4>
+                    <div id="questionsContainer">
+                        <div class="question-row" style="margin-bottom: 10px; display: flex; gap: 10px;">
+                            <input type="text" name="questions[]" value="How clear were the explanations during the lectures?" required style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border); font-size: 13px;">
+                        </div>
+                        <div class="question-row" style="margin-bottom: 10px; display: flex; gap: 10px;">
+                            <input type="text" name="questions[]" value="Rate the pace of teaching (1-Too Slow, 5-Too Fast, 3-Just Right)" required style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border); font-size: 13px;">
+                        </div>
+                        <div class="question-row" style="margin-bottom: 10px; display: flex; gap: 10px;">
+                            <input type="text" name="questions[]" value="How effective was the interaction and doubt-solving?" required style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border); font-size: 13px;">
+                        </div>
+                        <div class="question-row" style="margin-bottom: 10px; display: flex; gap: 10px;">
+                            <input type="text" name="questions[]" value="Rate your overall satisfaction with this course so far." required style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border); font-size: 13px;">
+                        </div>
+                    </div>
+                    <button type="button" onclick="addQuestion()" class="btn btn-sm" style="margin-top: 10px; background: var(--bg-2); border: 1px dashed var(--border); color: var(--text-2); width: 100%;">+ Add Custom Question</button>
                 </div>
+
+                <script>
+                function addQuestion() {
+                    const container = document.getElementById('questionsContainer');
+                    const div = document.createElement('div');
+                    div.className = 'question-row';
+                    div.style.cssText = 'margin-bottom: 10px; display: flex; gap: 10px;';
+                    div.innerHTML = `
+                        <input type="text" name="questions[]" placeholder="Enter question text..." required style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border); font-size: 13px;">
+                        <button type="button" onclick="this.parentElement.remove()" style="background: none; border: none; color: var(--error); cursor: pointer; font-size: 18px;">&times;</button>
+                    `;
+                    container.appendChild(div);
+                }
+                </script>
 
                 <button type="submit" class="btn btn-primary btn-full" style="margin-top: 2rem;">Publish to Class</button>
             </form>

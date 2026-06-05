@@ -146,10 +146,22 @@ include __DIR__ . '/../../app/includes/header.php';
                             </div>
                             <div class="form-group" style="padding-top: 1.8rem;">
                                 <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                                    <input type="checkbox" name="is_cc" value="1" <?= ($role_data['is_cc'] ?? 0) ? 'checked' : '' ?>>
+                                    <input type="checkbox" name="is_cc" id="is_cc" value="1" <?= ($role_data['is_cc'] ?? 0) ? 'checked' : '' ?> onchange="document.getElementById('cc_class_group').style.display = this.checked ? 'block' : 'none'">
                                     <strong>Are you a Class Coordinator (CC)?</strong>
                                 </label>
                             </div>
+                        </div>
+
+                        <div class="form-group" id="cc_class_group" style="display: <?= ($role_data['is_cc'] ?? 0) ? 'block' : 'none' ?>; margin-top: 1rem;">
+                            <label>Coordinated Class <span style="color:red;">*</span></label>
+                            <select name="coordinated_class_id">
+                                <option value="">-- Select Coordinated Class --</option>
+                                <?php foreach ($classes as $c): ?>
+                                    <option value="<?= $c['id'] ?>" <?= ($role_data['coordinated_class_id'] ?? '') == $c['id'] ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars($c['name']) ?> (Sem <?= $c['semester'] ?> - <?= htmlspecialchars($c['branch']) ?>)
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
 
                         <div class="form-group">

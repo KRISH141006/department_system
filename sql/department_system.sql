@@ -419,6 +419,7 @@ CREATE TABLE assignments (
     deadline         DATETIME NULL,
     resource_path    VARCHAR(255) NULL,
     resource_name    VARCHAR(255) NULL,
+    allowed_formats  VARCHAR(100) NULL,
     created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_asgn_faculty
         FOREIGN KEY (faculty_id)       REFERENCES faculty(user_id)   ON DELETE RESTRICT,

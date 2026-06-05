@@ -20,7 +20,14 @@ if (!$request_id || $marks < 0 || $marks > 100) {
 try {
     $conn->begin_transaction();
 
-    // Insert review (Table name matches schema)
+    // Check for existing review to calculate points delta
+    $old_rev_stmt = $conn->prepare("SELECT marks FROM reviews WHERE request_id = ?");
+    $old_rev_stmt->bind_param("i", $request_id);
+    $old_rev_stmt->execute();
+    $old_rev = $old_rev_stmt->get_result()->fetch_assoc();
+    $old_marks = $old_rev ? (int)$old_rev['marks'] : 0;
+
+    // Insert or update review (Table name matches schema)
     $stmt = $conn->prepare(
         "INSERT INTO reviews (request_id, reviewer_id, marks, comment) VALUES (?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE marks=VALUES(marks), comment=VALUES(comment)"
@@ -35,11 +42,16 @@ try {
     $student_id = $req_stmt->get_result()->fetch_assoc()['user_id'] ?? 0;
 
     if ($student_id) {
-        // Award points (10% of marks)
-        $points = ceil($marks / 10);
-        $upd_points = $conn->prepare("UPDATE profiles SET community_score = community_score + ? WHERE user_id = ?");
-        $upd_points->bind_param("ii", $points, $student_id);
-        $upd_points->execute();
+        // Award points delta (10% of marks)
+        $old_points = ceil($old_marks / 10);
+        $new_points = ceil($marks / 10);
+        $points_delta = $new_points - $old_points;
+
+        if ($points_delta != 0) {
+            $upd_points = $conn->prepare("UPDATE profiles SET community_score = community_score + ? WHERE user_id = ?");
+            $upd_points->bind_param("ii", $points_delta, $student_id);
+            $upd_points->execute();
+        }
 
         // Automated Badges (Normalized logic)
         $award_badge = function($sid, $name, $icon) use ($conn, $reviewer_id) {

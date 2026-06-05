@@ -86,23 +86,25 @@ try {
         $sStmt->execute();
 
     } elseif ($role === 'faculty' || $role === 'admin') {
-        $emp_id             = strtoupper(trim($_POST['emp_id'] ?? ''));
-        $is_cc              = isset($_POST['is_cc']) ? 1 : 0;
-        $teaching_interests = trim($_POST['teaching_interests'] ?? '');
+        $emp_id               = strtoupper(trim($_POST['emp_id'] ?? ''));
+        $is_cc                = isset($_POST['is_cc']) ? 1 : 0;
+        $coordinated_class_id = $is_cc ? (int)($_POST['coordinated_class_id'] ?? 0) : null;
+        $teaching_interests   = trim($_POST['teaching_interests'] ?? '');
 
         if (empty($emp_id)) {
             throw new Exception("Employee ID is required for faculty.");
         }
 
         $fStmt = $conn->prepare("
-            INSERT INTO faculty (user_id, emp_id, is_cc, teaching_interests)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO faculty (user_id, emp_id, is_cc, coordinated_class_id, teaching_interests)
+            VALUES (?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE 
                 emp_id = VALUES(emp_id),
                 is_cc = VALUES(is_cc),
+                coordinated_class_id = VALUES(coordinated_class_id),
                 teaching_interests = VALUES(teaching_interests)
         ");
-        $fStmt->bind_param("isis", $user_id, $emp_id, $is_cc, $teaching_interests);
+        $fStmt->bind_param("isiis", $user_id, $emp_id, $is_cc, $coordinated_class_id, $teaching_interests);
         $fStmt->execute();
 
     } elseif ($role === 'expert') {

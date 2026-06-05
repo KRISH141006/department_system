@@ -101,6 +101,45 @@ require_once __DIR__ . '/../../app/includes/header.php';
             </table>
         </div>
     <?php endif; ?>
+
+    <!-- Continuous Feedback Section -->
+    <div style="margin-top: 4rem;">
+        <h2 style="margin-bottom: 1.5rem; font-family: 'DM Serif Display', serif;">Continuous Anonymous Feedback</h2>
+        <?php 
+        $cfQuery = $conn->prepare("
+            SELECT cf.*, s.name as subject_name 
+            FROM continuous_feedback cf 
+            LEFT JOIN subjects s ON cf.subject_id = s.id 
+            WHERE cf.faculty_id = ? 
+            ORDER BY cf.created_at DESC
+        ");
+        $cfQuery->bind_param("i", $faculty_id);
+        $cfQuery->execute();
+        $cf_results = $cfQuery->get_result()->fetch_all(MYSQLI_ASSOC);
+        ?>
+        
+        <?php if (empty($cf_results)): ?>
+            <div class="card" style="text-align: center; color: var(--text-3); padding: 3rem;">
+                No continuous feedback entries found.
+            </div>
+        <?php else: ?>
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <?php foreach ($cf_results as $cf): ?>
+                    <div class="card" style="border-left: 5px solid var(--primary);">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div>
+                                <span class="badge" style="background: var(--bg-2); color: var(--text-2); margin-bottom: 8px;">
+                                    <?= $cf['subject_name'] ? htmlspecialchars($cf['subject_name']) : 'General Feedback' ?>
+                                </span>
+                                <p style="font-size: 15px; line-height: 1.6; color: var(--text);"><?= nl2br(htmlspecialchars($cf['feedback_text'])) ?></p>
+                            </div>
+                            <span style="font-size: 11px; color: var(--text-3);"><?= date('d M Y, h:i A', strtotime($cf['created_at'])) ?></span>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </div>
 </div>
 
 <?php require_once __DIR__ . '/../../app/includes/footer.php'; ?>

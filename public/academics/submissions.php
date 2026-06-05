@@ -65,6 +65,30 @@ require_once __DIR__ . '/../../app/includes/header.php';
         <a href="assigned_tasks_history.php" class="btn btn-secondary">Back to History</a>
     </div>
 
+    <div class="grid-2" style="margin-bottom: 2rem;">
+        <div class="card" style="border-left: 5px solid var(--accent);">
+            <h3 style="margin-bottom: 0.5rem;">Assignment Details</h3>
+            <p style="font-size: 14px; color: var(--text-2);"><?= nl2br(htmlspecialchars($assignment['description'])) ?></p>
+            <?php if ($assignment['resource_path']): ?>
+                <div style="margin-top: 1rem; padding: 10px; background: var(--bg-2); border-radius: 6px; display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 20px;">📎</span>
+                    <a href="../<?= htmlspecialchars($assignment['resource_path']) ?>" target="_blank" style="font-size: 13px; font-weight: 600; color: var(--accent);"><?= htmlspecialchars($assignment['resource_name']) ?></a>
+                </div>
+            <?php endif; ?>
+        </div>
+        <div class="card" style="border-left: 5px solid var(--primary);">
+            <h3 style="margin-bottom: 0.5rem;">Requirements</h3>
+            <div style="margin-bottom: 10px;">
+                <span style="font-size: 11px; color: var(--text-3); text-transform: uppercase; font-weight: 700;">Deadline</span>
+                <div style="font-weight: 600; margin-top: 4px;"><?= date('d M Y, h:i A', strtotime($assignment['deadline'])) ?></div>
+            </div>
+            <div>
+                <span style="font-size: 11px; color: var(--text-3); text-transform: uppercase; font-weight: 700;">Allowed Formats</span>
+                <div style="font-weight: 600; margin-top: 4px;"><?= htmlspecialchars($assignment['allowed_formats'] ?: 'Any') ?></div>
+            </div>
+        </div>
+    </div>
+
     <div class="card" style="padding: 0; overflow: hidden;">
         <table style="width: 100%; border-collapse: collapse; text-align: left;">
             <thead style="background: var(--bg-2); border-bottom: 1px solid var(--border);">

@@ -125,6 +125,15 @@ function isImage($filename) {
             </div>
         </div>
 
+        <?php if ($assignment['allowed_formats']): ?>
+            <div class="meta-item">
+                <span class="meta-label">Required Format</span>
+                <span class="meta-value" style="background: var(--bg-2); padding: 5px 12px; border-radius: 6px; font-size: 0.9rem;">
+                    <?= htmlspecialchars($assignment['allowed_formats']) ?>
+                </span>
+            </div>
+        <?php endif; ?>
+
         <div class="meta-item">
             <span class="meta-label">Instructions</span>
             <div style="font-size: 1.1rem; line-height: 1.6; background: #f1f5f9; padding: 1.5rem; border-radius: 8px; border: 2px solid #1a1a1a;">
