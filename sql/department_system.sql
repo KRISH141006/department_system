@@ -296,60 +296,58 @@ CREATE TABLE continuous_feedback (
 
 
 -- ============================================================
--- DOMAIN 6: SYLLABUS VERIFICATION
+-- DOMAIN 6: SYLLABUS VERIFICATION (Bottom-Up)
 -- ============================================================
 
--- Faculty logs each lecture. class_id + subject_id kept explicit
--- (not collapsed to class_subject_id) for fast direct queries.
+-- 1. Faculty initiates a verification session for a class/subject on a given date
+CREATE TABLE verification_sessions (
+    id               INT AUTO_INCREMENT PRIMARY KEY,
+    faculty_id       INT NOT NULL,
+    class_subject_id INT NOT NULL,
+    session_date     DATE NOT NULL,
+    created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_session UNIQUE (class_subject_id, session_date),
+    CONSTRAINT fk_vs_faculty FOREIGN KEY (faculty_id) REFERENCES faculty(user_id) ON DELETE CASCADE,
+    CONSTRAINT fk_vs_cs FOREIGN KEY (class_subject_id) REFERENCES class_subjects(id) ON DELETE CASCADE
+);
+
+-- 2. Random PAC students are assigned to the session
+CREATE TABLE verification_assignments (
+    id                    INT AUTO_INCREMENT PRIMARY KEY,
+    session_id            INT NOT NULL,
+    student_id            INT NOT NULL,
+    status                ENUM('pending','submitted','absent') NOT NULL DEFAULT 'pending',
+    assigned_at           TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_va UNIQUE (session_id, student_id),
+    CONSTRAINT fk_va_session FOREIGN KEY (session_id) REFERENCES verification_sessions(id) ON DELETE CASCADE,
+    CONSTRAINT fk_va_student FOREIGN KEY (student_id) REFERENCES students(user_id) ON DELETE CASCADE
+);
+
+-- 3. Anonymous submissions of topics by students
+CREATE TABLE student_topic_submissions (
+    id           INT AUTO_INCREMENT PRIMARY KEY,
+    session_id   INT NOT NULL,
+    topic_id     INT NOT NULL,
+    -- Student identity intentionally omitted to maintain anonymity
+    submitted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_sts_session FOREIGN KEY (session_id) REFERENCES verification_sessions(id) ON DELETE CASCADE,
+    CONSTRAINT fk_sts_topic FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE
+);
+
+-- 4. Final confirmed records by faculty after reviewing submissions
 CREATE TABLE lecture_records (
     id           INT AUTO_INCREMENT PRIMARY KEY,
     faculty_id   INT NOT NULL,
-    class_id     INT NOT NULL,
-    subject_id   INT NOT NULL,
+    class_subject_id INT NOT NULL,
     topic_id     INT NOT NULL,
     lecture_date DATE NOT NULL,
-    start_time   TIME NOT NULL,
-    end_time     TIME NOT NULL,
-    assignment   TEXT NULL,
+    start_time   TIME NULL,
+    end_time     TIME NULL,
     created_at   TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_lr_faculty
-        FOREIGN KEY (faculty_id)  REFERENCES faculty(user_id)  ON DELETE RESTRICT,
-    CONSTRAINT fk_lr_class
-        FOREIGN KEY (class_id)    REFERENCES classes(id)       ON DELETE RESTRICT,
-    CONSTRAINT fk_lr_subject
-        FOREIGN KEY (subject_id)  REFERENCES subjects(id)      ON DELETE RESTRICT,
-    CONSTRAINT fk_lr_topic
-        FOREIGN KEY (topic_id)    REFERENCES topics(id)        ON DELETE RESTRICT
-);
-
--- One student is randomly assigned to verify each lecture
-CREATE TABLE verification_assignments (
-    id                INT AUTO_INCREMENT PRIMARY KEY,
-    lecture_record_id INT NOT NULL,
-    student_id        INT NOT NULL,
-    assigned_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    -- Only one verification assignment per student per lecture
-    UNIQUE KEY uq_va (lecture_record_id, student_id),
-    CONSTRAINT fk_va_lecture
-        FOREIGN KEY (lecture_record_id) REFERENCES lecture_records(id) ON DELETE CASCADE,
-    CONSTRAINT fk_va_student
-        FOREIGN KEY (student_id)        REFERENCES students(user_id)   ON DELETE CASCADE
-);
-
--- The actual verification submitted by the assigned student
-CREATE TABLE lecture_verifications (
-    id                INT AUTO_INCREMENT PRIMARY KEY,
-    lecture_record_id INT NOT NULL,
-    student_id        INT NOT NULL,
-    status            ENUM('pending','verified','disputed','absent') NOT NULL DEFAULT 'pending',
-    remarks           TEXT NULL,
-    verified_at       TIMESTAMP NULL,
-    -- One verification entry per student per lecture
-    UNIQUE KEY uq_lv (lecture_record_id, student_id),
-    CONSTRAINT fk_lv_lecture
-        FOREIGN KEY (lecture_record_id) REFERENCES lecture_records(id) ON DELETE CASCADE,
-    CONSTRAINT fk_lv_student
-        FOREIGN KEY (student_id)        REFERENCES students(user_id)   ON DELETE CASCADE
+    CONSTRAINT uq_lr UNIQUE (class_subject_id, topic_id, lecture_date),
+    CONSTRAINT fk_lr_faculty FOREIGN KEY (faculty_id) REFERENCES faculty(user_id) ON DELETE CASCADE,
+    CONSTRAINT fk_lr_cs FOREIGN KEY (class_subject_id) REFERENCES class_subjects(id) ON DELETE CASCADE,
+    CONSTRAINT fk_lr_topic FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE
 );
 
 

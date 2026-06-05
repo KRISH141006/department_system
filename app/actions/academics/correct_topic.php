@@ -7,30 +7,48 @@ if (!has_permission('view_faculty_dashboard')) {
     exit();
 }
 
-$lecture_record_id = (int) ($_POST['lecture_record_id'] ?? 0);
-$action = $_POST['action'] ?? ''; // 'confirm_not_covered', 'confirm_covered'
+$faculty_id = (int) $_SESSION['user_id'];
+$session_id = (int) ($_POST['session_id'] ?? 0);
+$topic_id   = (int) ($_POST['topic_id'] ?? 0);
+$action     = $_POST['action'] ?? '';
 
-if (!$lecture_record_id) {
+if (!$session_id || !$topic_id || $action !== 'verify') {
+    $_SESSION['msg_error'] = "Invalid verification request.";
     header("Location: ../../../public/academics/syllabus_verification.php");
     exit();
 }
 
 try {
-    if ($action === 'confirm_not_covered') {
-        // Delete the lecture record entirely if it was a mistake
-        $stmt = $conn->prepare("DELETE FROM lecture_records WHERE id = ?");
-        $stmt->bind_param("i", $lecture_record_id);
-        $stmt->execute();
-        $_SESSION['msg_success'] = "Lecture record removed and progress reset.";
-    } elseif ($action === 'confirm_covered') {
-        // Mark all disputed verifications as resolved (forced 'verified')
-        $stmt = $conn->prepare("UPDATE lecture_verifications SET status = 'verified', remarks = CONCAT(remarks, ' [Resolved by Faculty]') WHERE lecture_record_id = ? AND status = 'disputed'");
-        $stmt->bind_param("i", $lecture_record_id);
-        $stmt->execute();
-        $_SESSION['msg_success'] = "Disputes resolved. Topic remains marked as covered.";
+    $conn->begin_transaction();
+
+    // 1. Fetch Session Info
+    $sessStmt = $conn->prepare("SELECT class_subject_id, session_date FROM verification_sessions WHERE id = ? AND faculty_id = ?");
+    $sessStmt->bind_param("ii", $session_id, $faculty_id);
+    $sessStmt->execute();
+    $sess = $sessStmt->get_result()->fetch_assoc();
+
+    if (!$sess) {
+        throw new Exception("Session not found or access denied.");
     }
+
+    // 2. Insert into lecture_records (The official source of truth)
+    $stmt = $conn->prepare("
+        INSERT INTO lecture_records (faculty_id, class_subject_id, topic_id, lecture_date)
+        VALUES (?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE created_at = NOW()
+    ");
+    $stmt->bind_param("iiis", $faculty_id, $sess['class_subject_id'], $topic_id, $sess['session_date']);
+    
+    if ($stmt->execute()) {
+        $_SESSION['msg_success'] = "Topic has been officially verified and logged in the syllabus records.";
+    } else {
+        throw new Exception($conn->error);
+    }
+
+    $conn->commit();
 } catch (Exception $e) {
-    $_SESSION['msg_error'] = "Failed to resolve: " . $e->getMessage();
+    if ($conn->in_transaction) $conn->rollback();
+    $_SESSION['msg_error'] = "Verification failed: " . $e->getMessage();
 }
 
 header("Location: ../../../public/academics/syllabus_verification.php");

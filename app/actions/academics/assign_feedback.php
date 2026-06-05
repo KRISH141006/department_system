@@ -7,96 +7,84 @@ if (!has_permission('view_faculty_dashboard')) {
     exit();
 }
 
+$faculty_id = (int) $_SESSION['user_id'];
 $today = date('Y-m-d');
-$subject_id = (int) ($_POST['subject_id'] ?? 0);
-$redirect_params = $_POST['redirect_params'] ?? '';
+$class_subject_id = (int) ($_POST['class_subject_id'] ?? 0);
+$class_id = (int) ($_POST['class_id'] ?? 0);
 
-if ($subject_id <= 0) {
-    $_SESSION['msg_error'] = "Please select a subject to assign.";
-    header("Location: ../../../public/academics/select_student.php?$redirect_params");
+if ($class_subject_id <= 0 || $class_id <= 0) {
+    $_SESSION['msg_error'] = "Missing context details.";
+    header("Location: ../../../public/academics/select_student.php?class_id=$class_subject_id");
     exit();
 }
 
-// Check if ANY student is already assigned for this subject today
-$check = $conn->prepare("SELECT 1 FROM feedback_selector WHERE selected_date = ? AND subject_id = ? LIMIT 1");
-$check->bind_param("si", $today, $subject_id);
-$check->execute();
-if ($check->get_result()->num_rows > 0) {
-    $_SESSION['msg_error'] = "Students have already been assigned to this subject for today.";
-    header("Location: ../../../public/academics/select_student.php?$redirect_params");
-    exit();
-}
+try {
+    $conn->begin_transaction();
 
-// Handle PAC Stratified Random Assignment (5 students total)
-if (isset($_POST['random']) && $_POST['random'] == '1') {
-    $class = $_POST['class_name'] ?? '';
-
-    if (empty($class)) {
-        $_SESSION['msg_error'] = "Class is required for random assignment.";
-        header("Location: ../../../public/academics/select_student.php");
-        exit();
-    }
+    // 1. Create Verification Session
+    $stmt = $conn->prepare("INSERT IGNORE INTO verification_sessions (faculty_id, class_subject_id, session_date) VALUES (?, ?, ?)");
+    $stmt->bind_param("iis", $faculty_id, $class_subject_id, $today);
+    $stmt->execute();
     
-    $redirect_params = "class_name=" . urlencode($class);
-    $selected_students = [];
+    // Get session ID (either inserted or existing)
+    $sessStmt = $conn->prepare("SELECT id FROM verification_sessions WHERE class_subject_id = ? AND session_date = ?");
+    $sessStmt->bind_param("is", $class_subject_id, $today);
+    $sessStmt->execute();
+    $session_id = $sessStmt->get_result()->fetch_assoc()['id'];
 
-    // Helper to fetch random students by PAC
-    $fetchRandomPAC = function($cat, $limit) use ($conn, $class) {
+    // Check if students already assigned
+    $check = $conn->prepare("SELECT 1 FROM verification_assignments WHERE session_id = ? LIMIT 1");
+    $check->bind_param("i", $session_id);
+    $check->execute();
+    if ($check->get_result()->num_rows > 0) {
+        throw new Exception("Students have already been assigned for today.");
+    }
+
+    // 2. PAC Selection Logic (2 Premium, 2 Average, 1 Challenged)
+    $selected_students = [];
+    
+    $fetchRandomPAC = function($cat, $limit) use ($conn, $class_id) {
         $arr = [];
-        $query = $conn->prepare("SELECT id FROM users WHERE role = 'student' AND class_name = ? AND pac_category = ? ORDER BY RAND() LIMIT ?");
-        $query->bind_param("ssi", $class, $cat, $limit);
+        $query = $conn->prepare("SELECT user_id FROM students WHERE class_id = ? AND pac_category = ? ORDER BY RAND() LIMIT ?");
+        $query->bind_param("isi", $class_id, $cat, $limit);
         $query->execute();
         $res = $query->get_result();
         while ($row = $res->fetch_assoc()) {
-            $arr[] = $row['id'];
+            $arr[] = $row['user_id'];
         }
         return $arr;
     };
 
-    // 2 Premium, 2 Average, 1 Challenged
     $premium = $fetchRandomPAC('premium', 2);
     $average = $fetchRandomPAC('average', 2);
     $challenged = $fetchRandomPAC('challenged', 1);
 
-    // Combine all
     $selected_students = array_merge($premium, $average, $challenged);
 
-    // If we didn't get enough students based on PAC (maybe not enough in that category), 
-    // fill the rest randomly from the same class, excluding already selected
-    $needed = 5 - count($selected_students);
-    if ($needed > 0) {
-        $exclude_list = empty($selected_students) ? "0" : implode(",", $selected_students);
-        $fillQuery = $conn->prepare("SELECT id FROM users WHERE role = 'student' AND class_name = ? AND id NOT IN ($exclude_list) ORDER BY RAND() LIMIT ?");
-        $fillQuery->bind_param("si", $class, $needed);
-        $fillQuery->execute();
-        $fillRes = $fillQuery->get_result();
-        while ($row = $fillRes->fetch_assoc()) {
-            $selected_students[] = $row['id'];
+    // Fallback if categories are short
+    if (count($selected_students) < 5) {
+        $needed = 5 - count($selected_students);
+        $exclude_ids = !empty($selected_students) ? implode(',', $selected_students) : '0';
+        $fillQuery = $conn->query("SELECT user_id FROM students WHERE class_id = $class_id AND user_id NOT IN ($exclude_ids) ORDER BY RAND() LIMIT $needed");
+        while ($s = $fillQuery->fetch_assoc()) {
+            $selected_students[] = $s['user_id'];
         }
     }
 
-    if (count($selected_students) == 0) {
-        $_SESSION['msg_error'] = "No students found in this class to assign.";
-        header("Location: ../../../public/academics/select_student.php?$redirect_params");
-        exit();
+    // 3. Insert Assignments
+    $insVA = $conn->prepare("INSERT INTO verification_assignments (session_id, student_id) VALUES (?, ?)");
+    foreach ($selected_students as $sid) {
+        $insVA->bind_param("ii", $session_id, $sid);
+        $insVA->execute();
     }
 
-    // Insert new selections
-    $success_count = 0;
-    $stmt = $conn->prepare("INSERT INTO feedback_selector (selected_student_id, selected_date, subject_id) VALUES (?, ?, ?)");
-    foreach ($selected_students as $student_id) {
-        $stmt->bind_param("isi", $student_id, $today, $subject_id);
-        if ($stmt->execute()) {
-            $success_count++;
-        }
-    }
-
-    $_SESSION['msg_success'] = "$success_count students have been assigned anonymously for syllabus verification.";
-    header("Location: ../../../public/academics/faculty_dashboard.php");
-    exit();
+    $conn->commit();
+    $_SESSION['msg_success'] = count($selected_students) . " students assigned successfully for bottom-up verification.";
+} catch (Exception $e) {
+    if ($conn->in_transaction) $conn->rollback();
+    $_SESSION['msg_error'] = "Assignment failed: " . $e->getMessage();
 }
 
-$_SESSION['msg_error'] = "Invalid assignment request.";
-header("Location: ../../../public/academics/select_student.php?$redirect_params");
+header("Location: ../../../public/academics/select_student.php?class_id=$class_subject_id");
 exit();
 ?>

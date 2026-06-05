@@ -8,41 +8,60 @@ if (!has_permission('view_student_dashboard')) {
 }
 
 $student_id = (int) $_SESSION['user_id'];
-$lecture_record_id = (int) ($_POST['lecture_record_id'] ?? 0);
-$status = $_POST['status'] ?? 'verified'; // 'verified' or 'disputed'
-$remarks = trim($_POST['remarks'] ?? '');
+$session_id = (int) ($_POST['session_id'] ?? 0);
+$status     = $_POST['status'] ?? 'submitted'; // 'submitted' or 'absent'
+$topic_ids  = $_POST['topic_ids'] ?? [];     // Selected topic IDs
+$start_time = $_POST['start_time'] ?? null;
+$end_time   = $_POST['end_time'] ?? null;
 
-if (!$lecture_record_id) {
-    $_SESSION['msg_error'] = "Invalid lecture record.";
+if (!$session_id) {
+    $_SESSION['msg_error'] = "Invalid verification session.";
     header("Location: ../../../public/academics/student_dashboard.php");
     exit();
 }
 
 try {
-    // 1. Verify that student is assigned to this lecture
-    $checkVA = $conn->prepare("SELECT 1 FROM verification_assignments WHERE lecture_record_id = ? AND student_id = ?");
-    $checkVA->bind_param("ii", $lecture_record_id, $student_id);
-    $checkVA->execute();
-    if ($checkVA->get_result()->num_rows === 0) {
-        throw new Exception("You are not assigned to verify this lecture.");
+    $conn->begin_transaction();
+
+    // 1. Verify student assignment
+    $check = $conn->prepare("SELECT id FROM verification_assignments WHERE session_id = ? AND student_id = ? AND status = 'pending' LIMIT 1");
+    $check->bind_param("ii", $session_id, $student_id);
+    $check->execute();
+    if ($check->get_result()->num_rows === 0) {
+        throw new Exception("Assignment not found or already submitted.");
     }
 
-    // 2. Submit verification - Updated to 'lecture_verifications' table
-    $stmt = $conn->prepare("
-        INSERT INTO lecture_verifications (lecture_record_id, student_id, status, remarks, verified_at) 
-        VALUES (?, ?, ?, ?, NOW())
-        ON DUPLICATE KEY UPDATE status = VALUES(status), remarks = VALUES(remarks), verified_at = NOW()
-    ");
-    
-    // Normalize status values (handle discrepancy from legacy UI)
-    $final_status = $status;
-    if ($final_status === 'discrepancy') $final_status = 'disputed';
-    
-    $stmt->bind_param("iiss", $lecture_record_id, $student_id, $final_status, $remarks);
-    $stmt->execute();
+    if ($status === 'absent') {
+        // Handle Absent Flow: Update status and we'll let faculty reassign later
+        $upd = $conn->prepare("UPDATE verification_assignments SET status = 'absent' WHERE session_id = ? AND student_id = ?");
+        $upd->bind_param("ii", $session_id, $student_id);
+        $upd->execute();
+        $_SESSION['msg_success'] = "You have been marked absent for this lecture.";
+    } else {
+        // Handle Submission Flow
+        if (empty($topic_ids)) {
+            throw new Exception("Please select at least one topic that was covered.");
+        }
 
-    $_SESSION['msg_success'] = "Verification submitted successfully.";
+        // Save anonymous topic selections
+        $ins = $conn->prepare("INSERT INTO student_topic_submissions (session_id, topic_id) VALUES (?, ?)");
+        foreach ($topic_ids as $tid) {
+            $tid = (int)$tid;
+            $ins->bind_param("ii", $session_id, $tid);
+            $ins->execute();
+        }
+
+        // Update assignment status
+        $upd = $conn->prepare("UPDATE verification_assignments SET status = 'submitted' WHERE session_id = ? AND student_id = ?");
+        $upd->bind_param("ii", $session_id, $student_id);
+        $upd->execute();
+
+        $_SESSION['msg_success'] = "Syllabus report submitted successfully. Thank you for your feedback.";
+    }
+
+    $conn->commit();
 } catch (Exception $e) {
+    if ($conn->in_transaction) $conn->rollback();
     $_SESSION['msg_error'] = "Error: " . $e->getMessage();
 }
 

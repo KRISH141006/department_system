@@ -60,7 +60,7 @@ require_once __DIR__ . '/../../app/includes/header.php';
 
     <div class="grid-2">
         <?php if ($is_cc): ?>
-            <a href="manage_class.php" class="card" style="text-decoration: none; color: inherit; background: var(--bg-2); border: 2px solid var(--accent);">
+            <a href="manage_class.php" class="card" style="text-decoration: none; color: inherit; background: var(--bg-2); border: 2px solid var(--accent); grid-column: span 2;">
                 <div style="font-size: 32px; margin-bottom: 12px;">🏫</div>
                 <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600; color: var(--accent);">Manage My Class</h3>
                 <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">View roster, add or remove students for <strong><?= htmlspecialchars($ccInfo['class_name']) ?> (Sem <?= $ccInfo['semester'] ?>)</strong>.</p>
@@ -109,50 +109,43 @@ require_once __DIR__ . '/../../app/includes/header.php';
             <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">Review and manage tasks you have previously assigned to students.</p>
         </a>
 
-        <a href="syllabus_verification.php" class="card" style="text-decoration: none; color: inherit;">
+        <a href="syllabus_verification.php" class="card" style="text-decoration: none; color: inherit; border-top: 4px solid var(--success);">
             <?php 
-            // Count active verification assignments for this faculty's subjects today
+            // 1. Count pending student reports (Bottom-Up)
             $countStmt = $conn->prepare("
                 SELECT COUNT(*) as count 
                 FROM verification_assignments va 
-                JOIN lecture_records lr ON va.lecture_record_id = lr.id 
-                WHERE lr.faculty_id = ? AND DATE(va.assigned_at) = ?
+                JOIN verification_sessions vs ON va.session_id = vs.id 
+                WHERE vs.faculty_id = ? AND vs.session_date = ? AND va.status = 'pending'
             ");
             $countStmt->bind_param("is", $faculty_id, $today);
             $countStmt->execute();
-            $assignedCount = $countStmt->get_result()->fetch_assoc()['count'] ?? 0;
-            ?>
-            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                <div style="font-size: 32px; margin-bottom: 12px;">🎯</div>
-                <?php if ($assignedCount > 0): ?>
-                    <span class="badge badge-success"><?= $assignedCount ?> Active</span>
-                <?php endif; ?>
-            </div>
-            <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600;">Syllabus Verification</h3>
-            <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">Assign a student to verify today's covered topics.</p>
-        </a>
+            $pendingReports = $countStmt->get_result()->fetch_assoc()['count'] ?? 0;
 
-        <a href="syllabus_verification.php" class="card" style="text-decoration: none; color: inherit; border-top: 4px solid var(--accent);">
-            <?php 
-            // Count today's unverified records for faculty's subjects
+            // 2. Count sessions with new submissions waiting for faculty verification
             $updStmt = $conn->prepare("
-                SELECT COUNT(*) as count 
-                FROM lecture_records lr 
-                LEFT JOIN lecture_verifications lv ON lr.id = lv.lecture_record_id 
-                WHERE lr.faculty_id = ? AND DATE(lr.lecture_date) = ? AND (lv.status IS NULL OR lv.status = 'pending')
+                SELECT COUNT(DISTINCT vs.id) as count 
+                FROM verification_sessions vs
+                JOIN student_topic_submissions sts ON vs.id = sts.session_id
+                WHERE vs.faculty_id = ? AND vs.session_date = ?
             ");
             $updStmt->bind_param("is", $faculty_id, $today);
             $updStmt->execute();
             $updCount = $updStmt->get_result()->fetch_assoc()['count'] ?? 0;
             ?>
             <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                <div style="font-size: 32px; margin-bottom: 12px;">🔍</div>
-                <?php if ($updCount > 0): ?>
-                    <span class="badge badge-warning"><?= $updCount ?> Updates</span>
-                <?php endif; ?>
+                <div style="font-size: 32px; margin-bottom: 12px;">🎯</div>
+                <div style="display: flex; gap: 5px;">
+                    <?php if ($pendingReports > 0): ?>
+                        <span class="badge badge-warning"><?= $pendingReports ?> Pending</span>
+                    <?php endif; ?>
+                    <?php if ($updCount > 0): ?>
+                        <span class="badge badge-success"><?= $updCount ?> Ready</span>
+                    <?php endif; ?>
+                </div>
             </div>
-            <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600;">Progress Review</h3>
-            <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">Monitor and correct today's syllabus updates from students.</p>
+            <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600;">Syllabus Management</h3>
+            <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">Review student progress reports and officially verify covered topics.</p>
         </a>
     </div>
 
@@ -164,7 +157,7 @@ require_once __DIR__ . '/../../app/includes/header.php';
         </div>
         
         <?php 
-        // 3. Fetch Taught Subjects - Grouped by Subject to avoid duplicates for multiple classes
+        // 3. Fetch Taught Subjects - Grouped by Subject
         $subQuery = $conn->prepare("
             SELECT 
                 s.id as subject_id, 
@@ -176,8 +169,9 @@ require_once __DIR__ . '/../../app/includes/header.php';
                 GROUP_CONCAT(DISTINCT cs.id ORDER BY c.name) as class_subject_ids,
                 (SELECT COUNT(*) 
                  FROM verification_assignments va 
-                 JOIN lecture_records lr ON va.lecture_record_id = lr.id 
-                 WHERE lr.subject_id = s.id AND lr.faculty_id = fs.faculty_id AND DATE(va.assigned_at) = ?) as assigned_count,
+                 JOIN verification_sessions vs ON va.session_id = vs.id 
+                 JOIN class_subjects cs2 ON vs.class_subject_id = cs2.id
+                 WHERE cs2.subject_id = s.id AND vs.faculty_id = fs.faculty_id AND vs.session_date = ?) as assigned_count,
                 (SELECT COUNT(*) FROM student_subjects ss 
                  JOIN class_subjects cs2 ON ss.class_subject_id = cs2.id
                  JOIN faculty_subjects fs2 ON cs2.id = fs2.class_subject_id
@@ -307,12 +301,12 @@ require_once __DIR__ . '/../../app/includes/header.php';
             $avgRating = $arStmt->get_result()->fetch_assoc()['avg_rating'];
             $displayRating = $avgRating ? round($avgRating, 1) : '0.0';
 
-            // 3. Pending Verifications
+            // 3. Pending Verifications - Updated to bottom-up schema
             $ptStmt = $conn->prepare("
                 SELECT COUNT(*) as count 
                 FROM verification_assignments va 
-                JOIN lecture_records lr ON va.lecture_record_id = lr.id 
-                WHERE lr.faculty_id = ? AND va.lecture_record_id NOT IN (SELECT lecture_record_id FROM lecture_verifications)
+                JOIN verification_sessions vs ON va.session_id = vs.id 
+                WHERE vs.faculty_id = ? AND va.status = 'pending'
             ");
             $ptStmt->bind_param("i", $faculty_id);
             $ptStmt->execute();
