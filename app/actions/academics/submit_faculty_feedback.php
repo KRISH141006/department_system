@@ -35,15 +35,18 @@ try {
         ON DUPLICATE KEY UPDATE rating = VALUES(rating), answer_text = VALUES(answer_text)
     ");
 
-    foreach ($responses as $q_id => $answer) {
+    foreach ($responses as $q_id => $data) {
         $q_id = (int) $q_id;
+        $type = $data['type'] ?? '';
+        $value = $data['value'] ?? '';
+
         $rating = null;
         $answer_text = null;
 
-        if (is_numeric($answer)) {
-            $rating = (int) $answer;
+        if ($type === 'rating') {
+            $rating = (int) $value;
         } else {
-            $answer_text = trim($answer);
+            $answer_text = trim($value);
         }
 
         $stmt->bind_param("iiiis", $form_id, $q_id, $student_id, $rating, $answer_text);

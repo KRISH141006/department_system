@@ -36,14 +36,17 @@ try {
         $questions = $_POST['questions'] ?? [];
         if (empty($questions)) {
             // Fallback to minimal defaults if none provided
-            $questions = ["Overall satisfaction with this course so far."];
+            $questions = [['text' => "Overall satisfaction with this course so far.", 'type' => 'rating']];
         }
 
-        $insQ = $conn->prepare("INSERT INTO feedback_questions (form_id, question_text, question_type) VALUES (?, ?, 'rating')");
-        foreach ($questions as $qText) {
-            $qText = trim($qText);
+        $insQ = $conn->prepare("INSERT INTO feedback_questions (form_id, question_text, question_type, options) VALUES (?, ?, ?, ?)");
+        foreach ($questions as $q) {
+            $qText = trim($q['text'] ?? '');
+            $qType = $q['type'] ?? 'rating';
+            $qOpts = trim($q['options'] ?? '');
+
             if (!empty($qText)) {
-                $insQ->bind_param("is", $new_form_id, $qText);
+                $insQ->bind_param("isss", $new_form_id, $qText, $qType, $qOpts);
                 $insQ->execute();
             }
         }

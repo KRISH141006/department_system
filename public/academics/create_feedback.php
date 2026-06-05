@@ -70,36 +70,119 @@ require_once __DIR__ . '/../../app/includes/header.php';
                     <textarea name="description" placeholder="Instructions for students..." style="width: 100%; height: 80px; padding: 10px; border-radius: 8px; border: 1px solid var(--border);"></textarea>
                 </div>
 
-                <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border);">
-                    <h4 style="margin-bottom: 1rem; font-size: 0.9rem; color: var(--text-2);">Form Questions:</h4>
+                <div style="margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--border);">
+                    <h4 style="margin-bottom: 1.5rem; font-size: 1rem; color: var(--text-2);">Form Questions</h4>
                     <div id="questionsContainer">
-                        <div class="question-row" style="margin-bottom: 10px; display: flex; gap: 10px;">
-                            <input type="text" name="questions[]" value="How clear were the explanations during the lectures?" required style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border); font-size: 13px;">
-                        </div>
-                        <div class="question-row" style="margin-bottom: 10px; display: flex; gap: 10px;">
-                            <input type="text" name="questions[]" value="Rate the pace of teaching (1-Too Slow, 5-Too Fast, 3-Just Right)" required style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border); font-size: 13px;">
-                        </div>
-                        <div class="question-row" style="margin-bottom: 10px; display: flex; gap: 10px;">
-                            <input type="text" name="questions[]" value="How effective was the interaction and doubt-solving?" required style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border); font-size: 13px;">
-                        </div>
-                        <div class="question-row" style="margin-bottom: 10px; display: flex; gap: 10px;">
-                            <input type="text" name="questions[]" value="Rate your overall satisfaction with this course so far." required style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border); font-size: 13px;">
+                        <!-- Initial Question -->
+                        <div class="question-block" style="background: var(--bg-2); padding: 1.25rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid var(--border);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                <h5 class="q-number" style="margin: 0; font-weight: 700; color: var(--accent);">Question 1</h5>
+                                <button type="button" class="btn btn-sm btn-error remove-q" style="display: none; padding: 4px 10px;" onclick="removeQuestion(this)">Remove</button>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label style="font-size: 12px; font-weight: 700; text-transform: uppercase;">Question Text</label>
+                                <input type="text" name="questions[0][text]" value="How clear were the explanations during the lectures?" required style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg);">
+                            </div>
+
+                            <div class="grid-2" style="margin-top: 1rem;">
+                                <div class="form-group">
+                                    <label style="font-size: 12px; font-weight: 700; text-transform: uppercase;">Response Type</label>
+                                    <select name="questions[0][type]" onchange="toggleOptions(this)" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg);">
+                                        <option value="rating">Rating (1-5)</option>
+                                        <option value="mcq">Multiple Choice (MCQ)</option>
+                                        <option value="text">Text Area (Descriptive)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group options-group" style="display: none;">
+                                    <label style="font-size: 12px; font-weight: 700; text-transform: uppercase;">Options (Comma separated)</label>
+                                    <input type="text" name="questions[0][options]" placeholder="e.g. Excellent,Good,Average,Poor" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg);">
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    <button type="button" onclick="addQuestion()" class="btn btn-sm" style="margin-top: 10px; background: var(--bg-2); border: 1px dashed var(--border); color: var(--text-2); width: 100%;">+ Add Custom Question</button>
+                    
+                    <button type="button" onclick="addQuestion()" class="btn btn-sm" style="margin-top: 10px; background: var(--bg-2); border: 1px dashed var(--accent); color: var(--accent); width: 100%; font-weight: 700; padding: 12px;">+ Add Another Question</button>
                 </div>
 
                 <script>
+                let questionCount = 1;
+
                 function addQuestion() {
                     const container = document.getElementById('questionsContainer');
+                    const index = questionCount;
                     const div = document.createElement('div');
-                    div.className = 'question-row';
-                    div.style.cssText = 'margin-bottom: 10px; display: flex; gap: 10px;';
+                    div.className = 'question-block';
+                    div.style.cssText = 'background: var(--bg-2); padding: 1.25rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid var(--border);';
+                    
                     div.innerHTML = `
-                        <input type="text" name="questions[]" placeholder="Enter question text..." required style="flex: 1; padding: 8px; border-radius: 6px; border: 1px solid var(--border); font-size: 13px;">
-                        <button type="button" onclick="this.parentElement.remove()" style="background: none; border: none; color: var(--error); cursor: pointer; font-size: 18px;">&times;</button>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h5 class="q-number" style="margin: 0; font-weight: 700; color: var(--accent);">Question \${index + 1}</h5>
+                            <button type="button" class="btn btn-sm btn-error remove-q" style="padding: 4px 10px;" onclick="removeQuestion(this)">Remove</button>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label style="font-size: 12px; font-weight: 700; text-transform: uppercase;">Question Text</label>
+                            <input type="text" name="questions[\${index}][text]" placeholder="Enter your question here..." required style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg);">
+                        </div>
+
+                        <div class="grid-2" style="margin-top: 1rem;">
+                            <div class="form-group">
+                                <label style="font-size: 12px; font-weight: 700; text-transform: uppercase;">Response Type</label>
+                                <select name="questions[\${index}][type]" onchange="toggleOptions(this)" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg);">
+                                    <option value="rating">Rating (1-5)</option>
+                                    <option value="mcq">Multiple Choice (MCQ)</option>
+                                    <option value="text">Text Area (Descriptive)</option>
+                                </select>
+                            </div>
+                            <div class="form-group options-group" style="display: none;">
+                                <label style="font-size: 12px; font-weight: 700; text-transform: uppercase;">Options (Comma separated)</label>
+                                <input type="text" name="questions[\${index}][options]" placeholder="e.g. Good,Average,Poor" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg);">
+                            </div>
+                        </div>
                     `;
+                    
                     container.appendChild(div);
+                    questionCount++;
+                    updateRemoveButtons();
+                }
+
+                function removeQuestion(btn) {
+                    btn.closest('.question-block').remove();
+                    questionCount--;
+                    reindexQuestions();
+                    updateRemoveButtons();
+                }
+
+                function reindexQuestions() {
+                    const blocks = document.querySelectorAll('.question-block');
+                    blocks.forEach((block, idx) => {
+                        block.querySelector('.q-number').textContent = `Question \${idx + 1}`;
+                        block.querySelector('input[name*="[text]"]').name = `questions[\${idx}][text]`;
+                        block.querySelector('select[name*="[type]"]').name = `questions[\${idx}][type]`;
+                        const optInput = block.querySelector('input[name*="[options]"]');
+                        if (optInput) optInput.name = `questions[\${idx}][options]`;
+                    });
+                }
+
+                function updateRemoveButtons() {
+                    const btns = document.querySelectorAll('.remove-q');
+                    if (btns.length === 1) {
+                        btns[0].style.display = 'none';
+                    } else {
+                        btns.forEach(b => b.style.display = 'block');
+                    }
+                }
+
+                function toggleOptions(select) {
+                    const optionsGroup = select.closest('.grid-2').querySelector('.options-group');
+                    if (select.value === 'mcq') {
+                        optionsGroup.style.display = 'block';
+                        optionsGroup.querySelector('input').setAttribute('required', 'required');
+                    } else {
+                        optionsGroup.style.display = 'none';
+                        optionsGroup.querySelector('input').removeAttribute('required');
+                    }
                 }
                 </script>
 

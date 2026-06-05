@@ -26,15 +26,15 @@ $leaders = $leader_query->fetch_all(MYSQLI_ASSOC);
             <p style="color: var(--text-2); font-size: 1.1rem;">Highlighting our top contributors and high performers.</p>
         </div>
 
-        <div class="card" style="padding: 0; overflow: hidden;">
+        <div class="card" style="padding: 0; overflow: hidden; border: 1px solid var(--border);">
             <table style="width: 100%; border-collapse: collapse; text-align: left;">
                 <thead style="background: var(--bg-2); border-bottom: 1px solid var(--border);">
                     <tr>
-                        <th style="padding: 1.25rem 2rem; color: var(--text-3); font-weight: 500; width: 80px;">Rank</th>
-                        <th style="padding: 1.25rem; color: var(--text-3); font-weight: 500;">Student</th>
-                        <th style="padding: 1.25rem; color: var(--text-3); font-weight: 500;">Class</th>
-                        <th style="padding: 1.25rem; color: var(--text-3); font-weight: 500;">Badges</th>
-                        <th style="padding: 1.25rem 2rem; color: var(--text-3); font-weight: 500; text-align: right;">Points</th>
+                        <th style="padding: 1.25rem 2rem; color: var(--text-3); font-weight: 600; width: 80px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Rank</th>
+                        <th style="padding: 1.25rem; color: var(--text-3); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Student</th>
+                        <th style="padding: 1.25rem; color: var(--text-3); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Class</th>
+                        <th style="padding: 1.25rem; color: var(--text-3); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Badges</th>
+                        <th style="padding: 1.25rem 2rem; color: var(--text-3); font-weight: 600; text-align: right; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Points</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -53,41 +53,46 @@ $leaders = $leader_query->fetch_all(MYSQLI_ASSOC);
                         $badge_query->execute();
                         $badges = $badge_query->get_result()->fetch_all(MYSQLI_ASSOC);
                     ?>
-                        <tr style="border-bottom: 1px solid var(--border);">
-                            <td style="padding: 1.5rem 2rem; font-weight: 600; font-size: 1.1rem; color: var(--text-2);">
+                        <tr style="border-bottom: 1px solid var(--border); transition: background 0.2s;" onmouseover="this.style.background='var(--bg-2)'" onmouseout="this.style.background='transparent'">
+                            <td style="padding: 1.5rem 2rem; font-weight: 800; font-size: 1.1rem; color: var(--text-2);">
                                 <?php if ($rank === 1): ?>
-                                    <span style="color: #FFD700;">#1</span>
+                                    <span style="color: #FFD700; font-size: 1.4rem;">🥇</span>
                                 <?php elseif ($rank === 2): ?>
-                                    <span style="color: #C0C0C0;">#2</span>
+                                    <span style="color: #C0C0C0; font-size: 1.4rem;">🥈</span>
                                 <?php elseif ($rank === 3): ?>
-                                    <span style="color: #CD7F32;">#3</span>
+                                    <span style="color: #CD7F32; font-size: 1.4rem;">🥉</span>
                                 <?php else: ?>
-                                    #<?= $rank ?>
+                                    <span style="color: var(--text-3); margin-left: 5px;">#<?= $rank ?></span>
                                 <?php endif; ?>
                             </td>
                             <td style="padding: 1.5rem;">
                                 <div style="display: flex; align-items: center; gap: 12px;">
-                                    <div style="width: 32px; height: 32px; background: var(--bg-2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; color: var(--primary);">
-                                        <?= substr($student['name'], 0, 1) ?>
+                                    <div style="width: 36px; height: 36px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700; color: white; font-size: 0.9rem;">
+                                        <?= strtoupper(substr($student['name'], 0, 1)) ?>
                                     </div>
-                                    <a href="view_student.php?id=<?= $student['id'] ?>" style="text-decoration: none; color: var(--text); font-weight: 600;">
+                                    <a href="view_student.php?id=<?= $student['id'] ?>" style="text-decoration: none; color: var(--text); font-weight: 700; font-size: 1rem;">
                                         <?= htmlspecialchars($student['name']) ?>
                                     </a>
                                 </div>
                             </td>
                             <td style="padding: 1.5rem; color: var(--text-2); font-size: 0.9rem;">
-                                <?= htmlspecialchars($student['class_name']) ?> (Sem <?= $student['semester'] ?>)
+                                <div style="font-weight: 600;"><?= htmlspecialchars($student['class_name']) ?></div>
+                                <div style="font-size: 11px; color: var(--text-3);">Semester <?= $student['semester'] ?></div>
                             </td>
                             <td style="padding: 1.5rem;">
-                                <div style="display: flex; gap: 6px;">
-                                    <?php foreach ($badges as $badge): ?>
-                                        <span title="<?= htmlspecialchars($badge['badge_name']) ?>" style="background: var(--bg-2); width: 24px; height: 24px; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: var(--primary); font-size: 0.75rem;">
-                                            <i class="fa <?= $badge['icon'] ?>"></i>
-                                        </span>
-                                    <?php endforeach; ?>
+                                <div style="display: flex; gap: 8px;">
+                                    <?php if (empty($badges)): ?>
+                                        <span style="color: var(--text-3); font-size: 11px; font-style: italic;">No badges</span>
+                                    <?php else: ?>
+                                        <?php foreach ($badges as $badge): ?>
+                                            <span title="<?= htmlspecialchars($badge['badge_name']) ?>" style="background: var(--bg-2); padding: 5px 8px; border-radius: 6px; color: var(--accent); font-size: 12px; border: 1px solid var(--border);">
+                                                <?= htmlspecialchars($badge['icon'] ?? '🏆') ?>
+                                            </span>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
                                 </div>
                             </td>
-                            <td style="padding: 1.5rem 2rem; text-align: right; font-weight: 700; color: var(--primary); font-size: 1.1rem;">
+                            <td style="padding: 1.5rem 2rem; text-align: right; font-weight: 800; color: var(--accent); font-size: 1.2rem;">
                                 <?= number_format($student['community_score']) ?>
                             </td>
                         </tr>
