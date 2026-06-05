@@ -170,7 +170,9 @@ require_once __DIR__ . '/../../app/includes/header.php';
                    (SELECT COUNT(*) 
                     FROM verification_assignments va 
                     JOIN lecture_records lr ON va.lecture_record_id = lr.id 
-                    WHERE lr.subject_id = s.id AND lr.class_id = c.id AND DATE(va.assigned_at) = ?) as assigned_count
+                    WHERE lr.subject_id = s.id AND lr.class_id = c.id AND DATE(va.assigned_at) = ?) as assigned_count,
+                   (SELECT COUNT(*) FROM student_subjects ss WHERE ss.class_subject_id = cs.id) as invited_count,
+                   (SELECT COUNT(*) FROM student_subjects ss WHERE ss.class_subject_id = cs.id AND ss.status = 'enrolled') as enrolled_count
             FROM faculty_subjects fs 
             JOIN class_subjects cs ON fs.class_subject_id = cs.id 
             JOIN subjects s ON cs.subject_id = s.id 
@@ -188,7 +190,7 @@ require_once __DIR__ . '/../../app/includes/header.php';
                     <tr>
                         <th style="padding: 1.25rem;">Subject</th>
                         <th style="padding: 1.25rem;">Class & Semester</th>
-                        <th style="padding: 1.25rem;">Verification</th>
+                        <th style="padding: 1.25rem;">Roster / Status</th>
                         <th style="padding: 1.25rem; text-align: right;">Actions</th>
                     </tr>
                 </thead>
@@ -219,12 +221,19 @@ require_once __DIR__ . '/../../app/includes/header.php';
                                 <div style="font-size: 12px; color: var(--text-2);">Semester <?php echo htmlspecialchars($sub['semester']); ?></div>
                             </td>
                             <td style="padding: 1.25rem;">
-                                <?php if ($hasAssignments): ?>
+                                <?php if ($isElective): ?>
+                                    <div style="font-size: 13px; font-weight: 600;">
+                                        <span style="color: var(--accent);"><?= $sub['enrolled_count'] ?></span> / <?= $sub['invited_count'] ?> Joined
+                                    </div>
+                                    <div style="width: 100px; height: 6px; background: var(--bg-3); border-radius: 3px; margin-top: 5px; overflow: hidden;">
+                                        <div style="width: <?= ($sub['invited_count'] > 0) ? ($sub['enrolled_count'] / $sub['invited_count'] * 100) : 0 ?>%; height: 100%; background: var(--accent);"></div>
+                                    </div>
+                                <?php elseif ($hasAssignments): ?>
                                     <div style="display: flex; align-items: center; gap: 6px; color: var(--success); font-weight: 600; font-size: 13px;">
                                         <span style="font-size: 16px;">👥</span> <?php echo $sub['assigned_count']; ?> Assigned
                                     </div>
                                 <?php else: ?>
-                                    <span style="color: var(--text-3); font-size: 13px;">No assignments</span>
+                                    <span style="color: var(--text-3); font-size: 13px;">Regular Course</span>
                                 <?php endif; ?>
                             </td>
                             <td style="padding: 1.25rem; text-align: right;">

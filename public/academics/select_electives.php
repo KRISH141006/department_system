@@ -39,9 +39,10 @@ $is_window_open = (bool)$window;
 // 3. Fetch available elective subjects for this class - Respect granular locking
 $elective_query = $conn->prepare("
     SELECT s.id as subject_id, s.name as subject_name, s.code, cs.id as class_subject_id, cs.is_locked,
-           (SELECT 1 FROM student_subjects ss WHERE ss.student_id = ? AND ss.class_subject_id = cs.id) as is_enrolled
+           ss.status
     FROM class_subjects cs
     JOIN subjects s ON cs.subject_id = s.id
+    LEFT JOIN student_subjects ss ON ss.student_id = ? AND ss.class_subject_id = cs.id
     WHERE cs.class_id = ? AND s.type = 'elective'
 ");
 $elective_query->bind_param("ii", $student_id, $class_id);
@@ -50,22 +51,6 @@ $res_electives = $elective_query->get_result();
 $electives = [];
 while ($row = $res_electives->fetch_assoc()) {
     $electives[] = $row;
-}
-
-// 4. Check for pending change requests
-$req_query = $conn->prepare("
-    SELECT ecr.*, s_old.name as old_name, s_new.name as new_name 
-    FROM elective_change_requests ecr
-    JOIN subjects s_old ON ecr.old_subject_id = s_old.id
-    JOIN subjects s_new ON ecr.new_subject_id = s_new.id
-    WHERE ecr.student_id = ? AND ecr.status = 'pending'
-");
-$req_query->bind_param("i", $student_id);
-$req_query->execute();
-$res_reqs = $req_query->get_result();
-$pending_requests = [];
-while ($row = $res_reqs->fetch_assoc()) {
-    $pending_requests[] = $row;
 }
 ?>
 
@@ -94,23 +79,6 @@ while ($row = $res_reqs->fetch_assoc()) {
             </div>
         <?php endif; ?>
 
-        <!-- PENDING REQUESTS -->
-        <?php if (!empty($pending_requests)): ?>
-            <h2 style="font-size: 1.25rem; margin-bottom: 1rem;">Pending Change Requests</h2>
-            <?php foreach ($pending_requests as $req): ?>
-                <div class="card" style="border-left: 5px solid var(--accent); margin-bottom: 1.5rem; background: var(--bg-2);">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <p style="font-size: 0.9rem; color: var(--text-2);">Request to change from:</p>
-                            <h3 style="font-size: 1.1rem;"><strong><?= htmlspecialchars($req['old_name']) ?></strong> → <strong><?= htmlspecialchars($req['new_name']) ?></strong></h3>
-                            <p style="font-size: 0.85rem; color: var(--text-3); margin-top: 5px;">Reason: <?= htmlspecialchars($req['reason']) ?></p>
-                        </div>
-                        <span class="badge badge-pending">Under Review</span>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-        <?php endif; ?>
-
         <!-- ELECTIVE SELECTION FORM -->
         <div class="card">
             <h2 style="font-size: 1.5rem; margin-bottom: 1.5rem;">Available Electives</h2>
@@ -124,26 +92,36 @@ while ($row = $res_reqs->fetch_assoc()) {
                     
                     <div style="display: grid; gap: 1rem;">
                         <?php foreach ($electives as $sub): 
+                            $status = $sub['status'] ?? 'none';
+                            $is_enrolled = ($status === 'enrolled');
+                            $is_pending = ($status === 'pending');
                             $can_edit = $is_window_open && !$sub['is_locked'];
                         ?>
-                            <label class="card" style="padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; cursor: <?= $can_edit ? 'pointer' : 'default' ?>; border-left: 5px solid <?= $sub['is_enrolled'] ? 'var(--success)' : 'var(--border)' ?>; opacity: <?= $sub['is_locked'] ? '0.7' : '1' ?>;">
+                            <label class="card" style="padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; cursor: <?= $can_edit ? 'pointer' : 'default' ?>; border-left: 5px solid <?= $is_enrolled ? 'var(--success)' : ($is_pending ? 'var(--warning)' : 'var(--border)') ?>; opacity: <?= $sub['is_locked'] ? '0.7' : '1' ?>;">
                                 <div style="display: flex; align-items: center; gap: 15px;">
                                     <?php if ($can_edit): ?>
-                                        <input type="checkbox" name="class_subject_ids[]" value="<?= $sub['class_subject_id'] ?>" <?= $sub['is_enrolled'] ? 'checked' : '' ?> style="width: 20px; height: 20px;">
-                                    <?php elseif ($sub['is_enrolled']): ?>
+                                        <input type="checkbox" name="class_subject_ids[]" value="<?= $sub['class_subject_id'] ?>" <?= $is_enrolled ? 'checked' : '' ?> style="width: 20px; height: 20px;">
+                                    <?php elseif ($is_enrolled): ?>
                                         <input type="hidden" name="class_subject_ids[]" value="<?= $sub['class_subject_id'] ?>">
                                         <div style="font-size: 20px;">🔒</div>
                                     <?php endif; ?>
                                     <div>
-                                        <h3 style="font-size: 1.15rem; font-weight: 600;"><?= htmlspecialchars($sub['subject_name']) ?></h3>
-                                        <p style="color: var(--text-2); font-size: 0.85rem; font-family: monospace;"><?= htmlspecialchars($sub['code']) ?></p>
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <h3 style="font-size: 1.15rem; font-weight: 600; margin: 0;"><?= htmlspecialchars($sub['subject_name']) ?></h3>
+                                            <?php if ($is_pending): ?>
+                                                <span class="badge badge-warning" style="font-size: 10px;">INVITATION</span>
+                                            <?php endif; ?>
+                                        </div>
+                                        <p style="color: var(--text-2); font-size: 0.85rem; font-family: monospace; margin-top: 4px;"><?= htmlspecialchars($sub['code']) ?></p>
                                     </div>
                                 </div>
                                 <div>
                                     <?php if ($sub['is_locked']): ?>
-                                        <span class="badge" style="background: var(--error); color: #fff;">Enrollment Locked</span>
-                                    <?php elseif ($sub['is_enrolled']): ?>
-                                        <span class="badge badge-success">Currently Enrolled</span>
+                                        <span class="badge" style="background: var(--error); color: #fff;">Selection Locked</span>
+                                    <?php elseif ($is_enrolled): ?>
+                                        <span class="badge badge-success">Enrolled</span>
+                                    <?php elseif ($is_pending): ?>
+                                        <span class="badge badge-pending">New Invitation</span>
                                     <?php endif; ?>
                                 </div>
                             </label>

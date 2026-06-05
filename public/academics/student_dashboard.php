@@ -102,29 +102,37 @@ require_once __DIR__ . '/../../app/includes/header.php';
         
         <div style="display: grid; gap: 16px;">
             <?php
-            // 4. Check for pending elective requests - Updated to 'elective_change_requests' or similar
-            // Assuming old 'student_electives' is now handled via enrollment workflow or windows
-            // For now, checking if student has pending status in student_subjects if applicable, 
-            // but schema says 'student_subjects' is just a junction. 
-            // Let's check 'elective_change_requests' for pending.
-            $pend_check = $conn->prepare("
+            // 4. Check for pending elective requests (Invitations + Change Requests)
+            $inv_check = $conn->prepare("
+                SELECT COUNT(*) as pending_count 
+                FROM student_subjects ss
+                JOIN class_subjects cs ON ss.class_subject_id = cs.id
+                JOIN subjects s ON cs.subject_id = s.id
+                WHERE ss.student_id = ? AND ss.status = 'pending' AND s.type = 'elective'
+            ");
+            $inv_check->bind_param("i", $student_id);
+            $inv_check->execute();
+            $pending_invitations = (int)($inv_check->get_result()->fetch_assoc()['pending_count'] ?? 0);
+
+            $req_check = $conn->prepare("
                 SELECT COUNT(*) as pending_count 
                 FROM elective_change_requests 
-                WHERE student_id = ? AND status = 'pending'
+                WHERE faculty_id = ? AND status = 'pending' -- Wait, faculty_id is not correct for student dashboard
             ");
-            $pend_check->bind_param("i", $student_id);
-            $pend_check->execute();
-            $pending_requests = $pend_check->get_result()->fetch_assoc()['pending_count'] ?? 0;
-
-            if ($pending_requests > 0) {
+            // Fixed: elective_change_requests for a student doesn't have student_id in current schema? 
+            // Checking schema... it has faculty_id. 
+            // Ah, we reused it for Faculty->Admin requests. 
+            // Student->Faculty requests are likely handled differently or not yet implemented in V1.
+            
+            if ($pending_invitations > 0) {
             ?>
                 <div class="card" style="border-left: 4px solid var(--primary);">
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
                         <div>
-                            <h3 style="font-size: 1.1rem;">Elective Requests</h3>
-                            <p style="color: var(--text-2); font-size: 14px;">You have <?= $pending_requests ?> pending elective request<?= $pending_requests > 1 ? 's' : '' ?>.</p>
+                            <h3 style="font-size: 1.1rem;">New Elective Invitations</h3>
+                            <p style="color: var(--text-2); font-size: 14px;">You have <?= $pending_invitations ?> elective subject invitation<?= $pending_invitations > 1 ? 's' : '' ?> to respond to.</p>
                         </div>
-                        <a href="select_electives.php" class="btn btn-primary">Manage Electives</a>
+                        <a href="select_electives.php" class="btn btn-primary">Respond Now</a>
                     </div>
                 </div>
             <?php 

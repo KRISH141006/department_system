@@ -45,25 +45,38 @@ try {
         $stmt->execute();
         $_SESSION['msg_success'] = "Enrollment has been locked successfully for this class.";
 
+    } else if ($action_type === 'add_single') {
+        $student_id = (int) ($_POST['student_id'] ?? 0);
+        if ($student_id) {
+            $ins = $conn->prepare("
+                INSERT INTO student_subjects (student_id, class_subject_id, status) 
+                VALUES (?, ?, 'enrolled')
+                ON DUPLICATE KEY UPDATE status = 'enrolled'
+            ");
+            $ins->bind_param("ii", $student_id, $class_subject_id);
+            $ins->execute();
+            $_SESSION['msg_success'] = "Student added to elective successfully.";
+        }
     } else if ($action_type === 'batch_save') {
         $enrolled_student_ids = $_POST['enrolled_students'] ?? [];
         
-        // 1. Remove current associations for this class-subject
-        $del = $conn->prepare("DELETE FROM student_subjects WHERE class_subject_id = ?");
-        $del->bind_param("i", $class_subject_id);
-        $del->execute();
+        // 1. Get all students invited to this elective
+        $getInvited = $conn->prepare("SELECT student_id FROM student_subjects WHERE class_subject_id = ?");
+        $getInvited->bind_param("i", $class_subject_id);
+        $getInvited->execute();
+        $invited_ids = $getInvited->get_result()->fetch_all(MYSQLI_ASSOC);
+        $invited_ids = array_column($invited_ids, 'student_id');
 
-        // 2. Re-insert only the checked students
-        if (!empty($enrolled_student_ids)) {
-            $ins = $conn->prepare("INSERT INTO student_subjects (student_id, class_subject_id) VALUES (?, ?)");
-            foreach ($enrolled_student_ids as $sid) {
-                $sid = (int) $sid;
-                $ins->bind_param("ii", $sid, $class_subject_id);
-                $ins->execute();
-            }
+        // 2. Update status based on checkbox
+        $upd = $conn->prepare("UPDATE student_subjects SET status = ? WHERE student_id = ? AND class_subject_id = ?");
+        foreach ($invited_ids as $sid) {
+            $sid = (int) $sid;
+            $new_status = in_array($sid, $enrolled_student_ids) ? 'enrolled' : 'rejected';
+            $upd->bind_param("sii", $new_status, $sid, $class_subject_id);
+            $upd->execute();
         }
+        
         $_SESSION['msg_success'] = "Enrollment list updated successfully.";
-
     }
 
     $conn->commit();

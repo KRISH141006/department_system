@@ -24,6 +24,7 @@ $sStmt->execute();
 $subject = $sStmt->get_result()->fetch_assoc();
 
 if (!$subject) {
+    $_SESSION['msg_error'] = "Elective subject not found or access denied.";
     header("Location: faculty_dashboard.php");
     exit();
 }
@@ -38,7 +39,7 @@ $lockStmt->execute();
 $is_locked = (int)($lockStmt->get_result()->fetch_assoc()['is_locked'] ?? 1);
 
 // Check for approved unlock request (Manual Edit Mode)
-$req_stmt = $conn->prepare("SELECT id FROM elective_unlock_requests WHERE class_subject_id = ? AND status = 'approved' LIMIT 1");
+$req_stmt = $conn->prepare("SELECT id FROM elective_change_requests WHERE class_subject_id = ? AND status = 'approved' LIMIT 1");
 $req_stmt->bind_param("i", $class_subject_id);
 $req_stmt->execute();
 $manual_mode = $req_stmt->get_result()->num_rows > 0;
@@ -149,9 +150,15 @@ require_once __DIR__ . '/../../app/includes/header.php';
             <div class="alert alert-error"><?= $_SESSION['msg_error']; unset($_SESSION['msg_error']); ?></div>
         <?php endif; ?>
 
+        <?php if (!$is_locked): ?>
+            <div class="alert alert-warning" style="border-left: 5px solid var(--accent);">
+                <strong>🔓 Manual Edit Mode:</strong> You can now manually add or remove students from this elective. Changes will reflect immediately for students.
+            </div>
+        <?php endif; ?>
+
         <?php if ($is_locked): ?>
             <div class="alert alert-info">
-                <strong>Anonymity Enabled:</strong> Enrollment is locked. Only students who have accepted the elective are shown.
+                <strong>Anonymity Enabled:</strong> Enrollment is locked. Only students who have accepted the elective are shown below.
             </div>
         <?php endif; ?>
 
@@ -217,6 +224,76 @@ require_once __DIR__ . '/../../app/includes/header.php';
             </div>
             <?php endif; ?>
         </form>
+
+        <?php if (!$is_locked): ?>
+            <!-- SEARCH AND ADD STUDENT -->
+            <div style="margin-top: 5rem; padding-top: 3rem; border-top: 2px dashed var(--border);">
+                <h2 style="font-family: 'DM Serif Display', serif; font-size: 2rem; margin-bottom: 1rem;">Add Individual Student</h2>
+                <p style="color: var(--text-2); margin-bottom: 2rem;">Search for a student by name or enrollment number to manually add them to this elective.</p>
+
+                <div class="card">
+                    <form action="" method="GET" style="display: flex; gap: 10px;">
+                        <input type="hidden" name="id" value="<?= $subject_id ?>">
+                        <input type="text" name="search" placeholder="Enter student name or enrollment no..." value="<?= htmlspecialchars($_GET['search'] ?? '') ?>" style="flex: 1; padding: 12px; border: 2px solid var(--border); border-radius: 8px; background: var(--bg);">
+                        <button type="submit" class="btn btn-secondary">Search Student</button>
+                    </form>
+
+                    <?php 
+                    if (isset($_GET['search']) && !empty(trim($_GET['search']))):
+                        $search = "%" . trim($_GET['search']) . "%";
+                        $searchQuery = "
+                            SELECT u.id, u.name, s.roll_no, c.name as class_name, c.semester
+                            FROM users u
+                            JOIN students s ON u.id = s.user_id
+                            JOIN classes c ON s.class_id = c.id
+                            WHERE u.role = 'student' 
+                            AND (u.name LIKE ? OR s.roll_no LIKE ?)
+                            AND u.id NOT IN (SELECT student_id FROM student_subjects WHERE class_subject_id = ?)
+                            LIMIT 5
+                        ";
+                        $searchStmt = $conn->prepare($searchQuery);
+                        $searchStmt->bind_param("ssi", $search, $search, $class_subject_id);
+                        $searchStmt->execute();
+                        $search_results = $searchStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+                    ?>
+                        <div style="margin-top: 2rem;">
+                            <?php if (empty($search_results)): ?>
+                                <p style="text-align: center; color: var(--text-3); padding: 1rem;">No matching students found who aren't already in the list.</p>
+                            <?php else: ?>
+                                <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                                    <thead style="background: var(--bg-2); border-bottom: 1px solid var(--border);">
+                                        <tr>
+                                            <th style="padding: 10px;">Name</th>
+                                            <th style="padding: 10px;">Enrollment</th>
+                                            <th style="padding: 10px;">Class</th>
+                                            <th style="padding: 10px; text-align: right;">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($search_results as $sr): ?>
+                                            <tr style="border-bottom: 1px solid var(--border);">
+                                                <td style="padding: 10px; font-weight: 600;"><?= htmlspecialchars($sr['name']) ?></td>
+                                                <td style="padding: 10px; font-family: monospace;"><?= htmlspecialchars($sr['roll_no'] ?: 'N/A') ?></td>
+                                                <td style="padding: 10px; font-size: 13px;"><?= htmlspecialchars($sr['class_name']) ?> (Sem <?= $sr['semester'] ?>)</td>
+                                                <td style="padding: 10px; text-align: right;">
+                                                    <form action="../../app/actions/academics/manage_elective_enrollment.php" method="POST">
+                                                        <input type="hidden" name="student_id" value="<?= $sr['id'] ?>">
+                                                        <input type="hidden" name="class_subject_id" value="<?= $class_subject_id ?>">
+                                                        <input type="hidden" name="subject_id" value="<?= $subject_id ?>">
+                                                        <input type="hidden" name="action_type" value="add_single">
+                                                        <button type="submit" class="btn btn-sm" style="background: var(--success); color: white; border: none; padding: 4px 12px;">Add to Elective</button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+        <?php endif; ?>
     </div>
 </div>
 

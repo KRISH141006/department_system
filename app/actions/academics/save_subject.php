@@ -62,37 +62,59 @@ try {
         $target_subject_id = $conn->insert_id;
     }
 
-    // 3. Link Class to Subject
-    $csStmt = $conn->prepare("INSERT IGNORE INTO class_subjects (class_id, subject_id) VALUES (?, ?)");
-    $csStmt->bind_param("ii", $class_id, $target_subject_id);
-    $csStmt->execute();
-    
-    // Get actual class_subject_id
-    $getCs = $conn->prepare("SELECT id FROM class_subjects WHERE class_id = ? AND subject_id = ?");
-    $getCs->bind_param("ii", $class_id, $target_subject_id);
-    $getCs->execute();
-    $class_subject_id = $getCs->get_result()->fetch_assoc()['id'];
-
-    // 4. Assign Faculty to Class-Subject
-    $fsStmt = $conn->prepare("INSERT IGNORE INTO faculty_subjects (faculty_id, class_subject_id) VALUES (?, ?)");
-    $fsStmt->bind_param("ii", $faculty_id, $class_subject_id);
-    $fsStmt->execute();
-
-    // 4b. Push 'pending' invitations to students if it's an elective
+    // 3. Link Class to Subject (For core, it's just the one class. For elective, we might link more)
+    $target_classes = [$class_id];
     if ($is_elective) {
-        $student_stmt = $conn->prepare("SELECT user_id FROM students WHERE class_id = ?");
-        $student_stmt->bind_param("i", $class_id);
-        $student_stmt->execute();
-        $class_students = $student_stmt->get_result();
+        // Find all classes in this semester and branch
+        $allC = $conn->prepare("SELECT id FROM classes WHERE semester = ? AND branch = ?");
+        $allC->bind_param("is", $semester, $branch);
+        $allC->execute();
+        $cRes = $allC->get_result();
+        while ($r = $cRes->fetch_assoc()) {
+            if (!in_array($r['id'], $target_classes)) $target_classes[] = $r['id'];
+        }
+    }
 
-        $ins_invitation = $conn->prepare("
-            INSERT INTO student_subjects (student_id, class_subject_id, status) 
-            VALUES (?, ?, 'pending')
-            ON DUPLICATE KEY UPDATE status = status -- Don't overwrite if already 'enrolled'
-        ");
-        while ($student = $class_students->fetch_assoc()) {
-            $ins_invitation->bind_param("ii", $student['user_id'], $class_subject_id);
-            $ins_invitation->execute();
+    $class_subject_ids = [];
+    foreach ($target_classes as $tid) {
+        $csStmt = $conn->prepare("INSERT IGNORE INTO class_subjects (class_id, subject_id) VALUES (?, ?)");
+        $csStmt->bind_param("ii", $tid, $target_subject_id);
+        $csStmt->execute();
+        
+        $getCs = $conn->prepare("SELECT id FROM class_subjects WHERE class_id = ? AND subject_id = ?");
+        $getCs->bind_param("ii", $tid, $target_subject_id);
+        $getCs->execute();
+        $class_subject_ids[] = $getCs->get_result()->fetch_assoc()['id'];
+    }
+
+    // 4. Assign Faculty to all these Class-Subjects
+    $fsStmt = $conn->prepare("INSERT IGNORE INTO faculty_subjects (faculty_id, class_subject_id) VALUES (?, ?)");
+    foreach ($class_subject_ids as $csid) {
+        $fsStmt->bind_param("ii", $faculty_id, $csid);
+        $fsStmt->execute();
+
+        // 4b. Push 'pending' invitations to all students in these classes
+        if ($is_elective) {
+            // Get class_id for this csid
+            $gc = $conn->prepare("SELECT class_id FROM class_subjects WHERE id = ?");
+            $gc->bind_param("i", $csid);
+            $gc->execute();
+            $cid = $gc->get_result()->fetch_assoc()['class_id'];
+
+            $student_stmt = $conn->prepare("SELECT user_id FROM students WHERE class_id = ?");
+            $student_stmt->bind_param("i", $cid);
+            $student_stmt->execute();
+            $class_students = $student_stmt->get_result();
+
+            $ins_invitation = $conn->prepare("
+                INSERT INTO student_subjects (student_id, class_subject_id, status) 
+                VALUES (?, ?, 'pending')
+                ON DUPLICATE KEY UPDATE status = status
+            ");
+            while ($student = $class_students->fetch_assoc()) {
+                $ins_invitation->bind_param("ii", $student['user_id'], $csid);
+                $ins_invitation->execute();
+            }
         }
     }
 
