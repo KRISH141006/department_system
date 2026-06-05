@@ -59,20 +59,19 @@ try {
         }
     } else if ($action_type === 'batch_save') {
         $enrolled_student_ids = $_POST['enrolled_students'] ?? [];
+        $student_class_map = $_POST['student_class_map'] ?? [];
         
-        // 1. Get all students invited to this elective
-        $getInvited = $conn->prepare("SELECT student_id FROM student_subjects WHERE class_subject_id = ?");
-        $getInvited->bind_param("i", $class_subject_id);
-        $getInvited->execute();
-        $invited_ids = $getInvited->get_result()->fetch_all(MYSQLI_ASSOC);
-        $invited_ids = array_column($invited_ids, 'student_id');
-
-        // 2. Update status based on checkbox
-        $upd = $conn->prepare("UPDATE student_subjects SET status = ? WHERE student_id = ? AND class_subject_id = ?");
-        foreach ($invited_ids as $sid) {
+        $upd = $conn->prepare("
+            INSERT INTO student_subjects (student_id, class_subject_id, status)
+            VALUES (?, ?, ?)
+            ON DUPLICATE KEY UPDATE status = VALUES(status)
+        ");
+        
+        foreach ($student_class_map as $sid => $csid) {
             $sid = (int) $sid;
+            $csid = (int) $csid;
             $new_status = in_array($sid, $enrolled_student_ids) ? 'enrolled' : 'rejected';
-            $upd->bind_param("sii", $new_status, $sid, $class_subject_id);
+            $upd->bind_param("iis", $sid, $csid, $new_status);
             $upd->execute();
         }
         

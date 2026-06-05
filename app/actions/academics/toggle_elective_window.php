@@ -8,26 +8,28 @@ if (!has_permission('view_faculty_dashboard')) {
 }
 
 $faculty_id = (int) $_SESSION['user_id'];
-$class_subject_id = (int) ($_POST['class_subject_id'] ?? 0);
+$class_subject_ids = $_POST['class_subject_ids'] ?? [];
 $subject_id = (int) ($_POST['subject_id'] ?? 0);
 $action = $_POST['action'] ?? '';
 
-if (!$class_subject_id || $action !== 'lock') {
+if (empty($class_subject_ids) || $action !== 'lock') {
     header("Location: ../../../public/academics/faculty_dashboard.php");
     exit();
 }
 
 try {
-    // Faculty can only LOCK directly
+    $conn->begin_transaction();
     $stmt = $conn->prepare("UPDATE class_subjects SET is_locked = 1 WHERE id = ?");
-    $stmt->bind_param("i", $class_subject_id);
-    
-    if ($stmt->execute()) {
-        $_SESSION['msg_success'] = "Enrollment has been locked for this elective.";
-    } else {
-        throw new Exception($conn->error);
+    foreach ($class_subject_ids as $csid) {
+        $csid = (int) $csid;
+        $stmt->bind_param("i", $csid);
+        $stmt->execute();
     }
+    
+    $conn->commit();
+    $_SESSION['msg_success'] = "Enrollment has been locked for this elective.";
 } catch (Exception $e) {
+    if ($conn->in_transaction) $conn->rollback();
     $_SESSION['msg_error'] = "Action failed: " . $e->getMessage();
 }
 

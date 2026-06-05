@@ -25,16 +25,8 @@ $student_info = $stmt->get_result()->fetch_assoc();
 $class_id = $student_info['class_id'] ?? 0;
 $semester = $student_info['semester'] ?? 0;
 
-// 2. Check if elective window is open for this semester
-$window_stmt = $conn->prepare("
-    SELECT * FROM elective_windows 
-    WHERE semester = ? AND is_locked = 0 AND (closed_at IS NULL OR closed_at > NOW())
-    ORDER BY opened_at DESC LIMIT 1
-");
-$window_stmt->bind_param("i", $semester);
-$window_stmt->execute();
-$window = $window_stmt->get_result()->fetch_assoc();
-$is_window_open = (bool)$window;
+// 2. Window logic is now handled per-subject via class_subjects.is_locked
+$is_window_open = true; // Global bypass to allow granular control
 
 // 3. Fetch available elective subjects for this class - Respect granular locking
 $elective_query = $conn->prepare("
@@ -49,8 +41,10 @@ $elective_query->bind_param("ii", $student_id, $class_id);
 $elective_query->execute();
 $res_electives = $elective_query->get_result();
 $electives = [];
+$any_unlocked = false;
 while ($row = $res_electives->fetch_assoc()) {
     $electives[] = $row;
+    if (!$row['is_locked']) $any_unlocked = true;
 }
 ?>
 
@@ -68,20 +62,10 @@ while ($row = $res_electives->fetch_assoc()) {
             <div class="alert alert-error" style="margin-bottom: 1.5rem;"><?= $_SESSION['msg_error']; unset($_SESSION['msg_error']); ?></div>
         <?php endif; ?>
 
-        <!-- WINDOW STATUS -->
-        <?php if (!$is_window_open): ?>
-            <div class="alert alert-warning" style="margin-bottom: 2rem; border-left: 5px solid var(--warning);">
-                <strong>Enrollment Window Closed:</strong> The selection period for Semester <?= $semester ?> is currently locked. Please contact your Class Coordinator for manual changes.
-            </div>
-        <?php else: ?>
-            <div class="alert alert-success" style="margin-bottom: 2rem; border-left: 5px solid var(--success);">
-                <strong>Window Open:</strong> You can select or update your elective subjects until <?= $window['closed_at'] ? date('d M, Y H:i', strtotime($window['closed_at'])) : 'further notice' ?>.
-            </div>
-        <?php endif; ?>
-
         <!-- ELECTIVE SELECTION FORM -->
         <div class="card">
             <h2 style="font-size: 1.5rem; margin-bottom: 1.5rem;">Available Electives</h2>
+            <p style="font-size: 0.9rem; color: var(--text-2); margin-bottom: 1.5rem;">Select the subjects you wish to enroll in. Some subjects may be locked if the enrollment period has ended.</p>
             
             <?php if (empty($electives)): ?>
                 <p style="color: var(--text-3); text-align: center; padding: 2rem;">No elective subjects are offered for your class this semester.</p>
@@ -95,7 +79,7 @@ while ($row = $res_electives->fetch_assoc()) {
                             $status = $sub['status'] ?? 'none';
                             $is_enrolled = ($status === 'enrolled');
                             $is_pending = ($status === 'pending');
-                            $can_edit = $is_window_open && !$sub['is_locked'];
+                            $can_edit = !$sub['is_locked'];
                         ?>
                             <label class="card" style="padding: 1.5rem; display: flex; justify-content: space-between; align-items: center; cursor: <?= $can_edit ? 'pointer' : 'default' ?>; border-left: 5px solid <?= $is_enrolled ? 'var(--success)' : ($is_pending ? 'var(--warning)' : 'var(--border)') ?>; opacity: <?= $sub['is_locked'] ? '0.7' : '1' ?>;">
                                 <div style="display: flex; align-items: center; gap: 15px;">
@@ -128,15 +112,14 @@ while ($row = $res_electives->fetch_assoc()) {
                         <?php endforeach; ?>
                     </div>
 
-                    <?php if ($is_window_open): ?>
+                    <?php if ($any_unlocked): ?>
                         <div style="margin-top: 2rem; text-align: right;">
                             <button type="submit" class="btn btn-primary" style="padding: 0.8rem 2.5rem;">Confirm My Selections</button>
                         </div>
                     <?php else: ?>
                         <div style="margin-top: 2rem; padding: 1.5rem; background: var(--bg-2); border-radius: 8px; border: 1px dashed var(--border);">
-                            <h4 style="margin-bottom: 0.5rem; color: var(--accent);">Need to change an elective?</h4>
-                            <p style="font-size: 0.9rem; color: var(--text-2); margin-bottom: 1rem;">Since the window is closed, you must submit a formal change request to the department.</p>
-                            <button type="button" class="btn btn-secondary btn-sm" onclick="alert('Change Request feature coming soon in Phase 2 implementation.')">Submit Change Request</button>
+                            <h4 style="margin-bottom: 0.5rem; color: var(--accent);">Enrollment Locked</h4>
+                            <p style="font-size: 0.9rem; color: var(--text-2); margin-bottom: 1rem;">The selection period for your electives has ended. If you need to make changes, please contact the faculty or department.</p>
                         </div>
                     <?php endif; ?>
                 </form>

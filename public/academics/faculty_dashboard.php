@@ -164,20 +164,34 @@ require_once __DIR__ . '/../../app/includes/header.php';
         </div>
         
         <?php 
-        // 3. Fetch Taught Subjects - Updated junction logic
+        // 3. Fetch Taught Subjects - Grouped by Subject to avoid duplicates for multiple classes
         $subQuery = $conn->prepare("
-            SELECT s.id as subject_id, s.name as subject_name, c.name as class_name, c.semester, c.id as class_id, s.type, cs.id as class_subject_id,
-                   (SELECT COUNT(*) 
-                    FROM verification_assignments va 
-                    JOIN lecture_records lr ON va.lecture_record_id = lr.id 
-                    WHERE lr.subject_id = s.id AND lr.class_id = c.id AND DATE(va.assigned_at) = ?) as assigned_count,
-                   (SELECT COUNT(*) FROM student_subjects ss WHERE ss.class_subject_id = cs.id) as invited_count,
-                   (SELECT COUNT(*) FROM student_subjects ss WHERE ss.class_subject_id = cs.id AND ss.status = 'enrolled') as enrolled_count
+            SELECT 
+                s.id as subject_id, 
+                s.name as subject_name, 
+                s.type,
+                GROUP_CONCAT(DISTINCT c.name ORDER BY c.name SEPARATOR ', ') as class_names,
+                GROUP_CONCAT(DISTINCT c.semester ORDER BY c.name SEPARATOR ', ') as semesters,
+                GROUP_CONCAT(DISTINCT c.id ORDER BY c.name) as class_ids,
+                GROUP_CONCAT(DISTINCT cs.id ORDER BY c.name) as class_subject_ids,
+                (SELECT COUNT(*) 
+                 FROM verification_assignments va 
+                 JOIN lecture_records lr ON va.lecture_record_id = lr.id 
+                 WHERE lr.subject_id = s.id AND lr.faculty_id = fs.faculty_id AND DATE(va.assigned_at) = ?) as assigned_count,
+                (SELECT COUNT(*) FROM student_subjects ss 
+                 JOIN class_subjects cs2 ON ss.class_subject_id = cs2.id
+                 JOIN faculty_subjects fs2 ON cs2.id = fs2.class_subject_id
+                 WHERE cs2.subject_id = s.id AND fs2.faculty_id = fs.faculty_id) as invited_count,
+                (SELECT COUNT(*) FROM student_subjects ss 
+                 JOIN class_subjects cs2 ON ss.class_subject_id = cs2.id
+                 JOIN faculty_subjects fs2 ON cs2.id = fs2.class_subject_id
+                 WHERE cs2.subject_id = s.id AND fs2.faculty_id = fs.faculty_id AND ss.status = 'enrolled') as enrolled_count
             FROM faculty_subjects fs 
             JOIN class_subjects cs ON fs.class_subject_id = cs.id 
             JOIN subjects s ON cs.subject_id = s.id 
             JOIN classes c ON cs.class_id = c.id 
             WHERE fs.faculty_id = ?
+            GROUP BY s.id
         ");
         $subQuery->bind_param("si", $today, $faculty_id);
         $subQuery->execute();
@@ -206,6 +220,9 @@ require_once __DIR__ . '/../../app/includes/header.php';
                     <?php while ($sub = $subjects->fetch_assoc()): 
                         $hasAssignments = $sub['assigned_count'] > 0;
                         $isElective = $sub['type'] === 'elective';
+                        $class_ids = explode(',', $sub['class_ids']);
+                        $class_subject_ids = explode(',', $sub['class_subject_ids']);
+                        $class_names = explode(', ', $sub['class_names']);
                     ?>
                         <tr style="border-bottom: 1px solid var(--border);">
                             <td style="padding: 1.25rem;">
@@ -217,8 +234,8 @@ require_once __DIR__ . '/../../app/includes/header.php';
                                 </div>
                             </td>
                             <td style="padding: 1.25rem;">
-                                <div style="font-size: 14px;"><strong><?php echo htmlspecialchars($sub['class_name']); ?></strong></div>
-                                <div style="font-size: 12px; color: var(--text-2);">Semester <?php echo htmlspecialchars($sub['semester']); ?></div>
+                                <div style="font-size: 14px;"><strong><?php echo htmlspecialchars($sub['class_names']); ?></strong></div>
+                                <div style="font-size: 12px; color: var(--text-2);">Semesters: <?php echo htmlspecialchars($sub['semesters']); ?></div>
                             </td>
                             <td style="padding: 1.25rem;">
                                 <?php if ($isElective): ?>
@@ -237,17 +254,23 @@ require_once __DIR__ . '/../../app/includes/header.php';
                                 <?php endif; ?>
                             </td>
                             <td style="padding: 1.25rem; text-align: right;">
-                                <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                                    <?php if ($isElective): ?>
-                                        <a href="manage_elective_students.php?id=<?php echo $sub['subject_id']; ?>" class="btn btn-sm btn-secondary" title="Manage Students">Students</a>
-                                    <?php endif; ?>
-                                    <a href="units.php?subject_id=<?php echo $sub['subject_id']; ?>&class_id=<?php echo $sub['class_id']; ?>" class="btn btn-sm btn-secondary" title="Syllabus/Topics">Units</a>
-                                    <a href="select_student.php?class_id=<?php echo $sub['class_subject_id']; ?>" class="btn btn-sm <?php echo $hasAssignments ? 'btn-secondary' : 'btn-primary'; ?>">
-                                        <?php echo $hasAssignments ? 'Details' : 'Verify'; ?>
-                                    </a>
-                                    <a href="create_subject.php?id=<?php echo $sub['subject_id']; ?>" class="btn btn-sm btn-secondary" title="Edit Subject">
-                                        <span style="font-size: 14px;">⚙️</span>
-                                    </a>
+                                <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-end;">
+                                    <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                                        <?php if ($isElective): ?>
+                                            <a href="manage_elective_students.php?id=<?php echo $sub['subject_id']; ?>" class="btn btn-sm btn-secondary" title="Manage Students">Students</a>
+                                        <?php endif; ?>
+                                        <a href="units.php?subject_id=<?php echo $sub['subject_id']; ?>&class_id=<?php echo $class_ids[0]; ?>" class="btn btn-sm btn-secondary" title="Syllabus/Topics">Units</a>
+                                        <a href="create_subject.php?id=<?php echo $sub['subject_id']; ?>" class="btn btn-sm btn-secondary" title="Edit Subject">
+                                            <span style="font-size: 14px;">⚙️</span>
+                                        </a>
+                                    </div>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; max-width: 250px;">
+                                        <?php foreach ($class_subject_ids as $index => $csid): ?>
+                                            <a href="select_student.php?class_id=<?php echo $csid; ?>" class="btn btn-sm <?= $hasAssignments ? 'btn-secondary' : 'btn-primary'; ?>" style="font-size: 10px; padding: 2px 6px;">
+                                                Verify <?php echo $class_names[$index]; ?>
+                                            </a>
+                                        <?php endforeach; ?>
+                                    </div>
                                 </div>
                             </td>
                         </tr>

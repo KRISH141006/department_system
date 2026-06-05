@@ -14,27 +14,25 @@ if (!$faculty_id) {
 
 // Get student's current class/semester info
 $user_stmt = $conn->prepare("
-    SELECT c.semester 
-    FROM users u 
-    JOIN students s ON u.id = s.user_id 
-    JOIN classes c ON s.class_id = c.id 
-    WHERE u.id = ?
+    SELECT s.class_id 
+    FROM students s 
+    WHERE s.user_id = ?
 ");
 $user_stmt->bind_param("i", $student_id);
 $user_stmt->execute();
 $student_res = $user_stmt->get_result()->fetch_assoc();
-$semester = $student_res['semester'] ?? 0;
+$class_id = $student_res['class_id'] ?? 0;
 
-// Fetch subjects taught by this faculty that are part of the student's semester/curriculum
+// Fetch subjects taught by this faculty that are part of the student's specific class
 $stmt = $conn->prepare("
     SELECT s.id, s.name as subject_name, c.name as class_name 
     FROM faculty_subjects fs 
     JOIN class_subjects cs ON fs.class_subject_id = cs.id 
     JOIN subjects s ON cs.subject_id = s.id 
     JOIN classes c ON cs.class_id = c.id 
-    WHERE fs.faculty_id = ? AND c.semester = ?
+    WHERE fs.faculty_id = ? AND c.id = ?
 ");
-$stmt->bind_param("ii", $faculty_id, $semester);
+$stmt->bind_param("ii", $faculty_id, $class_id);
 $stmt->execute();
 $subjects = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
