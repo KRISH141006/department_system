@@ -27,7 +27,7 @@ $query = "
     JOIN class_subjects cs ON ecr.class_subject_id = cs.id
     JOIN subjects s ON cs.subject_id = s.id
     JOIN classes c ON cs.class_id = c.id
-    GROUP BY ecr.faculty_id, s.id
+    GROUP BY ecr.faculty_id, s.id, u.name, s.name, c.semester
     ORDER BY MIN(ecr.created_at) DESC
 ";
 $requests = $conn->query($query)->fetch_all(MYSQLI_ASSOC);

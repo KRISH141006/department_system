@@ -80,13 +80,13 @@ require_once __DIR__ . '/../../app/includes/header.php';
             (SELECT s.id, s.name as subject_name, 'core' as type 
              FROM class_subjects cs 
              JOIN subjects s ON cs.subject_id = s.id 
-             WHERE cs.class_id = ?)
+             WHERE cs.class_id = ? AND s.type = 'core')
             UNION
             (SELECT s.id, s.name as subject_name, 'elective' as type 
              FROM student_subjects ss 
              JOIN class_subjects cs ON ss.class_subject_id = cs.id
              JOIN subjects s ON cs.subject_id = s.id 
-             WHERE ss.student_id = ?)
+             WHERE ss.student_id = ? AND ss.status = 'enrolled' AND cs.is_locked = 1)
         ");
         $subQuery->bind_param("ii", $class_id, $student_id);
         $subQuery->execute();

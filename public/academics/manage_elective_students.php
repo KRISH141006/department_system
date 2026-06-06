@@ -263,17 +263,21 @@ require_once __DIR__ . '/../../app/includes/header.php';
                     if (isset($_GET['search']) && !empty(trim($_GET['search']))):
                         $search = "%" . trim($_GET['search']) . "%";
                         $searchQuery = "
-                            SELECT u.id, u.name, s.roll_no, c.name as class_name, c.semester
+                            SELECT u.id, u.name, s.roll_no, c.name as class_name, c.semester, cs.id as class_subject_id
                             FROM users u
                             JOIN students s ON u.id = s.user_id
                             JOIN classes c ON s.class_id = c.id
+                            JOIN class_subjects cs ON c.id = cs.class_id
                             WHERE u.role = 'student' 
                             AND (u.name LIKE ? OR s.roll_no LIKE ?)
-                            AND u.id NOT IN (SELECT student_id FROM student_subjects WHERE class_subject_id = ?)
+                            AND cs.id IN (" . implode(',', array_fill(0, count($class_subject_ids), '?')) . ")
+                            AND u.id NOT IN (SELECT student_id FROM student_subjects WHERE class_subject_id = cs.id)
                             LIMIT 5
                         ";
                         $searchStmt = $conn->prepare($searchQuery);
-                        $searchStmt->bind_param("ssi", $search, $search, $class_subject_id);
+                        $bind_types = "ss" . str_repeat('i', count($class_subject_ids));
+                        $bind_params = array_merge([$search, $search], $class_subject_ids);
+                        $searchStmt->bind_param($bind_types, ...$bind_params);
                         $searchStmt->execute();
                         $search_results = $searchStmt->get_result()->fetch_all(MYSQLI_ASSOC);
                     ?>
@@ -299,7 +303,7 @@ require_once __DIR__ . '/../../app/includes/header.php';
                                                 <td style="padding: 10px; text-align: right;">
                                                     <form action="../../app/actions/academics/manage_elective_enrollment.php" method="POST">
                                                         <input type="hidden" name="student_id" value="<?= $sr['id'] ?>">
-                                                        <input type="hidden" name="class_subject_id" value="<?= $class_subject_id ?>">
+                                                        <input type="hidden" name="class_subject_id" value="<?= $sr['class_subject_id'] ?>">
                                                         <input type="hidden" name="subject_id" value="<?= $subject_id ?>">
                                                         <input type="hidden" name="action_type" value="add_single">
                                                         <button type="submit" class="btn btn-sm" style="background: var(--success); color: white; border: none; padding: 4px 12px;">Add to Elective</button>

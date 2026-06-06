@@ -64,7 +64,7 @@ try {
         $upd = $conn->prepare("
             INSERT INTO student_subjects (student_id, class_subject_id, status)
             VALUES (?, ?, ?)
-            ON DUPLICATE KEY UPDATE status = VALUES(status)
+            ON DUPLICATE KEY UPDATE status = IF(VALUES(status) = 'enrolled', 'enrolled', IF(status = 'enrolled', 'rejected', status))
         ");
         
         foreach ($student_class_map as $sid => $csid) {

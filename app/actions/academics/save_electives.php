@@ -40,6 +40,16 @@ try {
         // If specific elective is locked, student CANNOT change their status for it
         if ($is_locked) continue;
 
+        // Double check: if already confirmed (status is enrolled or rejected), do not allow modifying
+        $check_curr = $conn->prepare("SELECT status FROM student_subjects WHERE student_id = ? AND class_subject_id = ?");
+        $check_curr->bind_param("ii", $student_id, $cs_id);
+        $check_curr->execute();
+        $curr_status = $check_curr->get_result()->fetch_assoc()['status'] ?? 'none';
+
+        if ($curr_status === 'enrolled' || $curr_status === 'rejected') {
+            continue;
+        }
+
         $new_status = $selected ? 'enrolled' : 'rejected';
 
         $stmt = $conn->prepare("
