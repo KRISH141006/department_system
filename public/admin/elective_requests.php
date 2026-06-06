@@ -7,15 +7,28 @@ if (!has_permission('view_admin_dashboard')) {
     exit();
 }
 
-// Fetch all pending and recent requests - Updated for normalized V1 schema
+// Fetch all pending and recent requests - deduplicated by subject + faculty
+// (An elective subject spans multiple class_subjects; we want one row per request, not per class)
 $query = "
-    SELECT ecr.*, u.name as faculty_name, s.name as subject_name, c.name as class_name, c.semester 
+    SELECT 
+        MIN(ecr.id) as id,
+        ecr.faculty_id,
+        u.name as faculty_name,
+        s.id as subject_id,
+        s.name as subject_name,
+        c.semester,
+        MIN(ecr.reason) as reason,
+        MIN(ecr.status) as status,
+        MIN(ecr.created_at) as created_at,
+        GROUP_CONCAT(DISTINCT c.name ORDER BY c.name SEPARATOR ', ') as class_names,
+        GROUP_CONCAT(DISTINCT ecr.id ORDER BY ecr.id SEPARATOR ',') as all_request_ids
     FROM elective_change_requests ecr
     JOIN users u ON ecr.faculty_id = u.id
     JOIN class_subjects cs ON ecr.class_subject_id = cs.id
     JOIN subjects s ON cs.subject_id = s.id
     JOIN classes c ON cs.class_id = c.id
-    ORDER BY ecr.created_at DESC
+    GROUP BY ecr.faculty_id, s.id
+    ORDER BY MIN(ecr.created_at) DESC
 ";
 $requests = $conn->query($query)->fetch_all(MYSQLI_ASSOC);
 
@@ -68,7 +81,7 @@ require_once __DIR__ . '/../../app/includes/header.php';
                             </td>
                             <td style="padding: 1.25rem;">
                                 <div style="font-weight: 600; color: var(--accent);"><?= htmlspecialchars($r['subject_name']) ?></div>
-                                <div style="font-size: 12px; color: var(--text-2);"><?= htmlspecialchars($r['class_name']) ?> (Sem <?= $r['semester'] ?>)</div>
+                                <div style="font-size: 12px; color: var(--text-2);"><?= htmlspecialchars($r['class_names']) ?> (Sem <?= $r['semester'] ?>)</div>
                             </td>
                             <td style="padding: 1.25rem;">
                                 <div style="font-size: 13px; color: var(--text-2); max-width: 300px; line-height: 1.5;"><?= htmlspecialchars($r['reason']) ?></div>
@@ -86,12 +99,12 @@ require_once __DIR__ . '/../../app/includes/header.php';
                                 <?php if ($r['status'] === 'pending'): ?>
                                     <div style="display: flex; gap: 8px; justify-content: flex-end;">
                                         <form action="../../app/actions/admin/manage_elective_requests.php" method="POST">
-                                            <input type="hidden" name="request_id" value="<?= $r['id'] ?>">
+                                            <input type="hidden" name="request_ids" value="<?= htmlspecialchars($r['all_request_ids']) ?>">
                                             <input type="hidden" name="action" value="approve">
                                             <button type="submit" class="btn btn-sm" style="background: var(--success); color: white; border: none; padding: 6px 15px;">Approve</button>
                                         </form>
                                         <form action="../../app/actions/admin/manage_elective_requests.php" method="POST">
-                                            <input type="hidden" name="request_id" value="<?= $r['id'] ?>">
+                                            <input type="hidden" name="request_ids" value="<?= htmlspecialchars($r['all_request_ids']) ?>">
                                             <input type="hidden" name="action" value="reject">
                                             <button type="submit" class="btn btn-sm" style="background: var(--error); color: white; border: none; padding: 6px 15px;">Reject</button>
                                         </form>

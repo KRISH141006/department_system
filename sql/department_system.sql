@@ -17,6 +17,7 @@
 DROP DATABASE IF EXISTS dept_system;
 CREATE DATABASE dept_system CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE dept_system;
+SET FOREIGN_KEY_CHECKS = 0;
 
 -- ============================================================
 -- DOMAIN 1: IDENTITY & ACCESS
@@ -857,22 +858,22 @@ INSERT INTO profiles (user_id, bio, skills, hobbies) VALUES
 --    is_cc = 1 for class coordinators (one per class)
 --    Faculty 2–11 are CCs; 12–16 are not
 -- ------------------------------------------------------------
-INSERT INTO faculty (user_id, emp_id, is_cc, teaching_interests) VALUES
-(2,  'F001', 1, 'Web Development, DBMS, Java'),   -- CC: 1EK1
-(3,  'F002', 1, 'Web Development, DBMS, Java'),   -- CC: 1EK2
-(4,  'F003', 1, 'Web Development, DBMS, Java'),   -- CC: 3EK1
-(5,  'F004', 1, 'Web Development, DBMS, Java'),   -- CC: 3EK2
-(6,  'F005', 1, 'Web Development, DBMS, Java'),   -- CC: 3EK3
-(7,  'F006', 1, 'Web Development, DBMS, Java'),   -- CC: 5EK1
-(8,  'F007', 1, 'Web Development, DBMS, Java'),   -- CC: 5EK2
-(9,  'F008', 1, 'Web Development, DBMS, Java'),   -- CC: 5EK3
-(10, 'F009', 1, 'Web Development, DBMS, Java'),   -- CC: 7EK1
-(11, 'F010', 1, 'Web Development, DBMS, Java'),   -- CC: 7EK2
-(12, 'F011', 0, 'Web Development, DBMS, Java'),
-(13, 'F012', 0, 'Web Development, DBMS, Java'),
-(14, 'F013', 0, 'Web Development, DBMS, Java'),
-(15, 'F014', 0, 'Web Development, DBMS, Java'),
-(16, 'F015', 0, 'Web Development, DBMS, Java');
+INSERT INTO faculty (user_id, emp_id, is_cc, coordinated_class_id, teaching_interests) VALUES
+(2,  'F001', 1, 1, 'Web Development, DBMS, Java'),   -- CC: 1EK1
+(3,  'F002', 1, 2, 'Web Development, DBMS, Java'),   -- CC: 1EK2
+(4,  'F003', 1, 3, 'Web Development, DBMS, Java'),   -- CC: 3EK1
+(5,  'F004', 1, 4, 'Web Development, DBMS, Java'),   -- CC: 3EK2
+(6,  'F005', 1, 5, 'Web Development, DBMS, Java'),   -- CC: 3EK3
+(7,  'F006', 1, 6, 'Web Development, DBMS, Java'),   -- CC: 5EK1
+(8,  'F007', 1, 7, 'Web Development, DBMS, Java'),   -- CC: 5EK2
+(9,  'F008', 1, 8, 'Web Development, DBMS, Java'),   -- CC: 5EK3
+(10, 'F009', 1, 9, 'Web Development, DBMS, Java'),   -- CC: 7EK1
+(11, 'F010', 1, 10, 'Web Development, DBMS, Java'),  -- CC: 7EK2
+(12, 'F011', 0, NULL, 'Web Development, DBMS, Java'),
+(13, 'F012', 0, NULL, 'Web Development, DBMS, Java'),
+(14, 'F013', 0, NULL, 'Web Development, DBMS, Java'),
+(15, 'F014', 0, NULL, 'Web Development, DBMS, Java'),
+(16, 'F015', 0, NULL, 'Web Development, DBMS, Java');
 
 
 -- ------------------------------------------------------------
@@ -1395,3 +1396,5 @@ INSERT INTO user_badges (user_id, badge_id, awarded_by) VALUES
 (100, 1, NULL),   -- student 100 gets "First Login" (system-awarded)
 (101, 1, NULL),   -- student 101 gets "First Login"
 (17,  4, NULL);   -- expert 17 gets "Community Pillar"
+
+SET FOREIGN_KEY_CHECKS = 1;

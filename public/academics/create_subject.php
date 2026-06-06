@@ -89,15 +89,9 @@ require_once __DIR__ . '/../../app/includes/header.php';
                 </div>
             </div>
 
-            <div class="grid-2">
-                <div class="form-group">
-                    <label>Department / Branch</label>
-                    <input type="text" name="branch" value="<?= htmlspecialchars($subject_data['branch'] ?? '') ?>" placeholder="e.g. Information Technology" required>
-                </div>
-                <div class="form-group" id="classGroup">
-                    <label>Target Class</label>
-                    <input type="text" name="class_name" value="<?= htmlspecialchars($subject_data['class_name'] ?? '') ?>" placeholder="e.g. 4EK1" id="classInput" oninput="autoSelectSemester()">
-                </div>
+            <div class="form-group" id="classGroup">
+                <label>Target Class</label>
+                <input type="text" name="class_name" value="<?= htmlspecialchars($subject_data['class_name'] ?? '') ?>" placeholder="e.g. 4EK1" id="classInput" oninput="autoSelectSemester()">
             </div>
 
             <div class="form-group">

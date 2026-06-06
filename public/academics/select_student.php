@@ -43,11 +43,10 @@ $session_id = $session['id'] ?? 0;
 
 $assignments = [];
 if ($session_id) {
+    // Anonymous: do NOT fetch student names or roll numbers — faculty must not know who was selected
     $assStmt = $conn->prepare("
-        SELECT va.*, u.name as student_name, s.roll_no
+        SELECT va.id, va.status
         FROM verification_assignments va 
-        JOIN users u ON va.student_id = u.id 
-        JOIN students s ON u.id = s.user_id
         WHERE va.session_id = ?
     ");
     $assStmt->bind_param("i", $session_id);
@@ -102,17 +101,15 @@ require_once __DIR__ . '/../../app/includes/header.php';
         <table style="width: 100%; border-collapse: collapse; text-align: left;">
             <thead style="background: var(--bg-2); border-bottom: 1px solid var(--border);">
                 <tr>
-                    <th style="padding: 1rem;">Student Name</th>
-                    <th style="padding: 1rem;">Roll No</th>
+                    <th style="padding: 1rem;">#</th>
                     <th style="padding: 1rem; text-align: center;">Status</th>
                     <th style="padding: 1rem; text-align: right;">Action</th>
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($assignments as $a): ?>
+                <?php foreach ($assignments as $idx => $a): ?>
                     <tr style="border-bottom: 1px solid var(--border);">
-                        <td style="padding: 1rem;"><strong><?= htmlspecialchars($a['student_name']) ?></strong></td>
-                        <td style="padding: 1rem; font-family: monospace;"><?= htmlspecialchars($a['roll_no']) ?></td>
+                        <td style="padding: 1rem; color: var(--text-2); font-style: italic;">Student <?= $idx + 1 ?></td>
                         <td style="padding: 1rem; text-align: center;">
                             <?php if ($a['status'] === 'submitted'): ?>
                                 <span class="badge badge-success">Submitted</span>

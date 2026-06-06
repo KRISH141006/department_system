@@ -33,14 +33,14 @@ if (!$student) {
 
 // 2. Fetch Detailed Verification History
 $stmt2 = $conn->prepare("
-    SELECT lv.*, lr.lecture_date, s.name as subject_name, t.name as topic_name, u.name as faculty_name
-    FROM lecture_verifications lv
-    JOIN lecture_records lr ON lv.lecture_record_id = lr.id 
-    JOIN subjects s ON lr.subject_id = s.id 
-    JOIN topics t ON lr.topic_id = t.id
-    JOIN users u ON lr.faculty_id = u.id
-    WHERE lv.student_id = ?
-    ORDER BY lv.verified_at DESC
+    SELECT va.status, va.assigned_at, vs.session_date, s.name as subject_name, u.name as faculty_name
+    FROM verification_assignments va
+    JOIN verification_sessions vs ON va.session_id = vs.id
+    JOIN class_subjects cs ON vs.class_subject_id = cs.id
+    JOIN subjects s ON cs.subject_id = s.id
+    JOIN users u ON vs.faculty_id = u.id
+    WHERE va.student_id = ?
+    ORDER BY vs.session_date DESC, va.assigned_at DESC
 ");
 $stmt2->bind_param("i", $student_id);
 $stmt2->execute();
@@ -66,35 +66,36 @@ require_once __DIR__ . '/../../app/includes/header.php';
         <h3 style="margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 10px;">Lecture Verification History</h3>
         
         <?php if (empty($history)): ?>
-            <p style="color: var(--text-3); text-align: center; padding: 2rem;">This student hasn't submitted any verifications yet.</p>
+            <p style="color: var(--text-3); text-align: center; padding: 2rem;">This student hasn't been assigned to any verification sessions yet.</p>
         <?php else: ?>
             <table style="width: 100%; border-collapse: collapse; text-align: left;">
                 <thead style="background: var(--bg-2); border-bottom: 1px solid var(--border);">
                     <tr>
-                        <th style="padding: 1rem;">Date</th>
-                        <th style="padding: 1rem;">Subject & Topic</th>
+                        <th style="padding: 1rem;">Session Date</th>
+                        <th style="padding: 1rem;">Subject</th>
                         <th style="padding: 1rem;">Faculty</th>
                         <th style="padding: 1rem; text-align: center;">Status</th>
-                        <th style="padding: 1rem;">Remarks</th>
+                        <th style="padding: 1rem;">Assigned At</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach ($history as $h): ?>
                         <tr style="border-bottom: 1px solid var(--border);">
-                            <td style="padding: 1rem; font-size: 13px;"><?= date('d M Y', strtotime($h['lecture_date'])) ?></td>
+                            <td style="padding: 1rem; font-size: 13px;"><?= date('d M Y', strtotime($h['session_date'])) ?></td>
                             <td style="padding: 1rem;">
                                 <div style="font-weight: 600; font-size: 14px;"><?= htmlspecialchars($h['subject_name']) ?></div>
-                                <div style="font-size: 12px; color: var(--text-2);"><?= htmlspecialchars($h['topic_name']) ?></div>
                             </td>
                             <td style="padding: 1rem; font-size: 13px;"><?= htmlspecialchars($h['faculty_name']) ?></td>
                             <td style="padding: 1rem; text-align: center;">
-                                <?php if ($h['status'] === 'verified'): ?>
-                                    <span class="badge badge-success">Verified</span>
+                                <?php if ($h['status'] === 'submitted'): ?>
+                                    <span class="badge badge-success">Submitted</span>
+                                <?php elseif ($h['status'] === 'absent'): ?>
+                                    <span class="badge badge-secondary">Absent</span>
                                 <?php else: ?>
-                                    <span class="badge badge-error">Disputed</span>
+                                    <span class="badge badge-pending" style="background: var(--warning); color: var(--text); padding: 4px 8px; border-radius: 4px; font-size: 11px;">Pending</span>
                                 <?php endif; ?>
                             </td>
-                            <td style="padding: 1rem; font-size: 12px; color: var(--text-3); max-width: 200px;"><?= htmlspecialchars($h['remarks'] ?: '—') ?></td>
+                            <td style="padding: 1rem; font-size: 12px; color: var(--text-3);"><?= date('d M Y, h:i A', strtotime($h['assigned_at'])) ?></td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>

@@ -30,13 +30,30 @@ $user_id = (int) $_SESSION['user_id'];
 $role = $_SESSION['role'];
 $today = date('Y-m-d');
 
+$class_id = (int) ($_GET['class_id'] ?? 0);
+if ($role === 'student' && !$class_id) {
+    $studStmt = $conn->prepare("SELECT class_id FROM students WHERE user_id = ?");
+    $studStmt->bind_param("i", $user_id);
+    $studStmt->execute();
+    $class_id = (int) ($studStmt->get_result()->fetch_assoc()['class_id'] ?? 0);
+}
+
+$class_subject_id = 0;
+if ($class_id && $subject_id) {
+    $csQuery = $conn->prepare("SELECT id FROM class_subjects WHERE class_id = ? AND subject_id = ?");
+    $csQuery->bind_param("ii", $class_id, $subject_id);
+    $csQuery->execute();
+    $class_subject_id = (int) ($csQuery->get_result()->fetch_assoc()['id'] ?? 0);
+}
+
 if ($role === 'student') {
     // Updated to new 'verification_assignments' table (replaces feedback_selector)
     // Check if student is assigned to verify any lecture for this subject today
     $feedChk = $conn->prepare("
         SELECT 1 FROM verification_assignments va 
-        JOIN lecture_records lr ON va.lecture_record_id = lr.id 
-        WHERE va.student_id = ? AND lr.subject_id = ? AND DATE(va.assigned_at) = ?
+        JOIN verification_sessions vs ON va.session_id = vs.id 
+        JOIN class_subjects cs ON vs.class_subject_id = cs.id 
+        WHERE va.student_id = ? AND cs.subject_id = ? AND DATE(va.assigned_at) = ?
         LIMIT 1
     ");
     $feedChk->bind_param("iis", $user_id, $subject_id, $today);
@@ -147,8 +164,17 @@ require_once __DIR__ . '/../../app/includes/header.php';
                             $covered = 0;
                             
                             // Compatibility check with lecture_records (new topic progress tracker)
-                            $checkTopic = $conn->prepare("SELECT 1 FROM lecture_records WHERE subject_id = ? AND topic_id = ? LIMIT 1");
-                            $checkTopic->bind_param("ii", $subject_id, $topic_id);
+                            if ($class_subject_id > 0) {
+                                $checkTopic = $conn->prepare("SELECT 1 FROM lecture_records WHERE class_subject_id = ? AND topic_id = ? LIMIT 1");
+                                $checkTopic->bind_param("ii", $class_subject_id, $topic_id);
+                            } else {
+                                $checkTopic = $conn->prepare("
+                                    SELECT 1 FROM lecture_records lr
+                                    JOIN class_subjects cs ON lr.class_subject_id = cs.id
+                                    WHERE cs.subject_id = ? AND lr.topic_id = ? LIMIT 1
+                                ");
+                                $checkTopic->bind_param("ii", $subject_id, $topic_id);
+                            }
                             $checkTopic->execute();
                             $res = $checkTopic->get_result();
                             if ($res->num_rows > 0) {

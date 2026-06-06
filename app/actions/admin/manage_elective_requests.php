@@ -8,10 +8,14 @@ if (!has_permission('view_admin_dashboard')) {
 }
 
 $admin_id = (int) $_SESSION['user_id'];
-$request_id = (int) ($_POST['request_id'] ?? 0);
 $action = $_POST['action'] ?? '';
 
-if (!$request_id || !in_array($action, ['approve', 'reject'])) {
+// Support both single request_id (legacy) and comma-separated request_ids (grouped)
+$raw_ids = trim($_POST['request_ids'] ?? $_POST['request_id'] ?? '');
+// Sanitize: only allow integers separated by commas
+$id_list = array_filter(array_map('intval', explode(',', $raw_ids)));
+
+if (empty($id_list) || !in_array($action, ['approve', 'reject'])) {
     $_SESSION['msg_error'] = "Invalid action parameters.";
     header("Location: ../../../public/admin/elective_requests.php");
     exit();
@@ -20,34 +24,37 @@ if (!$request_id || !in_array($action, ['approve', 'reject'])) {
 try {
     $conn->begin_transaction();
 
-    // 1. Fetch request details
-    $reqStmt = $conn->prepare("SELECT class_subject_id, faculty_id FROM elective_change_requests WHERE id = ? AND status = 'pending'");
-    $reqStmt->bind_param("i", $request_id);
-    $reqStmt->execute();
-    $request = $reqStmt->get_result()->fetch_assoc();
+    $status = ($action === 'approve') ? 'approved' : 'rejected';
+    $placeholders = implode(',', array_fill(0, count($id_list), '?'));
+    $types = str_repeat('i', count($id_list));
 
-    if (!$request) {
-        throw new Exception("Request not found or already processed.");
+    // 1. Fetch all class_subject_ids for these pending requests
+    $fetchStmt = $conn->prepare("SELECT id, class_subject_id FROM elective_change_requests WHERE id IN ($placeholders) AND status = 'pending'");
+    $fetchStmt->bind_param($types, ...$id_list);
+    $fetchStmt->execute();
+    $pendingRequests = $fetchStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+    if (empty($pendingRequests)) {
+        throw new Exception("No pending requests found or already processed.");
     }
 
-    $class_subject_id = $request['class_subject_id'];
-    $status = ($action === 'approve') ? 'approved' : 'rejected';
-
-    // 2. Update request status
-    $updReq = $conn->prepare("UPDATE elective_change_requests SET status = ?, admin_id = ? WHERE id = ?");
-    $updReq->bind_param("sii", $status, $admin_id, $request_id);
-    $updReq->execute();
+    // 2. Update all request statuses
+    $updArgs = array_merge([$status, $admin_id], $id_list);
+    $updStmt = $conn->prepare("UPDATE elective_change_requests SET status = ?, admin_id = ? WHERE id IN ($placeholders)");
+    $updStmt->bind_param('si' . $types, ...$updArgs);
+    $updStmt->execute();
 
     if ($action === 'approve') {
-        // 3. Perform the actual unlock in class_subjects (v1 schema uses class_subjects.is_locked)
-        $unlock = $conn->prepare("UPDATE class_subjects SET is_locked = 0 WHERE id = ?");
-        $unlock->bind_param("i", $class_subject_id);
+        // 3. Unlock all corresponding class_subjects
+        $csIds = array_column($pendingRequests, 'class_subject_id');
+        $csPlaceholders = implode(',', array_fill(0, count($csIds), '?'));
+        $csTypes = str_repeat('i', count($csIds));
+
+        $unlock = $conn->prepare("UPDATE class_subjects SET is_locked = 0 WHERE id IN ($csPlaceholders)");
+        $unlock->bind_param($csTypes, ...$csIds);
         $unlock->execute();
 
-        // Also ensure elective_windows is updated if needed (v1 tracks window per semester)
-        // For precision, unlocking the specific class_subject is enough for manage_elective_students.php
-        
-        $_SESSION['msg_success'] = "Enrollment unlocked for the requested elective.";
+        $_SESSION['msg_success'] = "Enrollment unlocked for the requested elective (all classes).";
     } else {
         $_SESSION['msg_success'] = "Unlock request rejected.";
     }

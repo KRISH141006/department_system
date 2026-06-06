@@ -19,28 +19,33 @@ try {
     $conn->begin_transaction();
 
     // 1. Get current assignment details
-    $getVA = $conn->prepare("SELECT lecture_record_id, student_id FROM verification_assignments WHERE id = ?");
+    $getVA = $conn->prepare("SELECT session_id, student_id FROM verification_assignments WHERE id = ?");
     $getVA->bind_param("i", $assignment_id);
     $getVA->execute();
     $va = $getVA->get_result()->fetch_assoc();
 
     if ($va) {
-        $lr_id = $va['lecture_record_id'];
+        $session_id = $va['session_id'];
         
-        // 2. Get class_id for this lecture
-        $getLR = $conn->prepare("SELECT class_id FROM lecture_records WHERE id = ?");
-        $getLR->bind_param("i", $lr_id);
-        $getLR->execute();
-        $class_id = $getLR->get_result()->fetch_assoc()['class_id'];
+        // 2. Get class_id for this session
+        $getSess = $conn->prepare("
+            SELECT cs.class_id 
+            FROM verification_sessions vs
+            JOIN class_subjects cs ON vs.class_subject_id = cs.id
+            WHERE vs.id = ?
+        ");
+        $getSess->bind_param("i", $session_id);
+        $getSess->execute();
+        $class_id = $getSess->get_result()->fetch_assoc()['class_id'];
 
-        // 3. Find a new student who isn't already assigned to this lecture
+        // 3. Find a new student who isn't already assigned to this session
         $getNewS = $conn->prepare("
             SELECT user_id FROM students 
             WHERE class_id = ? 
-            AND user_id NOT IN (SELECT student_id FROM verification_assignments WHERE lecture_record_id = ?)
+            AND user_id NOT IN (SELECT student_id FROM verification_assignments WHERE session_id = ?)
             ORDER BY RAND() LIMIT 1
         ");
-        $getNewS->bind_param("ii", $class_id, $lr_id);
+        $getNewS->bind_param("ii", $class_id, $session_id);
         $getNewS->execute();
         $newS = $getNewS->get_result()->fetch_assoc();
 

@@ -185,7 +185,7 @@ require_once __DIR__ . '/../../app/includes/header.php';
             JOIN subjects s ON cs.subject_id = s.id 
             JOIN classes c ON cs.class_id = c.id 
             WHERE fs.faculty_id = ?
-            GROUP BY s.id
+            GROUP BY s.id, fs.faculty_id
         ");
         $subQuery->bind_param("si", $today, $faculty_id);
         $subQuery->execute();

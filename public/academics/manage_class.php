@@ -127,7 +127,7 @@ require_once __DIR__ . '/../../app/includes/header.php';
                             <tr style="text-align: left; border-bottom: 1px solid var(--border);">
                                 <th style="padding: 10px;">Roll No</th>
                                 <th style="padding: 10px;">Name</th>
-                                <th style="padding: 10px; text-align: right;">Action</th>
+                                <th style="padding: 10px; text-align: right;">Details</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -139,14 +139,7 @@ require_once __DIR__ . '/../../app/includes/header.php';
                                         <div style="font-size: 11px; color: var(--text-2);"><?= htmlspecialchars($s['email']) ?></div>
                                     </td>
                                     <td style="padding: 10px; text-align: right;">
-                                        <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                                            <a href="student_progress.php?student_id=<?= $s['id'] ?>" class="btn btn-sm" style="background: var(--accent); color: white; border: none; text-decoration: none;">View Progress</a>
-                                            <form action="../../app/actions/academics/manage_student_class.php" method="POST" onsubmit="return confirm('Remove student from this class?')">
-                                                <input type="hidden" name="student_id" value="<?= $s['id'] ?>">
-                                                <input type="hidden" name="action" value="remove">
-                                                <button type="submit" class="btn btn-sm" style="background: var(--error); color: white; border: none;">Remove</button>
-                                            </form>
-                                        </div>
+                                        <a href="student_progress.php?student_id=<?= $s['id'] ?>" class="btn btn-sm" style="background: var(--accent); color: white; border: none; text-decoration: none;">View Progress</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
