@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_faculty_dashboard')) {
-    header("Location: ../../../../public/dashboard.php");
+    header("Location: $base_path/public/dashboard.php");
     exit();
 }
 
@@ -59,7 +59,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                 Class: <strong><?= htmlspecialchars($student['class_name']) ?> (Sem <?= $student['semester'] ?>)</strong>
             </p>
         </div>
-        <a href="../../../../public/academics/manage_class.php" class="btn btn-secondary">Back to Class</a>
+        <a href="<?= $base_path ?>/public/academics/manage_class.php" class="btn btn-secondary">Back to Class</a>
     </div>
 
     <div class="card">

@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_faculty_dashboard')) {
-    header("Location: ../../../../public/dashboard.php");
+    header("Location: $base_path/public/dashboard.php");
     exit();
 }
 
@@ -32,7 +32,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
         <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem; margin-bottom: 0.5rem;">Host Live Class</h1>
         <p style="color: var(--text-2); margin-bottom: 2rem;">Start a new video session for your students.</p>
 
-        <form action="../../../../app/actions/academics/start_meeting.php" method="POST" id="hostForm">
+        <form action="<?= $base_path ?>/app/actions/academics/start_meeting.php" method="POST" id="hostForm">
             <input type="hidden" name="room_code" value="<?= $room_code ?>">
 
             <div class="form-group">

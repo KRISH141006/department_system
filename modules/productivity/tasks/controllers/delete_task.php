@@ -11,6 +11,6 @@ if (isset($_GET['id'])) {
     $stmt->bind_param("ii", $task_id, $user_id);
     $stmt->execute();
 
-    header("Location: ../../../../public/productivity/tasks.php");
+    header("Location: $base_path/public/productivity/tasks.php");
     exit();
 }

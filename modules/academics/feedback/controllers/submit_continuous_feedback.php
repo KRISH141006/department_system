@@ -3,12 +3,12 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header("Location: ../../../../public/academics/continuous_feedback.php");
+    header("Location: $base_path/public/academics/continuous_feedback.php");
     exit();
 }
 
 if (!has_permission('view_student_dashboard')) {
-    header("Location: ../../../../public/dashboard.php");
+    header("Location: $base_path/public/dashboard.php");
     exit();
 }
 
@@ -18,7 +18,7 @@ $feedback_text = trim($_POST['feedback_text'] ?? '');
 
 if (!$faculty_id || empty($feedback_text)) {
     $_SESSION['msg_error'] = "Faculty and Feedback text are required.";
-    header("Location: ../../../../public/academics/continuous_feedback.php");
+    header("Location: $base_path/public/academics/continuous_feedback.php");
     exit();
 }
 
@@ -60,6 +60,6 @@ try {
     $_SESSION['msg_error'] = "Error: " . $e->getMessage();
 }
 
-header("Location: ../../../../public/academics/continuous_feedback.php");
+header("Location: $base_path/public/academics/continuous_feedback.php");
 exit();
 ?>

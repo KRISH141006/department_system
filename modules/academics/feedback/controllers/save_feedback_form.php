@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_faculty_dashboard')) {
-    header("Location: ../../../../public/dashboard.php");
+    header("Location: $base_path/public/dashboard.php");
     exit();
 }
 
@@ -72,6 +72,6 @@ try {
     $_SESSION['msg_error'] = "Error: " . $e->getMessage();
 }
 
-header("Location: ../../../../public/academics/create_feedback.php");
+header("Location: $base_path/public/academics/create_feedback.php");
 exit;
 ?>

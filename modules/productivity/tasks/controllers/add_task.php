@@ -30,6 +30,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $stmt->bind_param("issii", $user_id, $task, $deadline, $category_id, $priority_id);
     $stmt->execute();
 
-    header("Location: ../../../../public/productivity/tasks.php");
+    header("Location: $base_path/public/productivity/tasks.php");
     exit();
 }

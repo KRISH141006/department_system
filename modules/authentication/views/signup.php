@@ -89,7 +89,7 @@
       signupFormData = new FormData(e.target);
 
       try {
-        const res  = await fetch("../app/auth/send_otp.php", {
+        const res  = await fetch("<?= $base_path ?>/app/auth/send_otp.php", {
           method: "POST",
           body: signupFormData,
           credentials: "same-origin"
@@ -146,7 +146,7 @@
       payload.append("otp", otp);
 
       try {
-        const res  = await fetch("../app/auth/verify_otp.php", {
+        const res  = await fetch("<?= $base_path ?>/app/auth/verify_otp.php", {
           method: "POST",
           body: payload,
           credentials: "same-origin"

@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_student_dashboard')) {
-    header("Location: ../../../../public/dashboard.php");
+    header("Location: $base_path/public/dashboard.php");
     exit();
 }
 
@@ -28,7 +28,7 @@ $faculty_members = $fac_query->fetch_all(MYSQLI_ASSOC);
         <?php endif; ?>
 
         <div class="card">
-            <form action="../../../../app/actions/academics/submit_continuous_feedback.php" method="POST">
+            <form action="<?= $base_path ?>/app/actions/academics/submit_continuous_feedback.php" method="POST">
                 <div class="form-group">
                     <label>Select Faculty</label>
                     <select name="faculty_id" id="facultySelect" required onchange="loadFacultySubjects()">

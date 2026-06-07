@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_faculty_dashboard')) {
-    header("Location: ../../../../public/dashboard.php");
+    header("Location: $base_path/public/dashboard.php");
     exit();
 }
 
@@ -15,7 +15,7 @@ $room_code = trim($_POST['room_code'] ?? '');
 
 if (!$class_id || !$subject_id || empty($room_code)) {
     $_SESSION['msg_error'] = "Missing session details.";
-    header("Location: ../../../../public/academics/host_meeting.php");
+    header("Location: $base_path/public/academics/host_meeting.php");
     exit();
 }
 
@@ -33,10 +33,10 @@ $t_id = $topic_id ?: null; // Handle optional topic
 $insStmt->bind_param("iiiis", $faculty_id, $class_id, $subject_id, $t_id, $room_code);
 
 if ($insStmt->execute()) {
-    header("Location: ../../../../public/academics/live_class.php?room=" . urlencode($room_code));
+    header("Location: $base_path/public/academics/live_class.php?room=" . urlencode($room_code));
 } else {
     $_SESSION['msg_error'] = "Database Error: " . $conn->error;
-    header("Location: ../../../../public/academics/host_meeting.php");
+    header("Location: $base_path/public/academics/host_meeting.php");
 }
 exit;
 ?>

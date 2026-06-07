@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!isset($_GET['room'])) {
-    header("Location: ../../../../public/dashboard.php");
+    header("Location: $base_path/public/dashboard.php");
     exit();
 }
 
@@ -23,7 +23,7 @@ $stmt->execute();
 $meeting = $stmt->get_result()->fetch_assoc();
 
 if (!$meeting) {
-    echo "<h1>Meeting has ended or is invalid.</h1><a href='../../../../public/dashboard.php'>Back to Dashboard</a>";
+    echo "<h1>Meeting has ended or is invalid.</h1><a href='<?= $base_path ?>/public/dashboard.php'>Back to Dashboard</a>";
     exit();
 }
 
@@ -37,7 +37,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
             <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.2rem; color: #1a1a1a; margin: 0;">🎥 Virtual Classroom</h1>
             <p style="color: var(--text-2); margin: 5px 0 0 0;">Subject: <strong><?= htmlspecialchars($meeting['subject_name']) ?></strong> | Faculty: <strong><?= htmlspecialchars($meeting['faculty_name']) ?></strong></p>
         </div>
-        <a href="../../../../public/dashboard.php" class="btn btn-secondary" style="padding: 10px 25px;">Exit Classroom</a>
+        <a href="<?= $base_path ?>/public/dashboard.php" class="btn btn-secondary" style="padding: 10px 25px;">Exit Classroom</a>
     </div>
 
     <div id="meet" style="height: 600px; width: 100%; border: 4px solid #1a1a1a; box-shadow: 12px 12px 0px #1a1a1a; border-radius: 12px; overflow: hidden; background: #000;"></div>

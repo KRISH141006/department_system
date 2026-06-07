@@ -105,7 +105,7 @@ $completed_count = $completed_result->num_rows;
 
 <div class="page-wrap medium">
     <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
-        <a href="../productivity/index.php" class="neo-pill">← Back to Dashboard</a>
+        <a href="<?=$base_path?>/public/productivity/index.php" class="neo-pill">← Back to Dashboard</a>
         <div style="font-family: 'DM Serif Display', serif; font-size: 1.8rem;">Assigned Academic Tasks</div>
     </div>
 

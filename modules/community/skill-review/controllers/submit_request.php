@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_student_dashboard')) {
-    header("Location: ../../../../public/dashboard.php");
+    header("Location: $base_path/public/dashboard.php");
     exit;
 }
 
@@ -12,7 +12,7 @@ $skill   = trim($_POST['skill'] ?? '');
 
 if (empty($skill)) {
     $_SESSION['req_error'] = "Please enter a skill.";
-    header("Location: ../../../../public/community/request.php");
+    header("Location: $base_path/public/community/request.php");
     exit;
 }
 
@@ -25,5 +25,5 @@ if ($stmt->execute()) {
     $_SESSION['req_error'] = "Could not submit request. Try again.";
 }
 
-header("Location: ../../../../public/community/request.php");
+header("Location: $base_path/public/community/request.php");
 exit;

@@ -3,14 +3,14 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('review_requests')) {
-    header("Location: ../../../../public/dashboard.php");
+    header("Location: $base_path/public/dashboard.php");
     exit;
 }
 
 $request_id = (int) ($_POST['request_id'] ?? 0);
 
 if (!$request_id) {
-    header("Location: ../../../../public/community/reviewer_dashboard.php");
+    header("Location: $base_path/public/community/reviewer_dashboard.php");
     exit;
 }
 
@@ -19,5 +19,5 @@ $stmt = $conn->prepare("UPDATE review_requests SET status = 'accepted', reviewer
 $stmt->bind_param("ii", $reviewer_id, $request_id);
 $stmt->execute();
 
-header("Location: ../../../../public/community/reviewer_dashboard.php?accepted=" . $request_id);
+header("Location: $base_path/public/community/reviewer_dashboard.php?accepted=" . $request_id);
 exit;

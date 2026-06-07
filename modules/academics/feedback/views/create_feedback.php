@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_faculty_dashboard')) {
-    header("Location: ../../../../public/dashboard.php");
+    header("Location: $base_path/public/dashboard.php");
     exit();
 }
 
@@ -46,7 +46,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
         <!-- CREATE NEW FORM -->
         <div class="card">
             <h2 style="margin-bottom: 1.5rem; font-family: 'DM Serif Display', serif;">New Feedback Form</h2>
-            <form action="../../../../app/actions/academics/save_feedback_form.php" method="POST">
+            <form action="<?= $base_path ?>/app/actions/academics/save_feedback_form.php" method="POST">
                 
                 <div class="form-group">
                     <label>Select Subject & Class</label>
@@ -212,8 +212,8 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                                 </div>
                             </div>
                             <div style="display: flex; gap: 8px;">
-                                <a href="../../../../public/academics/feedback_results.php?form_id=<?= $f['id'] ?>" class="btn btn-sm btn-secondary">Results</a>
-                                <form action="../../../../app/actions/academics/save_feedback_form.php" method="POST">
+                                <a href="<?= $base_path ?>/public/academics/feedback_results.php?form_id=<?= $f['id'] ?>" class="btn btn-sm btn-secondary">Results</a>
+                                <form action="<?= $base_path ?>/app/actions/academics/save_feedback_form.php" method="POST">
                                     <input type="hidden" name="form_id" value="<?= $f['id'] ?>">
                                     <input type="hidden" name="action" value="<?= $f['status'] === 'active' ? 'close' : 'activate' ?>">
                                     <button type="submit" class="btn btn-sm <?= $f['status'] === 'active' ? 'btn-error' : 'btn-primary' ?>">

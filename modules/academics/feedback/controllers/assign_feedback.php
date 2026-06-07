@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_faculty_dashboard')) {
-    header("Location: ../../../../public/dashboard.php");
+    header("Location: $base_path/public/dashboard.php");
     exit();
 }
 
@@ -14,7 +14,7 @@ $class_id = (int) ($_POST['class_id'] ?? 0);
 
 if ($class_subject_id <= 0 || $class_id <= 0) {
     $_SESSION['msg_error'] = "Missing context details.";
-    header("Location: ../../../../public/academics/select_student.php?class_id=$class_subject_id");
+    header("Location: $base_path/public/academics/select_student.php?class_id=$class_subject_id");
     exit();
 }
 
@@ -85,6 +85,6 @@ try {
     $_SESSION['msg_error'] = "Assignment failed: " . $e->getMessage();
 }
 
-header("Location: ../../../../public/academics/select_student.php?class_id=$class_subject_id");
+header("Location: $base_path/public/academics/select_student.php?class_id=$class_subject_id");
 exit();
 ?>

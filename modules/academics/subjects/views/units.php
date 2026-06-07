@@ -74,7 +74,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
         </div>
         <div class="dashboard-actions">
             <?php if (isset($_GET['from']) && $_GET['from'] == 'feedback') { ?>
-                <a href="../../../../public/academics/lecture_feedback.php" class="btn btn-secondary">Back to Feedback</a>
+                <a href="<?= $base_path ?>/public/academics/lecture_feedback.php" class="btn btn-secondary">Back to Feedback</a>
             <?php } else { 
                 $back_link = ($role === 'student') ? '../../../../public/academics/student_dashboard.php' : '../../../../public/academics/faculty_dashboard.php';
                 $back_text = ($role === 'student') ? 'Back to Academics' : 'Back to Dashboard';
@@ -101,7 +101,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                 $tCountStmt->execute();
                 $tCount = $tCountStmt->get_result()->fetch_assoc()['count'];
             ?>
-                <a href="../../../../public/academics/units.php?subject_id=<?php echo $subject_id; ?>&unit_id=<?php echo $u['id']; ?><?php echo $from_param . $class_param; ?>" class="card" style="text-decoration: none; color: inherit;">
+                <a href="<?= $base_path ?>/public/academics/units.php?subject_id=<?php echo $subject_id; ?>&unit_id=<?php echo $u['id']; ?><?php echo $from_param . $class_param; ?>" class="card" style="text-decoration: none; color: inherit;">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                         <div>
                             <p style="color: var(--accent); font-weight: 700; font-size: 13px;">UNIT <?php echo $u['unit_no']; ?></p>
@@ -128,10 +128,10 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                 $from_param = isset($_GET['from']) ? '&from=' . urlencode($_GET['from']) : '';
                 $class_param = isset($_GET['class_id']) ? '&class_id=' . (int)$_GET['class_id'] : '';
                 ?>
-                <a href="../../../../public/academics/units.php?subject_id=<?php echo $subject_id; ?><?php echo $from_param . $class_param; ?>" class="btn btn-secondary">All Units</a>
+                <a href="<?= $base_path ?>/public/academics/units.php?subject_id=<?php echo $subject_id; ?><?php echo $from_param . $class_param; ?>" class="btn btn-secondary">All Units</a>
             </div>
 
-            <form action="../../../../app/actions/academics/save_topics.php" method="POST">
+            <form action="<?= $base_path ?>/app/actions/academics/save_topics.php" method="POST">
                 <input type="hidden" name="subject_id" value="<?php echo $subject_id; ?>">
                 <input type="hidden" name="unit_id" value="<?php echo $unit_id; ?>">
                 <input type="hidden" name="class_id" value="<?php echo (int)($_GET['class_id'] ?? 0); ?>">
@@ -198,7 +198,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                 <?php } elseif ($canGiveFeedback) { ?>
                     <div style="margin-top: 32px; padding: 1.5rem; background: var(--bg-2); border-radius: 8px; border: 1px dashed var(--accent); text-align: center;">
                         <p style="margin-bottom: 1rem; color: var(--text);">You have been assigned to verify today's covered topics.</p>
-                        <a href="../../../../public/academics/lecture_feedback.php" class="btn btn-primary">Go to Verification Panel</a>
+                        <a href="<?= $base_path ?>/public/academics/lecture_feedback.php" class="btn btn-primary">Go to Verification Panel</a>
                     </div>
                 <?php } else { ?>
                     <p style="margin-top: 24px; color: var(--text-2); font-size: 14px; font-style: italic;">

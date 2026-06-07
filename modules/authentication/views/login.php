@@ -56,7 +56,7 @@
       alertBox.innerHTML = "";
 
       try {
-        const res  = await fetch("../app/auth/login.php", { 
+        const res  = await fetch("<?= $base_path ?>/app/auth/login.php", { 
           method: "POST", 
           body: new FormData(e.target) 
         });

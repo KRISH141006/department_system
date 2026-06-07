@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_faculty_dashboard')) {
-    header("Location: ../../../../public/dashboard.php");
+    header("Location: $base_path/public/dashboard.php");
     exit();
 }
 
@@ -16,7 +16,7 @@ $allowed_formats = trim($_POST['allowed_formats'] ?? '');
 
 if (!$class_subject_id || empty($title) || empty($deadline)) {
     $_SESSION['msg_error'] = "Missing assignment details.";
-    header("Location: ../../../../public/academics/assign_task.php");
+    header("Location: $base_path/public/academics/assign_task.php");
     exit();
 }
 
@@ -56,6 +56,6 @@ try {
     $_SESSION['msg_error'] = "Failed to save assignment: " . $e->getMessage();
 }
 
-header("Location: ../../../../public/academics/assigned_tasks_history.php");
+header("Location: $base_path/public/academics/assigned_tasks_history.php");
 exit;
 ?>

@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_faculty_dashboard')) {
-    header("Location: ../../../../public/dashboard.php");
+    header("Location: $base_path/public/dashboard.php");
     exit();
 }
 
@@ -16,7 +16,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
     <p>Manage curriculum, subjects, and view reports.</p>
 
     <div class="grid-2" style="margin-top: 2rem;">
-        <a href="../../../../public/academics/faculty_dashboard.php" class="btn btn-primary" style="display:inline-block; text-align:center;">Go to Faculty Panel</a>
+        <a href="<?= $base_path ?>/public/academics/faculty_dashboard.php" class="btn btn-primary" style="display:inline-block; text-align:center;">Go to Faculty Panel</a>
     </div>
 </div>
 

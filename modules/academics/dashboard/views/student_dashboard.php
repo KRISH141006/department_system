@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_student_dashboard')) {
-    header("Location: ../../../../public/dashboard.php");
+    header("Location: $base_path/public/dashboard.php");
     exit();
 }
 
@@ -64,7 +64,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                             <h3 style="font-size: 1.1rem; color: var(--accent);">Syllabus Feedback: <?= htmlspecialchars($v['subject_name']) ?></h3>
                             <p style="color: var(--text-2); font-size: 14px;">You have been randomly selected to report today's covered topics.</p>
                         </div>
-                        <a href="../../../../public/academics/lecture_feedback.php?session_id=<?= $v['session_id'] ?>" class="btn btn-primary">Provide Feedback</a>
+                        <a href="<?= $base_path ?>/public/academics/lecture_feedback.php?session_id=<?= $v['session_id'] ?>" class="btn btn-primary">Provide Feedback</a>
                     </div>
                 </div>
             <?php endforeach; ?>
@@ -95,7 +95,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
         while ($sub = $subjects->fetch_assoc()) {
             $isElective = $sub['type'] === 'elective';
         ?>
-            <a href="../../../../public/academics/units.php?subject_id=<?php echo $sub['id']; ?>" class="card" style="text-decoration: none; color: inherit; border-top: 4px solid <?php echo $isElective ? 'var(--primary)' : 'transparent'; ?>;">
+            <a href="<?= $base_path ?>/public/academics/units.php?subject_id=<?php echo $sub['id']; ?>" class="card" style="text-decoration: none; color: inherit; border-top: 4px solid <?php echo $isElective ? 'var(--primary)' : 'transparent'; ?>;">
                 <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                     <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600;"><?php echo htmlspecialchars($sub['subject_name']); ?></h3>
                     <?php if ($isElective): ?>
@@ -133,7 +133,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                             <h3 style="font-size: 1.1rem;">New Elective Invitations</h3>
                             <p style="color: var(--text-2); font-size: 14px;">You have <?= $pending_invitations ?> elective subject invitation<?= $pending_invitations > 1 ? 's' : '' ?> to respond to.</p>
                         </div>
-                        <a href="../../../../public/academics/select_electives.php" class="btn btn-primary">Respond Now</a>
+                        <a href="<?= $base_path ?>/public/academics/select_electives.php" class="btn btn-primary">Respond Now</a>
                     </div>
                 </div>
             <?php 
@@ -161,7 +161,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                             <h3 style="font-size: 1.1rem;">Faculty Feedback: <?= htmlspecialchars($form['title']) ?></h3>
                             <p style="color: var(--text-2); font-size: 14px;">A new faculty evaluation form is available for submission.</p>
                         </div>
-                        <a href="../../../../public/academics/faculty_feedback.php?form_id=<?php echo $form['id']; ?>" class="btn btn-primary">Evaluate Faculty</a>
+                        <a href="<?= $base_path ?>/public/academics/faculty_feedback.php?form_id=<?php echo $form['id']; ?>" class="btn btn-primary">Evaluate Faculty</a>
                     </div>
                 </div>
             <?php 

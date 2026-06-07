@@ -1,0 +1,12 @@
+RewriteEngine On
+
+# Redirect legacy asset requests to new location
+RewriteRule ^public/assets/(.*)$ assets/$1 [L]
+RewriteRule ^public/uploads/(.*)$ uploads/$1 [L]
+
+# Allow direct access to assets and uploads if they exist physically
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Route everything else through index.php
+RewriteRule ^(.*)$ index.php [QSA,L]

@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_student_dashboard')) {
-    header("Location: ../../../../public/dashboard.php");
+    header("Location: $base_path/public/dashboard.php");
     exit();
 }
 
@@ -11,7 +11,7 @@ $student_id = (int) $_SESSION['user_id'];
 $form_id = (int) ($_GET['form_id'] ?? 0);
 
 if (!$form_id) {
-    header("Location: ../../../../public/academics/student_dashboard.php");
+    header("Location: $base_path/public/academics/student_dashboard.php");
     exit();
 }
 
@@ -30,7 +30,7 @@ $form = $stmt->get_result()->fetch_assoc();
 
 if (!$form) {
     $_SESSION['msg_error'] = "Form not found or has been closed.";
-    header("Location: ../../../../public/academics/student_dashboard.php");
+    header("Location: $base_path/public/academics/student_dashboard.php");
     exit();
 }
 
@@ -40,7 +40,7 @@ $checkStmt->bind_param("ii", $form_id, $student_id);
 $checkStmt->execute();
 if ($checkStmt->get_result()->num_rows > 0) {
     $_SESSION['msg_error'] = "You have already submitted feedback for this form.";
-    header("Location: ../../../../public/academics/student_dashboard.php");
+    header("Location: $base_path/public/academics/student_dashboard.php");
     exit();
 }
 
@@ -61,7 +61,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
             <p style="color: var(--text-2);">Please provide your honest feedback for <strong><?= htmlspecialchars($form['faculty_name']) ?></strong> (<?= htmlspecialchars($form['subject_name']) ?>).</p>
         </div>
         <div class="dashboard-actions">
-            <a href="../../../../public/academics/student_dashboard.php" class="btn btn-secondary">Cancel</a>
+            <a href="<?= $base_path ?>/public/academics/student_dashboard.php" class="btn btn-secondary">Cancel</a>
         </div>
     </div>
 
@@ -72,7 +72,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
             </div>
         <?php endif; ?>
 
-        <form action="../../../../app/actions/academics/submit_faculty_feedback.php" method="POST">
+        <form action="<?= $base_path ?>/app/actions/academics/submit_faculty_feedback.php" method="POST">
             <input type="hidden" name="form_id" value="<?= $form_id ?>">
 
             <?php foreach ($questions as $index => $q): ?>

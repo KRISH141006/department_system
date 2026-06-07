@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_faculty_dashboard')) {
-    header("Location: ../../../../public/dashboard.php");
+    header("Location: $base_path/public/dashboard.php");
     exit();
 }
 
@@ -31,7 +31,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
         <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem; margin-bottom: 0.5rem;">Create Assignment</h1>
         <p style="color: var(--text-2); margin-bottom: 2rem;">Publish a new task for your students to complete.</p>
 
-        <form action="../../../../app/actions/academics/save_assigned_task.php" method="POST" enctype="multipart/form-data">
+        <form action="<?= $base_path ?>/app/actions/academics/save_assigned_task.php" method="POST" enctype="multipart/form-data">
             
             <div class="form-group">
                 <label style="display: block; margin-bottom: 8px; font-weight: 700; text-transform: uppercase; font-size: 0.75rem;">Select Class & Subject</label>

@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_faculty_dashboard')) {
-    header("Location: ../../../../public/dashboard.php");
+    header("Location: $base_path/public/dashboard.php");
     exit();
 }
 
@@ -11,7 +11,7 @@ $faculty_id = (int) $_SESSION['user_id'];
 $form_id = (int) ($_GET['form_id'] ?? 0);
 
 if (!$form_id) {
-    header("Location: ../../../../public/academics/create_feedback.php");
+    header("Location: $base_path/public/academics/create_feedback.php");
     exit();
 }
 
@@ -29,7 +29,7 @@ $stmt->execute();
 $form = $stmt->get_result()->fetch_assoc();
 
 if (!$form) {
-    header("Location: ../../../../public/academics/create_feedback.php");
+    header("Location: $base_path/public/academics/create_feedback.php");
     exit();
 }
 
@@ -51,7 +51,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                 Analytics for: <strong><?= htmlspecialchars($form['subject_name']) ?></strong> (<?= htmlspecialchars($form['class_name']) ?>)
             </p>
         </div>
-        <a href="../../../../public/academics/create_feedback.php" class="btn btn-secondary">← All Forms</a>
+        <a href="<?= $base_path ?>/public/academics/create_feedback.php" class="btn btn-secondary">← All Forms</a>
     </div>
 
     <?php if (empty($questions)): ?>

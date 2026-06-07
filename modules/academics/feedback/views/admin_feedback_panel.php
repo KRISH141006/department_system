@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_admin_dashboard')) {
-    header("Location: ../../../../public/dashboard.php");
+    header("Location: $base_path/public/dashboard.php");
     exit();
 }
 
@@ -29,7 +29,7 @@ $feedbacks = $fb_query->fetch_all(MYSQLI_ASSOC);
             <p style="color: var(--text-2);">Confidential student submissions for faculty and subject monitoring.</p>
         </div>
         <div class="dashboard-actions">
-            <a href="../../../../public/dashboard.php" class="btn btn-secondary">Back to Dashboard</a>
+            <a href="<?= $base_path ?>/public/dashboard.php" class="btn btn-secondary">Back to Dashboard</a>
         </div>
     </div>
 

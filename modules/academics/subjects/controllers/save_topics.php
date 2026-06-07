@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_faculty_dashboard')) {
-    header("Location: ../../../../public/dashboard.php");
+    header("Location: $base_path/public/dashboard.php");
     exit();
 }
 
@@ -15,7 +15,7 @@ $topic_ids  = $_POST['topic_ids'] ?? [];
 
 if (!$subject_id || !$class_id || !$unit_id) {
     $_SESSION['msg_error'] = "Missing context details.";
-    header("Location: ../../../../public/academics/faculty_dashboard.php");
+    header("Location: $base_path/public/academics/faculty_dashboard.php");
     exit();
 }
 
@@ -65,6 +65,6 @@ try {
     $_SESSION['msg_error'] = "Failed to update progress: " . $e->getMessage();
 }
 
-header("Location: ../../../../public/academics/faculty_dashboard.php");
+header("Location: $base_path/public/academics/faculty_dashboard.php");
 exit;
 ?>

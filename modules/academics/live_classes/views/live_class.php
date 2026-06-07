@@ -6,7 +6,7 @@ $room_code = $_GET['room'] ?? '';
 $faculty_id = $_SESSION['user_id'];
 
 if (!$room_code) {
-    header("Location: ../../../../public/academics/faculty_dashboard.php");
+    header("Location: $base_path/public/academics/faculty_dashboard.php");
     exit();
 }
 
@@ -25,7 +25,7 @@ $session = $stmt->get_result()->fetch_assoc();
 
 if (!$session) {
     $_SESSION['msg_error'] = "Class has ended or session not found.";
-    header("Location: ../../../../public/academics/faculty_dashboard.php");
+    header("Location: $base_path/public/academics/faculty_dashboard.php");
     exit();
 }
 
@@ -43,7 +43,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                     Class: <strong><?= htmlspecialchars($session['class_name']) ?> (Sem <?= $session['semester'] ?>)</strong>
                 </p>
             </div>
-            <form action="../../../../app/actions/academics/end_meeting.php" method="POST" onsubmit="return confirm('End this live session for everyone?')">
+            <form action="<?= $base_path ?>/app/actions/academics/end_meeting.php" method="POST" onsubmit="return confirm('End this live session for everyone?')">
                 <input type="hidden" name="room_code" value="<?= $room_code ?>">
                 <button type="submit" class="btn btn-error">End Live Class</button>
             </form>

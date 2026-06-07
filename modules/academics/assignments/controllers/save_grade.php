@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_faculty_dashboard')) {
-    header("Location: ../../../../public/dashboard.php");
+    header("Location: $base_path/public/dashboard.php");
     exit();
 }
 
@@ -14,7 +14,7 @@ $feedback      = trim($_POST['feedback']      ?? '');
 
 if (!$submission_id || empty($grade)) {
     $_SESSION['msg_error'] = "Missing grade or submission ID.";
-    header("Location: ../../../../public/academics/submissions.php?assignment_id=$assignment_id");
+    header("Location: $base_path/public/academics/submissions.php?assignment_id=$assignment_id");
     exit();
 }
 
@@ -32,6 +32,6 @@ try {
     $_SESSION['msg_error'] = "Error: " . $e->getMessage();
 }
 
-header("Location: ../../../../public/academics/submissions.php?assignment_id=$assignment_id");
+header("Location: $base_path/public/academics/submissions.php?assignment_id=$assignment_id");
 exit;
 ?>

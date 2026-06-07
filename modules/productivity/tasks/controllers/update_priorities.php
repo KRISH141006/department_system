@@ -15,6 +15,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $stmt->execute();
     }
 
-    header("Location: ../../../../public/productivity/tasks.php?success=Priorities updated");
+    header("Location: $base_path/public/productivity/tasks.php?success=Priorities updated");
     exit();
 }
