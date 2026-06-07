@@ -91,7 +91,7 @@ $user_id = $_SESSION['user_id'];
         </a>
 
         <!-- Assigned Task Manager -->
-        <a href="<?=$base_path?>/public/academics/assigned_tasks.php" class="landing-card assigned-card">
+        <a href="<?= $base_path ?>/academics/assigned_tasks" class="landing-card assigned-card">
             <div class="icon">📋</div>
             <h2>Assigned Task Manager</h2>
             <p>Tasks assigned to you by faculty or department leads.</p>

@@ -72,7 +72,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
             <?php if ($assignment['resource_path']): ?>
                 <div style="margin-top: 1rem; padding: 10px; background: var(--bg-2); border-radius: 6px; display: flex; align-items: center; gap: 10px;">
                     <span style="font-size: 20px;">📎</span>
-                    <a href="<?= $base_path ?>/public/<?= htmlspecialchars($assignment['resource_path']) ?>" target="_blank" style="font-size: 13px; font-weight: 600; color: var(--accent);"><?= htmlspecialchars($assignment['resource_name']) ?></a>
+                    <a href="<?= $base_path ?>/<?= htmlspecialchars($assignment['resource_path']) ?>" target="_blank" style="font-size: 13px; font-weight: 600; color: var(--accent);"><?= htmlspecialchars($assignment['resource_name']) ?></a>
                 </div>
             <?php endif; ?>
         </div>

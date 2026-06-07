@@ -25,7 +25,7 @@ $resource_path = null;
 $resource_name = null;
 
 if (isset($_FILES['resource_file']) && $_FILES['resource_file']['error'] === UPLOAD_ERR_OK) {
-    $upload_dir = __DIR__ . '/../../../../public/uploads/resources/';
+    $upload_dir = __DIR__ . '/../../../../uploads/resources/';
     if (!is_dir($upload_dir)) {
         mkdir($upload_dir, 0777, true);
     }

@@ -72,7 +72,7 @@ async function loadFacultySubjects() {
 
     try {
         // We can reuse a similar logic to get_topics_ajax but for subjects
-        const response = await fetch(`../../../../public/academics/get_faculty_subjects_ajax.php?faculty_id=${facId}`);
+        const response = await fetch(`<?= $base_path ?>/academics/get_faculty_subjects_ajax?faculty_id=${facId}`);
         const result = await response.json();
 
         if (result.status === 'success') {

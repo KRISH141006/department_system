@@ -67,7 +67,7 @@ while ($row = $rp_query->fetch_assoc()) {
             </div>
 
             <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
-                <a href="<?=$base_path?>/public/dashboard.php" class="btn btn-secondary">Cancel</a>
+                <a href="<?= $base_path ?>/dashboard" class="btn btn-secondary">Cancel</a>
                 <button type="submit" class="btn btn-primary" style="padding-left: 3rem; padding-right: 3rem;">Save Rights Configuration</button>
             </div>
         </form>

@@ -13,8 +13,8 @@ if (isset($_GET['id'])) {
 
     $redirect = isset($_GET['redirect']) && $_GET['redirect'] === 'assigned' ? 'assigned_tasks.php' : 'tasks.php';
     $base = isset($_GET['redirect']) && $_GET['redirect'] === 'assigned'
-        ? '../../../../public/academics/'
-        : '../../../../public/productivity/';
+        ? '$base_path/academics/assigned_tasks'
+        : '$base_path/productivity/index';
     header("Location: " . $base . $redirect);
     exit();
 }

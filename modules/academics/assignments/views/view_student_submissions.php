@@ -64,7 +64,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                                     <p style="font-weight: 600; margin-bottom: 4px;">Attachment Provided</p>
                                     <p style="font-size: 12px; color: var(--text-3);"><?= htmlspecialchars($submission['submission_name'] ?: basename($submission['submission_path'])) ?></p>
                                 </div>
-                                <a href="<?= $base_path ?>/public/<?= htmlspecialchars($submission['submission_path']) ?>" class="btn btn-sm btn-primary" target="_blank">Download File</a>
+                                <a href="<?= $base_path ?>/<?= htmlspecialchars($submission['submission_path']) ?>" class="btn btn-sm btn-primary" target="_blank">Download File</a>
                             </div>
                         </div>
                     <?php else: ?>

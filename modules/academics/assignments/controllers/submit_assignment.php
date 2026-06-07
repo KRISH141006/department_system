@@ -10,7 +10,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $submission_name = null;
 
     if (isset($_FILES['submission']) && $_FILES['submission']['error'] == 0) {
-        $upload_dir = realpath(__DIR__ . '/../../../../public/uploads/') . '/submissions/';
+        $upload_dir = realpath(__DIR__ . '/../../../../uploads/') . '/submissions/';
         if (!is_dir($upload_dir)) {
             mkdir($upload_dir, 0777, true);
         }

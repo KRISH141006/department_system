@@ -18,7 +18,7 @@ Thumbs.db
 *.log
 
 # Uploads
-public/uploads/resources/**
-!public/uploads/resources/.gitkeep
-public/uploads/submissions/**
-!public/uploads/submissions/.gitkeep
+uploads/resources/**
+!uploads/resources/.gitkeep
+uploads/submissions/**
+!uploads/submissions/.gitkeep

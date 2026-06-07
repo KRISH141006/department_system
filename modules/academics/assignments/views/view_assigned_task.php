@@ -163,13 +163,13 @@ function isImage($filename) {
                         <span style="font-weight: 700;">
                             <?= getFileIcon($assignment['resource_path']) ?> <?= htmlspecialchars($assignment['resource_name'] ?: 'Download Resource') ?>
                         </span>
-                        <a href="<?= $base_path ?>/public/<?= htmlspecialchars($assignment['resource_path']) ?>" download="<?= htmlspecialchars($assignment['resource_name']) ?>" class="neo-pill" style="background: #1a1a1a; color: #fff;">Download</a>
+                        <a href="<?= $base_path ?>/<?= htmlspecialchars($assignment['resource_path']) ?>" download="<?= htmlspecialchars($assignment['resource_name']) ?>" class="neo-pill" style="background: #1a1a1a; color: #fff;">Download</a>
                     </div>
                     
                     <div class="preview-container">
                         <?php 
                         $ext = strtolower(pathinfo($assignment['resource_path'], PATHINFO_EXTENSION));
-                        $file_url = $base_path . "/public/' . htmlspecialchars($assignment['resource_path']);
+                        $file_url = $base_path . "/" .  htmlspecialchars($assignment['resource_path']);
                         ?>
                         
                         <?php if ($ext === 'pdf'): ?>
@@ -204,12 +204,12 @@ function isImage($filename) {
                         <span style="font-weight: 700; color: #1a1a1a;">
                             <?= getFileIcon($submission['submission_path']) ?> <?= htmlspecialchars($submission['submission_name'] ?: 'View Your Upload') ?>
                         </span>
-                        <a href="<?= $base_path ?>/public/<?= htmlspecialchars($submission['submission_path']) ?>" download="<?= htmlspecialchars($submission['submission_name']) ?>" class="btn btn-sm btn-secondary">Download</a>
+                        <a href="<?= $base_path ?>/<?= htmlspecialchars($submission['submission_path']) ?>" download="<?= htmlspecialchars($submission['submission_name']) ?>" class="btn btn-sm btn-secondary">Download</a>
                     </div>
 
                     <?php 
                     $sub_ext = strtolower(pathinfo($submission['submission_path'], PATHINFO_EXTENSION));
-                    $sub_url = $base_path . "/public/' . htmlspecialchars($submission['submission_path']);
+                    $sub_url = $base_path . "/" .  htmlspecialchars($submission['submission_path']);
                     ?>
 
                     <?php if ($sub_ext === 'pdf'): ?>

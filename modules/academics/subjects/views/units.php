@@ -6,7 +6,7 @@ $subject_id = (int) ($_GET['subject_id'] ?? 0);
 $unit_id = (int) ($_GET['unit_id'] ?? 0);
 
 if (!$subject_id) {
-    $redirect = ($_SESSION['role'] === 'student') ? '../../../../public/academics/student_dashboard.php' : '../../../../public/academics/faculty_dashboard.php';
+    $redirect = ($_SESSION['role'] === 'student') ? '$base_path/academics/student_dashboard' : '$base_path/academics/faculty_dashboard';
     header("Location: $redirect");
     exit();
 }
@@ -18,7 +18,7 @@ $stmt->execute();
 $subject = $stmt->get_result()->fetch_assoc();
 
 if (!$subject) {
-    $redirect = ($_SESSION['role'] === 'student') ? '../../../../public/academics/student_dashboard.php' : '../../../../public/academics/faculty_dashboard.php';
+    $redirect = ($_SESSION['role'] === 'student') ? '$base_path/academics/student_dashboard' : '$base_path/academics/faculty_dashboard';
     header("Location: $redirect");
     exit();
 }
@@ -76,7 +76,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
             <?php if (isset($_GET['from']) && $_GET['from'] == 'feedback') { ?>
                 <a href="<?= $base_path ?>/academics/lecture_feedback" class="btn btn-secondary">Back to Feedback</a>
             <?php } else { 
-                $back_link = ($role === 'student') ? '../../../../public/academics/student_dashboard.php' : '../../../../public/academics/faculty_dashboard.php';
+                $back_link = ($role === 'student') ? '$base_path/academics/student_dashboard' : '$base_path/academics/faculty_dashboard';
                 $back_text = ($role === 'student') ? 'Back to Academics' : 'Back to Dashboard';
             ?>
                 <a href="<?php echo $back_link; ?>" class="btn btn-secondary"><?php echo $back_text; ?></a>
