@@ -20,10 +20,15 @@ if (empty($class_subject_ids) || $action !== 'lock') {
 try {
     $conn->begin_transaction();
     $stmt = $conn->prepare("UPDATE class_subjects SET is_locked = 1 WHERE id = ?");
+    $delStmt = $conn->prepare("DELETE FROM elective_change_requests WHERE class_subject_id = ? AND status IN ('approved', 'rejected')");
+    
     foreach ($class_subject_ids as $csid) {
         $csid = (int) $csid;
         $stmt->bind_param("i", $csid);
         $stmt->execute();
+        
+        $delStmt->bind_param("i", $csid);
+        $delStmt->execute();
     }
     
     $conn->commit();
