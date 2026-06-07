@@ -33,7 +33,7 @@ while ($row = $rp_query->fetch_assoc()) {
         <h1 class="page-title" style="font-family: 'DM Serif Display', serif; font-size: 2.5rem; margin-bottom: 0.5rem;">Rights Management</h1>
         <p style="color: var(--text-2); margin-bottom: 2rem;">Configure which modules and actions each role can access across the system.</p>
 
-        <form action="<?=$base_path?>/app/actions/admin/save_permissions.php" method="POST">
+        <form action="<?= $base_path ?>/api/admin/save_permissions" method="POST">
             <div class="card" style="padding: 0; overflow-x: auto;">
                 <table style="width: 100%; border-collapse: collapse; text-align: left; min-width: 600px;">
                     <thead style="background: var(--bg-2); border-bottom: 1px solid var(--border);">

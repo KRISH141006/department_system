@@ -63,7 +63,7 @@ include __DIR__ . '/../../../../shared/layout/header.php';
       <h1 class="page-title" style="font-family: 'DM Serif Display', serif; font-size: 2.5rem; margin-bottom: 0.5rem;">Review Panel</h1>
       <p class="page-subtitle" style="color: var(--text-2);">Manage pending skill test requests and submit reviews.</p>
     </div>
-    <a href="leaderboard.php" class="btn btn-secondary" style="border-radius: 50px; padding: 0.5rem 1.5rem;">
+    <a href="<?= $base_path ?>/community/leaderboard" class="btn btn-secondary" style="border-radius: 50px; padding: 0.5rem 1.5rem;">
         <i class="fa fa-trophy"></i> View Leaderboard
     </a>
   </div>
@@ -151,7 +151,7 @@ include __DIR__ . '/../../../../shared/layout/header.php';
                         </div>
                         <div style="display: flex; gap: 10px; margin-top: 1rem;">
                             <button type="submit" class="btn btn-success btn-full">Submit Final Review</button>
-                            <a href="reviewer_dashboard.php" class="btn btn-secondary">Cancel</a>
+                            <a href="<?= $base_path ?>/community/reviewer_dashboard" class="btn btn-secondary">Cancel</a>
                         </div>
                     </form>
                 </div>

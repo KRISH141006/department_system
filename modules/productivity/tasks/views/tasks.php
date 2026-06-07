@@ -332,7 +332,7 @@ $userName = htmlspecialchars($stmt->get_result()->fetch_assoc()['name'] ?? 'User
 
 <div class="page-wrap medium">
     <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
-        <a href="index.php" class="neo-pill">← Back to Dashboard</a>
+        <a href="<?= $base_path ?>/productivity/index" class="neo-pill">← Back to Dashboard</a>
         <?php if ($total_tasks > 0 && $view === 'add'): ?>
             <a href="tasks.php?view=list" class="neo-pill">Cancel ✕</a>
         <?php endif; ?>

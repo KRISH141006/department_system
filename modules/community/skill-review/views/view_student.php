@@ -51,7 +51,7 @@ include __DIR__ . '/../../../../shared/layout/header.php';
                 <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem; margin-bottom: 0.5rem;"><?= htmlspecialchars($user_data['name']) ?></h1>
                 <p style="color: var(--text-2);">Student Profile Summary | Score: <strong><?= number_format($profile_data['community_score'] ?? 0) ?></strong></p>
             </div>
-            <a href="reviewer_dashboard.php" class="btn btn-secondary">Back to Dashboard</a>
+            <a href="<?= $base_path ?>/community/reviewer_dashboard" class="btn btn-secondary">Back to Dashboard</a>
         </div>
 
         <div class="grid-2">
