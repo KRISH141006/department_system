@@ -1,6 +1,2 @@
 <?php
-session_start();
-session_destroy();
-header("Location: ../../public/login.php");
-exit;
-?>
+require_once __DIR__ . '/../../modules/authentication/controllers/logout.php';
