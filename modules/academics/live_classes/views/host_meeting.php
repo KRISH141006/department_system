@@ -91,7 +91,7 @@ async function updateDetails() {
     topicGroup.style.display = 'block';
 
     try {
-        const res = await fetch(`get_topics_ajax.php?subject_id=${sid}`);
+        const res = await fetch(`<?= $base_path ?>/academics/get_topics_ajax?subject_id=${sid}`);
         const json = await res.json();
 
         if (json.status === 'success') {

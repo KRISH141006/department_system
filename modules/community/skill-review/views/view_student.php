@@ -4,7 +4,7 @@ require_once __DIR__ . '/../../../../shared/config/db.php';
 
 // Only allow reviewers (faculty, expert, admin)
 if (!has_permission('review_requests')) {
-    header("Location: ../dashboard.php");
+    header("Location: $base_path/dashboard");
     exit;
 }
 

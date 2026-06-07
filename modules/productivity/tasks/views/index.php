@@ -84,7 +84,7 @@ $user_id = $_SESSION['user_id'];
 <div class="page-wrap medium">
     <div class="productivity-landing">
         <!-- Personal Task Manager -->
-        <a href="tasks.php" class="landing-card">
+        <a href="<?= $base_path ?>/productivity/tasks" class="landing-card">
             <div class="icon">✍️</div>
             <h2>Personal Task Manager</h2>
             <p>Organize your own thoughts, deadlines, and priorities.</p>

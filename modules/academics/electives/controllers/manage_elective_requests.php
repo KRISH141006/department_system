@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . '/../../../shared/middleware/auth.php';
-require_once __DIR__ . '/../../../shared/config/db.php';
+require_once __DIR__ . '/../../../../shared/middleware/auth.php';
+require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_admin_dashboard')) {
     header("Location: $base_path/dashboard");

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login — Department System</title>
-  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="<?= $base_path ?>/assets/css/style.css">
   <style>
     body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
     .auth-box { width: 100%; max-width: 420px; padding: 1rem; }
@@ -41,7 +41,7 @@
     </div>
 
     <p class="auth-footer">
-      Don't have an account? <a href="signup.php">Sign up</a>
+      Don't have an account? <a href="<?= $base_path ?>/signup">Sign up</a>
     </p>
   </div>
 

@@ -101,7 +101,7 @@ try {
         echo json_encode([
             "status"   => "success", 
             "message"  => "Account created successfully!",
-            "redirect" => "community/profile.php"
+            "redirect" => "community/profile"
         ]);
     } else {
         throw new Exception("Insert failed: " . $stmt->error);

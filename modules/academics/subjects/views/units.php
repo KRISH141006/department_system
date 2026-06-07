@@ -6,7 +6,7 @@ $subject_id = (int) ($_GET['subject_id'] ?? 0);
 $unit_id = (int) ($_GET['unit_id'] ?? 0);
 
 if (!$subject_id) {
-    $redirect = ($_SESSION['role'] === 'student') ? '$base_path/academics/student_dashboard' : '$base_path/academics/faculty_dashboard';
+    $redirect = ($_SESSION['role'] === 'student') ? "$base_path/academics/student_dashboard" : "$base_path/academics/faculty_dashboard";
     header("Location: $redirect");
     exit();
 }
@@ -18,7 +18,7 @@ $stmt->execute();
 $subject = $stmt->get_result()->fetch_assoc();
 
 if (!$subject) {
-    $redirect = ($_SESSION['role'] === 'student') ? '$base_path/academics/student_dashboard' : '$base_path/academics/faculty_dashboard';
+    $redirect = ($_SESSION['role'] === 'student') ? "$base_path/academics/student_dashboard" : "$base_path/academics/faculty_dashboard";
     header("Location: $redirect");
     exit();
 }
@@ -52,7 +52,7 @@ if ($role === 'student') {
         SELECT 1 FROM verification_assignments va 
         JOIN verification_sessions vs ON va.session_id = vs.id 
         JOIN class_subjects cs ON vs.class_subject_id = cs.id 
-        WHERE va.student_id = ? AND cs.subject_id = ? AND DATE(va.assigned_at) = ?
+        WHERE va.student_id = ? AND cs.subject_id = ? AND DATE(va.assigned_at) = ? AND va.status = 'pending'
         LIMIT 1
     ");
     $feedChk->bind_param("iis", $user_id, $subject_id, $today);
@@ -76,7 +76,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
             <?php if (isset($_GET['from']) && $_GET['from'] == 'feedback') { ?>
                 <a href="<?= $base_path ?>/academics/lecture_feedback" class="btn btn-secondary">Back to Feedback</a>
             <?php } else { 
-                $back_link = ($role === 'student') ? '$base_path/academics/student_dashboard' : '$base_path/academics/faculty_dashboard';
+                $back_link = ($role === 'student') ? "$base_path/academics/student_dashboard" : "$base_path/academics/faculty_dashboard";
                 $back_text = ($role === 'student') ? 'Back to Academics' : 'Back to Dashboard';
             ?>
                 <a href="<?php echo $back_link; ?>" class="btn btn-secondary"><?php echo $back_text; ?></a>

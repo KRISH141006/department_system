@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('review_requests')) {
-    header("Location: ../dashboard.php");
+    header("Location: $base_path/dashboard");
     exit;
 }
 

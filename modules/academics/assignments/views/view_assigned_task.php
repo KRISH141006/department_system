@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!isset($_GET['id'])) {
-    header("Location: assigned_tasks.php");
+    header("Location: $base_path/academics/assigned_tasks");
     exit();
 }
 
@@ -21,7 +21,7 @@ $stmt->execute();
 $assignment = $stmt->get_result()->fetch_assoc();
 
 if (!$assignment) {
-    header("Location: assigned_tasks.php");
+    header("Location: $base_path/academics/assigned_tasks");
     exit();
 }
 
@@ -121,7 +121,7 @@ function isImage($filename) {
 
 <div class="page-wrap medium">
     <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
-        <a href="assigned_tasks.php" class="neo-pill">← Back to Assignments</a>
+        <a href="<?= $base_path ?>/academics/assigned_tasks" class="neo-pill">← Back to Assignments</a>
         <div class="creative-pill" style="background: var(--accent); color: #fff;">Assignment Details</div>
     </div>
 

@@ -80,7 +80,8 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
             (SELECT s.id, s.name as subject_name, 'core' as type 
              FROM class_subjects cs 
              JOIN subjects s ON cs.subject_id = s.id 
-             WHERE cs.class_id = ? AND s.type = 'core')
+             JOIN classes c ON cs.class_id = c.id
+             WHERE (cs.class_id = ? OR (c.name = 'ALL' AND c.semester = ?)) AND s.type = 'core')
             UNION
             (SELECT s.id, s.name as subject_name, 'elective' as type 
              FROM student_subjects ss 
@@ -88,7 +89,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
              JOIN subjects s ON cs.subject_id = s.id 
              WHERE ss.student_id = ? AND ss.status = 'enrolled' AND cs.is_locked = 1)
         ");
-        $subQuery->bind_param("ii", $class_id, $student_id);
+        $subQuery->bind_param("iii", $class_id, $semester, $student_id);
         $subQuery->execute();
         $subjects = $subQuery->get_result();
 
@@ -145,11 +146,12 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
             $formQuery = $conn->prepare("
                 SELECT ff.* FROM feedback_forms ff 
                 JOIN class_subjects cs ON ff.class_subject_id = cs.id 
-                WHERE cs.class_id = ? AND ff.status = 'active'
+                JOIN classes c ON cs.class_id = c.id
+                WHERE (cs.class_id = ? OR (c.name = 'ALL' AND c.semester = ?)) AND ff.status = 'active'
                 AND ff.id NOT IN (SELECT form_id FROM feedback_responses WHERE student_id = ?)
                 LIMIT 1
             ");
-            $formQuery->bind_param("ii", $class_id, $student_id);
+            $formQuery->bind_param("iii", $class_id, $semester, $student_id);
             $formQuery->execute();
             $formRes = $formQuery->get_result();
             if ($formRes->num_rows > 0) {

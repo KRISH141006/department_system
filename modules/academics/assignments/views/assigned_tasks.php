@@ -6,24 +6,27 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
 
 $user_id = $_SESSION['user_id'];
 
-$classStmt = $conn->prepare("SELECT class_id FROM students WHERE user_id = ?");
+$classStmt = $conn->prepare("SELECT c.id as class_id, c.semester FROM students s JOIN classes c ON s.class_id = c.id WHERE user_id = ?");
 $classStmt->bind_param("i", $user_id);
 $classStmt->execute();
-$class_id = $classStmt->get_result()->fetch_assoc()['class_id'] ?? 0;
+$classData = $classStmt->get_result()->fetch_assoc();
+$class_id = (int)($classData['class_id'] ?? 0);
+$semester = (int)($classData['semester'] ?? 0);
 
 $base_query = "
     FROM assignments a
     JOIN users f ON a.faculty_id = f.id
     JOIN class_subjects cs ON a.class_subject_id = cs.id
+    JOIN classes c ON cs.class_id = c.id
     LEFT JOIN submissions sub ON a.id = sub.assignment_id AND sub.student_id = ?
-    WHERE (cs.class_id = ? OR a.class_subject_id IN (SELECT class_subject_id FROM student_subjects WHERE student_id = ?))
+    WHERE ((cs.class_id = ? OR (c.name = 'ALL' AND c.semester = ?)) OR a.class_subject_id IN (SELECT class_subject_id FROM student_subjects WHERE student_id = ?))
 ";
 
 $sort_by = isset($_GET['sort']) ? $_GET['sort'] : 'newest';
 $order_by = ($sort_by === 'oldest') ? "ORDER BY a.created_at ASC" : "ORDER BY a.created_at DESC";
 
 $count_stmt = $conn->prepare("SELECT COUNT(DISTINCT a.id) as count $base_query");
-$count_stmt->bind_param("iii", $user_id, $class_id, $user_id);
+$count_stmt->bind_param("iiii", $user_id, $class_id, $semester, $user_id);
 $count_stmt->execute();
 $total_assigned = $count_stmt->get_result()->fetch_assoc()['count'];
 
@@ -32,7 +35,7 @@ $pending_stmt = $conn->prepare("
     $base_query AND sub.id IS NULL
     $order_by
 ");
-$pending_stmt->bind_param("iii", $user_id, $class_id, $user_id);
+$pending_stmt->bind_param("iiii", $user_id, $class_id, $semester, $user_id);
 $pending_stmt->execute();
 $pending_result = $pending_stmt->get_result();
 
@@ -41,7 +44,7 @@ $completed_stmt = $conn->prepare("
     $base_query AND sub.id IS NOT NULL
     $order_by
 ");
-$completed_stmt->bind_param("iii", $user_id, $class_id, $user_id);
+$completed_stmt->bind_param("iiii", $user_id, $class_id, $semester, $user_id);
 $completed_stmt->execute();
 $completed_result = $completed_stmt->get_result();
 
@@ -124,7 +127,7 @@ $completed_count = $completed_result->num_rows;
                 </h2>
                 <?php while ($row = $pending_result->fetch_assoc()): ?>
                     <?php $is_overdue = $row['deadline'] && strtotime($row['deadline']) < time(); ?>
-                    <div class="task-strip" onclick="window.location.href='view_assigned_task.php?id=<?= $row['id'] ?>'" style="cursor: pointer; position: relative;">
+                    <div class="task-strip" onclick="window.location.href='<?= $base_path ?>/academics/view_assigned_task?id=<?= $row['id'] ?>'" style="cursor: pointer; position: relative;">
                         <div style="display: flex; align-items: flex-start; gap: 1.25rem;">
                             <div class="bulb-container">
                                 <svg class="bulb-svg bulb-off" viewBox="0 0 24 24"><path d="M9 21h6v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1l-.85.6V16h-4v-2.3l-.85-.6C8.67 12.05 8 10.58 8 9c0-2.21 1.79-4 4-4s4 1.79 4 4c0 1.58-.67 3.05-2.15 4.1z"/></svg>
@@ -152,7 +155,7 @@ $completed_count = $completed_result->num_rows;
                     ☀️ SUBMITTED (<?= $completed_count ?>)
                 </h2>
                 <?php while ($row = $completed_result->fetch_assoc()): ?>
-                    <div class="task-strip completed" onclick="window.location.href='view_assigned_task.php?id=<?= $row['id'] ?>'" style="cursor: pointer; position: relative;">
+                    <div class="task-strip completed" onclick="window.location.href='<?= $base_path ?>/academics/view_assigned_task?id=<?= $row['id'] ?>'" style="cursor: pointer; position: relative;">
                         <div style="display: flex; align-items: flex-start; gap: 1.25rem;">
                             <div class="bulb-container">
                                 <svg class="bulb-svg bulb-on" viewBox="0 0 24 24"><path d="M9 21h6v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/></svg>

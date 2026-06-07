@@ -40,7 +40,6 @@ return [
     '/community/profile' => 'modules/community/profile/views/profile.php',
     '/community/view_student' => 'modules/community/skill-review/views/view_student.php',
     '/community/reviewer_dashboard' => 'modules/community/skill-review/views/reviewer_dashboard.php',
-    '/community/save_profile' => 'modules/community/profile/controllers/save_profile.php',
     '/productivity/index' => 'modules/productivity/tasks/views/index.php',
     '/productivity/tasks' => 'modules/productivity/tasks/views/tasks.php',
     '/api/academics/skip_feedback' => 'modules/academics/feedback/controllers/skip_feedback.php',

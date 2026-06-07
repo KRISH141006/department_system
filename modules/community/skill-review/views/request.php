@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_student_dashboard')) {
-    header("Location: ../dashboard.php");
+    header("Location: $base_path/dashboard");
     exit;
 }
 
@@ -14,7 +14,7 @@ $chk = $conn->prepare("SELECT user_id FROM profiles WHERE user_id = ?");
 $chk->bind_param("i", $user_id);
 $chk->execute();
 if ($chk->get_result()->num_rows === 0) {
-    header("Location: profile.php");
+    header("Location: $base_path/community/profile");
     exit;
 }
 

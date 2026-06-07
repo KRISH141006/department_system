@@ -64,7 +64,7 @@ include __DIR__ . '/../../../../shared/layout/header.php';
         <?php if ($success): ?><div class="alert alert-success"><?= htmlspecialchars($success) ?></div><?php endif; ?>
 
         <div class="card">
-            <form action="save_profile.php" method="POST" id="profileForm">
+            <form action="<?= $base_path ?>/api/community/save_profile" method="POST" id="profileForm">
                 
                 <!-- SECTION 1: BASIC INFORMATION -->
                 <div style="margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem;">

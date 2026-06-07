@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sign Up — ICT Community</title>
-  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="<?= $base_path ?>/assets/css/style.css">
   <style>
     body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 2rem 1rem; }
     .auth-box { width: 100%; max-width: 460px; }
@@ -71,7 +71,7 @@
       </div>
     </div>
 
-    <p class="auth-footer">Already have an account? <a href="login">Sign in</a></p>
+    <p class="auth-footer">Already have an account? <a href="<?= $base_path ?>/login">Sign in</a></p>
   </div>
 
   <script>
