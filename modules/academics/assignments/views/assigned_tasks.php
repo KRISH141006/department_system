@@ -1,18 +1,16 @@
 <?php
-require_once __DIR__ . '/../../app/middleware/auth.php';
-require_once __DIR__ . '/../../app/config/db.php';
+require_once __DIR__ . '/../../../../shared/middleware/auth.php';
+require_once __DIR__ . '/../../../../shared/config/db.php';
 $page_title = 'Assigned Tasks';
-require_once __DIR__ . '/../../app/includes/header.php';
+require_once __DIR__ . '/../../../../shared/layout/header.php';
 
 $user_id = $_SESSION['user_id'];
 
-// Get student's class_id to fetch core subject assignments
 $classStmt = $conn->prepare("SELECT class_id FROM students WHERE user_id = ?");
 $classStmt->bind_param("i", $user_id);
 $classStmt->execute();
 $class_id = $classStmt->get_result()->fetch_assoc()['class_id'] ?? 0;
 
-// Fetch Assigned Tasks via subjects (both core and enrolled electives)
 $base_query = "
     FROM assignments a
     JOIN users f ON a.faculty_id = f.id
@@ -24,13 +22,11 @@ $base_query = "
 $sort_by = isset($_GET['sort']) ? $_GET['sort'] : 'newest';
 $order_by = ($sort_by === 'oldest') ? "ORDER BY a.created_at ASC" : "ORDER BY a.created_at DESC";
 
-// Count total assigned
 $count_stmt = $conn->prepare("SELECT COUNT(DISTINCT a.id) as count $base_query");
 $count_stmt->bind_param("iii", $user_id, $class_id, $user_id);
 $count_stmt->execute();
 $total_assigned = $count_stmt->get_result()->fetch_assoc()['count'];
 
-// Pending assignments (no submission yet)
 $pending_stmt = $conn->prepare("
     SELECT a.*, f.name as faculty_name, sub.id as submission_id 
     $base_query AND sub.id IS NULL
@@ -40,7 +36,6 @@ $pending_stmt->bind_param("iii", $user_id, $class_id, $user_id);
 $pending_stmt->execute();
 $pending_result = $pending_stmt->get_result();
 
-// Completed assignments (has submission)
 $completed_stmt = $conn->prepare("
     SELECT a.*, f.name as faculty_name, sub.id as submission_id 
     $base_query AND sub.id IS NOT NULL
@@ -110,7 +105,7 @@ $completed_count = $completed_result->num_rows;
 
 <div class="page-wrap medium">
     <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
-        <a href="index.php" class="neo-pill">← Back to Dashboard</a>
+        <a href="../productivity/index.php" class="neo-pill">← Back to Dashboard</a>
         <div style="font-family: 'DM Serif Display', serif; font-size: 1.8rem;">Assigned Academic Tasks</div>
     </div>
 
@@ -176,4 +171,4 @@ $completed_count = $completed_result->num_rows;
     <?php endif; ?>
 </div>
 
-<?php require_once __DIR__ . '/../../app/includes/footer.php'; ?>
+<?php require_once __DIR__ . '/../../../../shared/layout/footer.php'; ?>

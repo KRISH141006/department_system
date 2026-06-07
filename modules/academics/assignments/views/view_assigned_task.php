@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . '/../../app/middleware/auth.php';
-require_once __DIR__ . '/../../app/config/db.php';
+require_once __DIR__ . '/../../../../shared/middleware/auth.php';
+require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!isset($_GET['id'])) {
     header("Location: assigned_tasks.php");
@@ -10,7 +10,6 @@ if (!isset($_GET['id'])) {
 $assignment_id = (int)$_GET['id'];
 $user_id = $_SESSION['user_id'];
 
-// Fetch assignment details from the normalized V1 schema
 $stmt = $conn->prepare("
     SELECT a.*, fu.name as faculty_name
     FROM assignments a
@@ -26,14 +25,13 @@ if (!$assignment) {
     exit();
 }
 
-// Fetch submission details from the submissions table
 $sub_stmt = $conn->prepare("SELECT * FROM submissions WHERE assignment_id = ? AND student_id = ?");
 $sub_stmt->bind_param("ii", $assignment_id, $user_id);
 $sub_stmt->execute();
 $submission = $sub_stmt->get_result()->fetch_assoc();
 
 $page_title = "View Assignment: " . $assignment['title'];
-require_once __DIR__ . '/../../app/includes/header.php';
+require_once __DIR__ . '/../../../../shared/layout/header.php';
 
 function getFileIcon($filename) {
     $ext = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
@@ -65,9 +63,7 @@ function isImage($filename) {
         padding: 2.5rem;
         margin-top: 2rem;
     }
-    .meta-item {
-        margin-bottom: 1.5rem;
-    }
+    .meta-item { margin-bottom: 1.5rem; }
     .meta-label {
         font-weight: 800;
         text-transform: uppercase;
@@ -76,10 +72,7 @@ function isImage($filename) {
         display: block;
         margin-bottom: 5px;
     }
-    .meta-value {
-        font-weight: 700;
-        font-size: 1.1rem;
-    }
+    .meta-value { font-weight: 700; font-size: 1.1rem; }
     .upload-zone {
         border: 3px dashed #1a1a1a;
         padding: 2rem;
@@ -103,6 +96,27 @@ function isImage($filename) {
         margin-top: 1rem;
         display: block;
     }
+    .neo-pill {
+        padding: 8px 16px;
+        border-radius: 10px;
+        background: #fff;
+        border: 2px solid #1a1a1a;
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-decoration: none;
+        color: #1a1a1a;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .neo-card {
+        background: #fff;
+        border: 2px solid #1a1a1a;
+        border-radius: 15px;
+        box-shadow: 6px 6px 0px #1a1a1a;
+        padding: 2rem;
+    }
+    .creative-pill { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; padding: 2px 10px; border: 2px solid #1a1a1a; border-radius: 20px; background: #fff; }
 </style>
 
 <div class="page-wrap medium">
@@ -239,4 +253,4 @@ function isImage($filename) {
     </div>
 </div>
 
-<?php require_once __DIR__ . '/../../app/includes/footer.php'; ?>
+<?php require_once __DIR__ . '/../../../../shared/layout/footer.php'; ?>
