@@ -3,14 +3,14 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_faculty_dashboard')) {
-    header("Location: $base_path/public/dashboard.php");
+    header("Location: $base_path/dashboard");
     exit();
 }
 
 $assignment_id = (int) ($_GET['assignment_id'] ?? 0);
 
 if (!$assignment_id) {
-    header("Location: $base_path/public/academics/assigned_tasks_history.php");
+    header("Location: $base_path/academics/assigned_tasks_history");
     exit();
 }
 
@@ -28,7 +28,7 @@ $stmt->execute();
 $assignment = $stmt->get_result()->fetch_assoc();
 
 if (!$assignment) {
-    header("Location: $base_path/public/academics/assigned_tasks_history.php");
+    header("Location: $base_path/academics/assigned_tasks_history");
     exit();
 }
 
@@ -62,7 +62,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                 Class: <strong><?= htmlspecialchars($assignment['class_name']) ?> (Sem <?= $assignment['semester'] ?>)</strong>
             </p>
         </div>
-        <a href="<?= $base_path ?>/public/academics/assigned_tasks_history.php" class="btn btn-secondary">Back to History</a>
+        <a href="<?= $base_path ?>/academics/assigned_tasks_history" class="btn btn-secondary">Back to History</a>
     </div>
 
     <div class="grid-2" style="margin-bottom: 2rem;">
@@ -121,7 +121,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                         </td>
                         <td style="padding: 1.25rem; text-align: right;">
                             <?php if ($s['submission_id']): ?>
-                                <a href="<?= $base_path ?>/public/academics/view_student_submissions.php?submission_id=<?= $s['submission_id'] ?>" class="btn btn-sm btn-primary">Review & Grade</a>
+                                <a href="<?= $base_path ?>/academics/view_student_submissions?submission_id=<?= $s['submission_id'] ?>" class="btn btn-sm btn-primary">Review & Grade</a>
                             <?php else: ?>
                                 <button class="btn btn-sm btn-secondary" disabled>N/A</button>
                             <?php endif; ?>

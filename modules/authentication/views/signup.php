@@ -71,7 +71,7 @@
       </div>
     </div>
 
-    <p class="auth-footer">Already have an account? <a href="login.php">Sign in</a></p>
+    <p class="auth-footer">Already have an account? <a href="login">Sign in</a></p>
   </div>
 
   <script>
@@ -89,7 +89,7 @@
       signupFormData = new FormData(e.target);
 
       try {
-        const res  = await fetch("<?= $base_path ?>/app/auth/send_otp.php", {
+        const res  = await fetch("<?= $base_path ?>/api/auth/send_otp", {
           method: "POST",
           body: signupFormData,
           credentials: "same-origin"
@@ -146,7 +146,7 @@
       payload.append("otp", otp);
 
       try {
-        const res  = await fetch("<?= $base_path ?>/app/auth/verify_otp.php", {
+        const res  = await fetch("<?= $base_path ?>/api/auth/verify_otp", {
           method: "POST",
           body: payload,
           credentials: "same-origin"
@@ -168,7 +168,7 @@
           alertBox.innerHTML =
             `<div class="alert alert-success">Account created! Redirecting…</div>`;
           setTimeout(() => {
-            window.location.href = data.redirect || "login.php";
+            window.location.href = data.redirect || "login";
           }, 1000);
         } else {
           alertBox.innerHTML =

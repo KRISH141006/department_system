@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('review_requests')) {
-    header("Location: $base_path/public/dashboard.php");
+    header("Location: $base_path/dashboard");
     exit;
 }
 
@@ -13,7 +13,7 @@ $marks       = (int) ($_POST['marks']      ?? 0);
 $comment     = trim($_POST['comment']      ?? '');
 
 if (!$request_id || $marks < 0 || $marks > 100) {
-    header("Location: $base_path/public/community/reviewer_dashboard.php");
+    header("Location: $base_path/community/reviewer_dashboard");
     exit;
 }
 
@@ -110,5 +110,5 @@ try {
     $_SESSION['msg_error'] = "Action failed. Error: " . $e->getMessage();
 }
 
-header("Location: $base_path/public/community/reviewer_dashboard.php");
+header("Location: $base_path/community/reviewer_dashboard");
 exit;

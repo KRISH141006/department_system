@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_faculty_dashboard')) {
-    header("Location: $base_path/public/dashboard.php");
+    header("Location: $base_path/dashboard");
     exit();
 }
 
@@ -18,7 +18,7 @@ $ccRow = $ccStmt->get_result()->fetch_assoc();
 
 if (!$ccRow || !$ccRow['coordinated_class_id']) {
     $_SESSION['msg_error'] = "Unauthorized: You are not a Class Coordinator.";
-    header("Location: $base_path/public/academics/faculty_dashboard.php");
+    header("Location: $base_path/academics/faculty_dashboard");
     exit();
 }
 
@@ -51,6 +51,6 @@ if ($action === 'add') {
     }
 }
 
-header("Location: $base_path/public/academics/manage_class.php");
+header("Location: $base_path/academics/manage_class");
 exit;
 ?>

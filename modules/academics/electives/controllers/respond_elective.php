@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('select_electives')) {
-    header("Location: $base_path/public/dashboard.php");
+    header("Location: $base_path/dashboard");
     exit();
 }
 
@@ -15,7 +15,7 @@ $action = $_POST['action'] ?? ''; // 'approve', 'reject' (wait, usually students
 // Let's assume this is for a student to cancel their own pending request if they changed their mind.
 
 if (!$request_id) {
-    header("Location: $base_path/public/academics/select_electives.php");
+    header("Location: $base_path/academics/select_electives");
     exit();
 }
 
@@ -26,6 +26,6 @@ if ($action === 'cancel') {
     $_SESSION['msg_success'] = "Change request cancelled.";
 }
 
-header("Location: $base_path/public/academics/select_electives.php");
+header("Location: $base_path/academics/select_electives");
 exit;
 ?>

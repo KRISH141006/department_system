@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_faculty_dashboard')) {
-    header("Location: $base_path/public/dashboard.php");
+    header("Location: $base_path/dashboard");
     exit();
 }
 
@@ -35,7 +35,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
             <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem;">Student's Feedback</h1>
             <p style="color: var(--text-2);">Review anonymous feedback and ratings from your classes.</p>
         </div>
-        <a href="<?= $base_path ?>/public/academics/faculty_dashboard.php" class="btn btn-secondary">Back to Dashboard</a>
+        <a href="<?= $base_path ?>/academics/faculty_dashboard" class="btn btn-secondary">Back to Dashboard</a>
     </div>
 
     <div class="card" style="margin-bottom: 2rem; border-left: 5px solid var(--accent);">
@@ -51,7 +51,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
             <div style="font-size: 4rem; margin-bottom: 1rem;">📝</div>
             <h3>No feedback received yet.</h3>
             <p>Publish a feedback form to start collecting responses.</p>
-            <a href="<?= $base_path ?>/public/academics/create_feedback.php" class="btn btn-primary" style="margin-top: 1.5rem;">Create Feedback Form</a>
+            <a href="<?= $base_path ?>/academics/create_feedback" class="btn btn-primary" style="margin-top: 1.5rem;">Create Feedback Form</a>
         </div>
     <?php else: ?>
         <div class="card" style="padding: 0; overflow: hidden;">
@@ -93,7 +93,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                                 </span>
                             </td>
                             <td style="padding: 1.25rem; text-align: right;">
-                                <a href="<?= $base_path ?>/public/academics/feedback_results.php?form_id=<?= $f['id'] ?>" class="btn btn-sm btn-primary">View Results</a>
+                                <a href="<?= $base_path ?>/academics/feedback_results?form_id=<?= $f['id'] ?>" class="btn btn-sm btn-primary">View Results</a>
                             </td>
                         </tr>
                     <?php endforeach; ?>

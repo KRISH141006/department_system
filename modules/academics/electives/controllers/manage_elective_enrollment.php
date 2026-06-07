@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_faculty_dashboard')) {
-    header("Location: $base_path/public/dashboard.php");
+    header("Location: $base_path/dashboard");
     exit();
 }
 
@@ -14,7 +14,7 @@ $subject_id = (int) ($_POST['subject_id'] ?? 0);
 if ($action_type === 'batch_save') {
     if (!$subject_id) {
         $_SESSION['msg_error'] = "Invalid subject.";
-        header("Location: $base_path/public/academics/faculty_dashboard.php");
+        header("Location: $base_path/academics/faculty_dashboard");
         exit();
     }
 
@@ -35,7 +35,7 @@ if ($action_type === 'batch_save') {
 
     if (empty($allowed_csids)) {
         $_SESSION['msg_error'] = "Access denied.";
-        header("Location: $base_path/public/academics/faculty_dashboard.php");
+        header("Location: $base_path/academics/faculty_dashboard");
         exit();
     }
 
@@ -72,7 +72,7 @@ if ($action_type === 'batch_save') {
         $_SESSION['msg_error'] = "Error: " . $e->getMessage();
     }
 
-    header("Location: $base_path/public/academics/manage_elective_students.php?id=" . $subject_id);
+    header("Location: $base_path/academics/manage_elective_students?id=" . $subject_id);
     exit();
 
 } else {
@@ -81,7 +81,7 @@ if ($action_type === 'batch_save') {
     
     if (!$class_subject_id) {
         $_SESSION['msg_error'] = "Invalid class subject mapping.";
-        header("Location: $base_path/public/academics/faculty_dashboard.php");
+        header("Location: $base_path/academics/faculty_dashboard");
         exit();
     }
 
@@ -98,7 +98,7 @@ if ($action_type === 'batch_save') {
 
     if (!$sub_data) {
         $_SESSION['msg_error'] = "Access denied.";
-        header("Location: $base_path/public/academics/faculty_dashboard.php");
+        header("Location: $base_path/academics/faculty_dashboard");
         exit();
     }
 
@@ -131,6 +131,6 @@ if ($action_type === 'batch_save') {
         $_SESSION['msg_error'] = "Error: " . $e->getMessage();
     }
 
-    header("Location: $base_path/public/academics/manage_elective_students.php?id=" . $subject_id);
+    header("Location: $base_path/academics/manage_elective_students?id=" . $subject_id);
     exit();
 }

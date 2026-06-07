@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_faculty_dashboard')) {
-    header("Location: $base_path/public/dashboard.php");
+    header("Location: $base_path/dashboard");
     exit();
 }
 
@@ -60,56 +60,56 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
 
     <div class="grid-2">
         <?php if ($is_cc): ?>
-            <a href="<?= $base_path ?>/public/academics/manage_class.php" class="card" style="text-decoration: none; color: inherit; background: var(--bg-2); border: 2px solid var(--accent); grid-column: span 2;">
+            <a href="<?= $base_path ?>/academics/manage_class" class="card" style="text-decoration: none; color: inherit; background: var(--bg-2); border: 2px solid var(--accent); grid-column: span 2;">
                 <div style="font-size: 32px; margin-bottom: 12px;">🏫</div>
                 <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600; color: var(--accent);">Manage My Class</h3>
                 <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">View roster, add or remove students for <strong><?= htmlspecialchars($ccInfo['class_name']) ?> (Sem <?= $ccInfo['semester'] ?>)</strong>.</p>
             </a>
         <?php endif; ?>
 
-        <a href="<?= $base_path ?>/public/academics/create_subject.php" class="card" style="text-decoration: none; color: inherit;">
+        <a href="<?= $base_path ?>/academics/create_subject" class="card" style="text-decoration: none; color: inherit;">
             <div style="font-size: 32px; margin-bottom: 12px;">📚</div>
             <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600;">Create Subject</h3>
             <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">Define syllabus units and topics for your classes.</p>
         </a>
 
-        <a href="<?= $base_path ?>/public/academics/create_feedback.php" class="card" style="text-decoration: none; color: inherit;">
+        <a href="<?= $base_path ?>/academics/create_feedback" class="card" style="text-decoration: none; color: inherit;">
             <div style="font-size: 32px; margin-bottom: 12px;">📝</div>
             <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600;">Create Feedback</h3>
             <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">Generate evaluation forms for student feedback.</p>
         </a>
 
-        <a href="<?= $base_path ?>/public/academics/feedback_history.php" class="card" style="text-decoration: none; color: inherit;">
+        <a href="<?= $base_path ?>/academics/feedback_history" class="card" style="text-decoration: none; color: inherit;">
             <div style="font-size: 32px; margin-bottom: 12px;">📊</div>
             <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600;">Student's Feedback</h3>
             <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">Review anonymous ratings and student comments from your classes.</p>
         </a>
 
-        <a href="<?= $base_path ?>/public/academics/assign_task.php" class="card" style="text-decoration: none; color: inherit; border-left: 4px solid var(--accent);">
+        <a href="<?= $base_path ?>/academics/assign_task" class="card" style="text-decoration: none; color: inherit; border-left: 4px solid var(--accent);">
             <div style="font-size: 32px; margin-bottom: 12px;">📋</div>
             <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600;">Assign Task</h3>
             <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">Assign academic or productivity tasks to your students based on class, semester, and PAC category.</p>
         </a>
 
-        <a href="<?= $base_path ?>/public/academics/host_meeting.php" class="card" style="text-decoration: none; color: inherit; border-left: 4px solid #ef4444;">
+        <a href="<?= $base_path ?>/academics/host_meeting" class="card" style="text-decoration: none; color: inherit; border-left: 4px solid #ef4444;">
             <div style="font-size: 32px; margin-bottom: 12px;">🎥</div>
             <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600; color: #ef4444;">Host Live Class</h3>
             <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">Start a video class for your students with screen sharing and chat.</p>
         </a>
 
-        <a href="<?= $base_path ?>/public/academics/submissions.php" class="card" style="text-decoration: none; color: inherit; border-left: 4px solid #22c55e;">
+        <a href="<?= $base_path ?>/academics/submissions" class="card" style="text-decoration: none; color: inherit; border-left: 4px solid #22c55e;">
             <div style="font-size: 32px; margin-bottom: 12px;">📤</div>
             <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600;">Submissions</h3>
             <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">Review, download, and grade assignments submitted by your students.</p>
         </a>
 
-        <a href="<?= $base_path ?>/public/academics/assigned_tasks_history.php" class="card" style="text-decoration: none; color: inherit; border-left: 4px solid var(--primary);">
+        <a href="<?= $base_path ?>/academics/assigned_tasks_history" class="card" style="text-decoration: none; color: inherit; border-left: 4px solid var(--primary);">
             <div style="font-size: 32px; margin-bottom: 12px;">📜</div>
             <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600;">Task History</h3>
             <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">Review and manage tasks you have previously assigned to students.</p>
         </a>
 
-        <a href="<?= $base_path ?>/public/academics/syllabus_verification.php" class="card" style="text-decoration: none; color: inherit; border-top: 4px solid var(--success);">
+        <a href="<?= $base_path ?>/academics/syllabus_verification" class="card" style="text-decoration: none; color: inherit; border-top: 4px solid var(--success);">
             <?php 
             // 1. Count pending student reports (Bottom-Up)
             $countStmt = $conn->prepare("
@@ -153,7 +153,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
     <div style="margin-top: 60px;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
             <h2 style="margin: 0;">My Subjects & Classes</h2>
-            <a href="<?= $base_path ?>/public/academics/create_subject.php" class="btn btn-sm" style="background: var(--accent); color: white;">+ Add Subject</a>
+            <a href="<?= $base_path ?>/academics/create_subject" class="btn btn-sm" style="background: var(--accent); color: white;">+ Add Subject</a>
         </div>
         
         <?php 
@@ -251,16 +251,16 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                                 <div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-end;">
                                     <div style="display: flex; gap: 8px; justify-content: flex-end;">
                                         <?php if ($isElective): ?>
-                                            <a href="<?= $base_path ?>/public/academics/manage_elective_students.php?id=<?php echo $sub['subject_id']; ?>" class="btn btn-sm btn-secondary" title="Manage Students">Students</a>
+                                            <a href="<?= $base_path ?>/academics/manage_elective_students?id=<?php echo $sub['subject_id']; ?>" class="btn btn-sm btn-secondary" title="Manage Students">Students</a>
                                         <?php endif; ?>
-                                        <a href="<?= $base_path ?>/public/academics/units.php?subject_id=<?php echo $sub['subject_id']; ?>&class_id=<?php echo $class_ids[0]; ?>" class="btn btn-sm btn-secondary" title="Syllabus/Topics">Units</a>
-                                        <a href="<?= $base_path ?>/public/academics/create_subject.php?id=<?php echo $sub['subject_id']; ?>" class="btn btn-sm btn-secondary" title="Edit Subject">
+                                        <a href="<?= $base_path ?>/academics/units?subject_id=<?php echo $sub['subject_id']; ?>&class_id=<?php echo $class_ids[0]; ?>" class="btn btn-sm btn-secondary" title="Syllabus/Topics">Units</a>
+                                        <a href="<?= $base_path ?>/academics/create_subject?id=<?php echo $sub['subject_id']; ?>" class="btn btn-sm btn-secondary" title="Edit Subject">
                                             <span style="font-size: 14px;">⚙️</span>
                                         </a>
                                     </div>
                                     <div style="display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; max-width: 250px;">
                                         <?php foreach ($class_subject_ids as $index => $csid): ?>
-                                            <a href="<?= $base_path ?>/public/academics/select_student.php?class_id=<?php echo $csid; ?>" class="btn btn-sm <?= $hasAssignments ? 'btn-secondary' : 'btn-primary'; ?>" style="font-size: 10px; padding: 2px 6px;">
+                                            <a href="<?= $base_path ?>/academics/select_student?class_id=<?php echo $csid; ?>" class="btn btn-sm <?= $hasAssignments ? 'btn-secondary' : 'btn-primary'; ?>" style="font-size: 10px; padding: 2px 6px;">
                                                 Verify <?php echo $class_names[$index]; ?>
                                             </a>
                                         <?php endforeach; ?>

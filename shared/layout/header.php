@@ -22,17 +22,17 @@ $base_path = rtrim($base_path, '/');
 <body>
 <header class="site-header">
   <div class="header-inner">
-    <a href="<?= $base_path ?>/public/dashboard.php" class="site-logo">Department<span>.</span>System</a>
+    <a href="<?= $base_path ?>/dashboard" class="site-logo">Department<span>.</span>System</a>
     <?php if ($show_nav && $user_id): ?>
     <nav class="header-nav">
-      <a href="<?= $base_path ?>/public/dashboard.php" class="nav-link">Dashboard</a>
-      <a href="<?= $base_path ?>/public/community/profile.php" class="nav-link">Profile</a>
-      <a href="<?= $base_path ?>/public/community/leaderboard.php" class="nav-link">Leaderboard</a>
+      <a href="<?= $base_path ?>/dashboard" class="nav-link">Dashboard</a>
+      <a href="<?= $base_path ?>/community/profile" class="nav-link">Profile</a>
+      <a href="<?= $base_path ?>/community/leaderboard" class="nav-link">Leaderboard</a>
       <?php if (has_permission('review_requests')): ?>
-        <a href="<?= $base_path ?>/public/community/reviewer_dashboard.php" class="nav-link">Review Requests</a>
+        <a href="<?= $base_path ?>/community/reviewer_dashboard" class="nav-link">Review Requests</a>
       <?php endif; ?>
       <?php if (has_permission('view_faculty_dashboard') && $_SESSION['role'] !== 'faculty'): ?>
-        <a href="<?= $base_path ?>/public/academics/manage_subjects.php" class="nav-link">Academics</a>
+        <a href="<?= $base_path ?>/academics/manage_subjects" class="nav-link">Academics</a>
       <?php endif; ?>
 
       <?php if ($_SESSION['role'] === 'student'): ?>
@@ -74,7 +74,7 @@ $base_path = rtrim($base_path, '/');
                               <p style="margin: 0; font-weight: 700; color: #ef4444; font-size: 11px;">🔴 LIVE NOW</p>
                               <p style="margin: 5px 0; font-size: 13px;"><strong><?= htmlspecialchars($m['topic']) ?></strong></p>
                               <p style="margin: 0; font-size: 11px; color: #64748b;">By <?= htmlspecialchars($m['faculty_name']) ?></p>
-                              <a href="<?= $base_path ?>/public/academics/join_class.php?room=<?= htmlspecialchars($m['room_code']) ?>" class="btn btn-sm btn-primary" style="width: 100%; margin-top: 10px; text-align: center; display: block; text-decoration: none;">Join Classroom</a>
+                              <a href="<?= $base_path ?>/academics/join_class?room=<?= htmlspecialchars($m['room_code']) ?>" class="btn btn-sm btn-primary" style="width: 100%; margin-top: 10px; text-align: center; display: block; text-decoration: none;">Join Classroom</a>
                           </div>
                       <?php endwhile; ?>
                   </div>
@@ -121,7 +121,7 @@ $base_path = rtrim($base_path, '/');
           </script>
       <?php endif; ?>
 
-      <a href="<?= $base_path ?>/app/auth/logout.php" class="nav-link">Logout</a>
+      <a href="<?= $base_path ?>/api/auth/logout" class="nav-link">Logout</a>
     </nav>
     <?php endif; ?>
   </div>

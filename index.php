@@ -25,9 +25,9 @@ $request_uri = '/' . ltrim($request_uri, '/');
 // Redirect root to dashboard or login
 if ($request_uri === '/' || $request_uri === '/index.php') {
     if (isset($_SESSION['user_id'])) {
-        header("Location: $base_path/public/dashboard.php");
+        header("Location: $base_path/dashboard");
     } else {
-        header("Location: $base_path/public/login.php");
+        header("Location: $base_path/login");
     }
     exit;
 }

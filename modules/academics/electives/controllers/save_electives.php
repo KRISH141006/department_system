@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('select_electives')) {
-    header("Location: $base_path/public/dashboard.php");
+    header("Location: $base_path/dashboard");
     exit();
 }
 
@@ -14,7 +14,7 @@ $class_subject_ids = $_POST['class_subject_ids'] ?? [];
 
 if ($semester <= 0 || !$class_id) {
     $_SESSION['msg_error'] = "Invalid session data.";
-    header("Location: $base_path/public/academics/select_electives.php");
+    header("Location: $base_path/academics/select_electives");
     exit();
 }
 
@@ -68,5 +68,5 @@ try {
     $_SESSION['msg_error'] = "Error saving electives: " . $e->getMessage();
 }
 
-header("Location: $base_path/public/academics/select_electives.php");
+header("Location: $base_path/academics/select_electives");
 exit();

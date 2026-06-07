@@ -64,7 +64,7 @@ try {
             $ps->execute();
             $pr = $ps->get_result();
 
-            $redirect = ($pr->num_rows === 0) ? "community/profile.php" : "dashboard.php";
+            $redirect = ($pr->num_rows === 0) ? "community/profile" : "dashboard";
 
             echo json_encode(["status" => "success", "redirect" => $redirect]);
         } else {

@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_faculty_dashboard')) {
-    header("Location: $base_path/public/dashboard.php");
+    header("Location: $base_path/dashboard");
     exit();
 }
 
@@ -21,7 +21,7 @@ $ccProfile = $ccStmt->get_result()->fetch_assoc();
 
 if (!$ccProfile || !$ccProfile['is_cc'] || !$ccProfile['coordinated_class_id']) {
     $_SESSION['msg_error'] = "You are not designated as a Class Coordinator for any class.";
-    header("Location: $base_path/public/academics/faculty_dashboard.php");
+    header("Location: $base_path/academics/faculty_dashboard");
     exit();
 }
 
@@ -68,7 +68,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
             <p style="color: var(--text-2);">Class: <strong><?= htmlspecialchars($cc_class_name) ?></strong> | Semester: <strong><?= htmlspecialchars($cc_semester) ?></strong> | Branch: <strong><?= htmlspecialchars($ccProfile['branch']) ?></strong></p>
         </div>
         <div>
-            <a href="<?= $base_path ?>/public/academics/faculty_dashboard.php" class="btn btn-secondary">Back to Dashboard</a>
+            <a href="<?= $base_path ?>/academics/faculty_dashboard" class="btn btn-secondary">Back to Dashboard</a>
         </div>
     </div>
 
@@ -95,7 +95,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                                             <div style="font-weight: 600; font-size: 14px;"><?= htmlspecialchars($s['name']) ?></div>
                                             <div style="font-size: 12px; color: var(--text-2);">Roll: <?= htmlspecialchars($s['roll_no'] ?? 'N/A') ?> | Current: <?= htmlspecialchars($s['class_name'] ?: 'None') ?> (Sem <?= htmlspecialchars($s['semester'] ?: 'None') ?>)</div>
                                         </div>
-                                        <form action="<?= $base_path ?>/app/actions/academics/manage_student_class.php" method="POST">
+                                        <form action="<?= $base_path ?>/api/academics/manage_student_class" method="POST">
                                             <input type="hidden" name="student_id" value="<?= $s['id'] ?>">
                                             <input type="hidden" name="action" value="add">
                                             <button type="submit" class="btn btn-sm" style="background: var(--success); color: white; border: none;">Add</button>
@@ -134,7 +134,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                                         <div style="font-size: 11px; color: var(--text-2);"><?= htmlspecialchars($s['email']) ?></div>
                                     </td>
                                     <td style="padding: 10px; text-align: right;">
-                                        <a href="<?= $base_path ?>/public/academics/student_progress.php?student_id=<?= $s['id'] ?>" class="btn btn-sm" style="background: var(--accent); color: white; border: none; text-decoration: none;">View Progress</a>
+                                        <a href="<?= $base_path ?>/academics/student_progress?student_id=<?= $s['id'] ?>" class="btn btn-sm" style="background: var(--accent); color: white; border: none; text-decoration: none;">View Progress</a>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

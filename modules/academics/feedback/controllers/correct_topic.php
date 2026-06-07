@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_faculty_dashboard')) {
-    header("Location: $base_path/public/dashboard.php");
+    header("Location: $base_path/dashboard");
     exit();
 }
 
@@ -14,7 +14,7 @@ $action     = $_POST['action'] ?? '';
 
 if (!$session_id || !$topic_id || $action !== 'verify') {
     $_SESSION['msg_error'] = "Invalid verification request.";
-    header("Location: $base_path/public/academics/syllabus_verification.php");
+    header("Location: $base_path/academics/syllabus_verification");
     exit();
 }
 
@@ -51,6 +51,6 @@ try {
     $_SESSION['msg_error'] = "Verification failed: " . $e->getMessage();
 }
 
-header("Location: $base_path/public/academics/syllabus_verification.php");
+header("Location: $base_path/academics/syllabus_verification");
 exit;
 ?>

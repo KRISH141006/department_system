@@ -34,6 +34,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $stmt->bind_param("iiss", $assignment_id, $student_id, $submission_path, $submission_name);
     $stmt->execute();
 
-    header("Location: $base_path/public/academics/view_assigned_task.php?id=" . $assignment_id . "&submitted=1");
+    header("Location: $base_path/academics/view_assigned_task?id=" . $assignment_id . "&submitted=1");
     exit();
 }

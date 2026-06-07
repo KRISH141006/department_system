@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_faculty_dashboard')) {
-    header("Location: $base_path/public/dashboard.php");
+    header("Location: $base_path/dashboard");
     exit();
 }
 
@@ -36,7 +36,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
             <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem;">Review Student Reports</h1>
             <p style="color: var(--text-2);">See which topics students reported as covered and verify them.</p>
         </div>
-        <a href="<?= $base_path ?>/public/academics/faculty_dashboard.php" class="btn btn-secondary">Back to Dashboard</a>
+        <a href="<?= $base_path ?>/academics/faculty_dashboard" class="btn btn-secondary">Back to Dashboard</a>
     </div>
 
     <?php if (isset($_SESSION['msg_success'])): ?>
@@ -122,7 +122,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                                             <?php if ($is_verified): ?>
                                                 <span class="badge badge-success">Verified</span>
                                             <?php else: ?>
-                                                <form action="<?= $base_path ?>/app/actions/academics/correct_topic.php" method="POST">
+                                                <form action="<?= $base_path ?>/api/academics/correct_topic" method="POST">
                                                     <input type="hidden" name="session_id" value="<?= $sess['id'] ?>">
                                                     <input type="hidden" name="topic_id" value="<?= $tr['id'] ?>">
                                                     <input type="hidden" name="action" value="verify">

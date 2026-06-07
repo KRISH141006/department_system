@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_faculty_dashboard')) {
-    header("Location: $base_path/public/dashboard.php");
+    header("Location: $base_path/dashboard");
     exit();
 }
 
@@ -11,7 +11,7 @@ $faculty_id = (int) $_SESSION['user_id'];
 $class_subject_id = (int) ($_GET['class_id'] ?? 0); 
 
 if (!$class_subject_id) {
-    header("Location: $base_path/public/academics/faculty_dashboard.php");
+    header("Location: $base_path/academics/faculty_dashboard");
     exit();
 }
 
@@ -28,7 +28,7 @@ $stmt->execute();
 $info = $stmt->get_result()->fetch_assoc();
 
 if (!$info) {
-    header("Location: $base_path/public/academics/faculty_dashboard.php");
+    header("Location: $base_path/academics/faculty_dashboard");
     exit();
 }
 
@@ -67,7 +67,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                 Class: <strong><?= htmlspecialchars($info['class_name']) ?> (Sem <?= $info['semester'] ?>)</strong>
             </p>
         </div>
-        <a href="<?= $base_path ?>/public/academics/faculty_dashboard.php" class="btn btn-secondary">Back to Dashboard</a>
+        <a href="<?= $base_path ?>/academics/faculty_dashboard" class="btn btn-secondary">Back to Dashboard</a>
     </div>
 
     <div class="card" style="margin-bottom: 2rem; border-left: 5px solid var(--primary);">
@@ -78,7 +78,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
         </p>
         
         <?php if (!$session_id): ?>
-            <form action="<?= $base_path ?>/app/actions/academics/assign_feedback.php" method="POST" style="margin-top: 1.5rem;">
+            <form action="<?= $base_path ?>/api/academics/assign_feedback" method="POST" style="margin-top: 1.5rem;">
                 <input type="hidden" name="class_subject_id" value="<?= $class_subject_id ?>">
                 <input type="hidden" name="class_id" value="<?= $info['class_id'] ?>">
                 <input type="hidden" name="random" value="1">
@@ -120,7 +120,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                             <?php endif; ?>
                         </td>
                         <td style="padding: 1rem; text-align: right;">
-                            <form action="<?= $base_path ?>/app/actions/academics/skip_feedback.php" method="POST" onsubmit="return confirm('Skip this student and assign another randomly?')">
+                            <form action="<?= $base_path ?>/api/academics/skip_feedback" method="POST" onsubmit="return confirm('Skip this student and assign another randomly?')">
                                 <input type="hidden" name="assignment_id" value="<?= $a['id'] ?>">
                                 <input type="hidden" name="class_subject_id" value="<?= $class_subject_id ?>">
                                 <button type="submit" class="btn btn-sm btn-secondary">Skip / Reassign</button>

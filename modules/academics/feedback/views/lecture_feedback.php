@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_student_dashboard')) {
-    header("Location: $base_path/public/dashboard.php");
+    header("Location: $base_path/dashboard");
     exit();
 }
 
@@ -11,7 +11,7 @@ $student_id = (int) $_SESSION['user_id'];
 $session_id = (int) ($_GET['session_id'] ?? 0);
 
 if (!$session_id) {
-    header("Location: $base_path/public/academics/student_dashboard.php");
+    header("Location: $base_path/academics/student_dashboard");
     exit();
 }
 
@@ -31,7 +31,7 @@ $session = $stmt->get_result()->fetch_assoc();
 
 if (!$session) {
     $_SESSION['msg_error'] = "No pending verification found for this session.";
-    header("Location: $base_path/public/academics/student_dashboard.php");
+    header("Location: $base_path/academics/student_dashboard");
     exit();
 }
 
@@ -64,14 +64,14 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                     <h3 style="margin-bottom: 5px;"><?= htmlspecialchars($session['subject_name']) ?></h3>
                     <p style="color: var(--text-2); font-size: 14px;">Faculty: <strong><?= htmlspecialchars($session['faculty_name']) ?></strong> | Date: <strong><?= date('d M, Y', strtotime($session['session_date'])) ?></strong></p>
                 </div>
-                <form action="<?= $base_path ?>/app/actions/academics/submit_lecture_feedback.php" method="POST">
+                <form action="<?= $base_path ?>/api/academics/submit_lecture_feedback" method="POST">
                     <input type="hidden" name="session_id" value="<?= $session_id ?>">
                     <button type="submit" name="status" value="absent" class="btn btn-secondary btn-sm" onclick="return confirm('Mark yourself as absent for this lecture?')">I was Absent</button>
                 </form>
             </div>
         </div>
 
-        <form action="<?= $base_path ?>/app/actions/academics/submit_lecture_feedback.php" method="POST">
+        <form action="<?= $base_path ?>/api/academics/submit_lecture_feedback" method="POST">
             <input type="hidden" name="session_id" value="<?= $session_id ?>">
             <input type="hidden" name="status" value="submitted">
 

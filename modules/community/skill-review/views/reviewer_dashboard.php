@@ -105,7 +105,7 @@ include __DIR__ . '/../../../../shared/layout/header.php';
               </td>
               <td style="padding: 12px 24px; color: var(--text-2); font-size: 14px;"><?= date('d M Y', strtotime($req['created_at'])) ?></td>
               <td style="padding: 12px 24px; text-align: right;">
-                <form action="<?= $base_path ?>/app/actions/community/accept_request.php" method="POST" style="display:inline;">
+                <form action="<?= $base_path ?>/api/community/accept_request" method="POST" style="display:inline;">
                   <input type="hidden" name="request_id" value="<?= $req['id'] ?>">
                   <button type="submit" class="btn btn-primary btn-sm">Accept to Review</button>
                 </form>
@@ -139,7 +139,7 @@ include __DIR__ . '/../../../../shared/layout/header.php';
                 <a href="?accepted=<?= $req['id'] ?>#review-<?= $req['id'] ?>" class="btn btn-primary btn-full btn-sm">Start Evaluation</a>
             <?php else: ?>
                 <div id="review-<?= $req['id'] ?>" style="margin-top:1.5rem; padding-top:1.5rem; border-top:1px solid var(--border);">
-                    <form action="<?= $base_path ?>/app/actions/community/submit_review.php" method="POST">
+                    <form action="<?= $base_path ?>/api/community/submit_review" method="POST">
                         <input type="hidden" name="request_id" value="<?= $req['id'] ?>">
                         <div class="form-group">
                             <label>Marks <span class="text-muted">(0–100)</span></label>

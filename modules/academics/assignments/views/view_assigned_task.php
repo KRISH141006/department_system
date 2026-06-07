@@ -239,7 +239,7 @@ function isImage($filename) {
                 <?php endif; ?>
             </div>
         <?php else: ?>
-            <form action="<?= $base_path ?>/app/actions/productivity/submit_assignment.php" method="POST" enctype="multipart/form-data">
+            <form action="<?= $base_path ?>/api/productivity/submit_assignment" method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="task_id" value="<?= $assignment_id ?>">
                 <div class="upload-zone">
                     <div style="font-size: 3rem; margin-bottom: 1rem;">📁</div>

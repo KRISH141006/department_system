@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_faculty_dashboard')) {
-    header("Location: $base_path/public/dashboard.php");
+    header("Location: $base_path/dashboard");
     exit();
 }
 
@@ -29,7 +29,7 @@ $subject = $sStmt->get_result()->fetch_assoc();
 
 if (!$subject) {
     $_SESSION['msg_error'] = "Elective subject not found or access denied.";
-    header("Location: $base_path/public/academics/faculty_dashboard.php");
+    header("Location: $base_path/academics/faculty_dashboard");
     exit();
 }
 
@@ -127,7 +127,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                         </button>
                     <?php endif; ?>
                 <?php else: ?>
-                    <form action="<?= $base_path ?>/app/actions/academics/toggle_elective_window.php" method="POST">
+                    <form action="<?= $base_path ?>/api/academics/toggle_elective_window" method="POST">
                         <?php foreach($class_subject_ids as $csid): ?>
                             <input type="hidden" name="class_subject_ids[]" value="<?= $csid ?>">
                         <?php endforeach; ?>
@@ -138,7 +138,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                         </button>
                     </form>
                 <?php endif; ?>
-                <a href="<?= $base_path ?>/public/academics/faculty_dashboard.php" class="btn btn-secondary">← Back to Dashboard</a>
+                <a href="<?= $base_path ?>/academics/faculty_dashboard" class="btn btn-secondary">← Back to Dashboard</a>
             </div>
         </div>
 
@@ -147,7 +147,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
             <div class="card" style="max-width: 500px; width: 100%;">
                 <h3 style="margin-bottom: 1rem;">Request Enrollment Unlock</h3>
                 <p style="font-size: 14px; color: var(--text-2); margin-bottom: 1.5rem;">Provide a reason for the Admin to unlock this elective selection.</p>
-                <form action="<?= $base_path ?>/app/actions/academics/request_elective_unlock.php" method="POST">
+                <form action="<?= $base_path ?>/api/academics/request_elective_unlock" method="POST">
                     <?php foreach($class_subject_ids as $csid): ?>
                         <input type="hidden" name="class_subject_ids[]" value="<?= $csid ?>">
                     <?php endforeach; ?>
@@ -183,7 +183,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
             </div>
         <?php endif; ?>
 
-        <form action="<?= $base_path ?>/app/actions/academics/manage_elective_enrollment.php" method="POST">
+        <form action="<?= $base_path ?>/api/academics/manage_elective_enrollment" method="POST">
             <input type="hidden" name="subject_id" value="<?= $subject_id ?>">
             <input type="hidden" name="action_type" value="batch_save">
             <div class="card" style="padding: 0; overflow: hidden;">
@@ -301,7 +301,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                                                 <td style="padding: 10px; font-family: monospace;"><?= htmlspecialchars($sr['roll_no'] ?: 'N/A') ?></td>
                                                 <td style="padding: 10px; font-size: 13px;"><?= htmlspecialchars($sr['class_name']) ?> (Sem <?= $sr['semester'] ?>)</td>
                                                 <td style="padding: 10px; text-align: right;">
-                                                    <form action="<?= $base_path ?>/app/actions/academics/manage_elective_enrollment.php" method="POST">
+                                                    <form action="<?= $base_path ?>/api/academics/manage_elective_enrollment" method="POST">
                                                         <input type="hidden" name="student_id" value="<?= $sr['id'] ?>">
                                                         <input type="hidden" name="class_subject_id" value="<?= $sr['class_subject_id'] ?>">
                                                         <input type="hidden" name="subject_id" value="<?= $subject_id ?>">

@@ -3,14 +3,14 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_faculty_dashboard')) {
-    header("Location: $base_path/public/dashboard.php");
+    header("Location: $base_path/dashboard");
     exit();
 }
 
 $submission_id = (int) ($_GET['submission_id'] ?? 0);
 
 if (!$submission_id) {
-    header("Location: $base_path/public/academics/assigned_tasks_history.php");
+    header("Location: $base_path/academics/assigned_tasks_history");
     exit();
 }
 
@@ -30,7 +30,7 @@ $stmt->execute();
 $submission = $stmt->get_result()->fetch_assoc();
 
 if (!$submission) {
-    header("Location: $base_path/public/academics/assigned_tasks_history.php");
+    header("Location: $base_path/academics/assigned_tasks_history");
     exit();
 }
 
@@ -47,7 +47,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                     For: <strong><?= htmlspecialchars($submission['assignment_title']) ?></strong> (<?= htmlspecialchars($submission['subject_name']) ?>)
                 </p>
             </div>
-            <a href="<?= $base_path ?>/public/academics/submissions.php?assignment_id=<?= $submission['assignment_id'] ?>" class="btn btn-secondary">Back to List</a>
+            <a href="<?= $base_path ?>/academics/submissions?assignment_id=<?= $submission['assignment_id'] ?>" class="btn btn-secondary">Back to List</a>
         </div>
 
         <div class="grid-2" style="grid-template-columns: 2fr 1fr; gap: 2rem;">
@@ -77,7 +77,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
             <div>
                 <div class="card" style="position: sticky; top: 2rem;">
                     <h3 style="margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 10px;">Grade Work</h3>
-                    <form action="<?= $base_path ?>/app/actions/academics/save_grade.php" method="POST">
+                    <form action="<?= $base_path ?>/api/academics/save_grade" method="POST">
                         <input type="hidden" name="submission_id" value="<?= $submission_id ?>">
                         <input type="hidden" name="assignment_id" value="<?= $submission['assignment_id'] ?>">
 

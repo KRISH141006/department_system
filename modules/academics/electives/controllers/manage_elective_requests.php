@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../shared/config/db.php';
 
 if (!has_permission('view_admin_dashboard')) {
-    header("Location: $base_path/public/dashboard.php");
+    header("Location: $base_path/dashboard");
     exit();
 }
 
@@ -17,7 +17,7 @@ $id_list = array_filter(array_map('intval', explode(',', $raw_ids)));
 
 if (empty($id_list) || !in_array($action, ['approve', 'reject'])) {
     $_SESSION['msg_error'] = "Invalid action parameters.";
-    header("Location: $base_path/public/admin/elective_requests.php");
+    header("Location: $base_path/admin/elective_requests");
     exit();
 }
 
@@ -65,6 +65,6 @@ try {
     $_SESSION['msg_error'] = "Action failed: " . $e->getMessage();
 }
 
-header("Location: $base_path/public/admin/elective_requests.php");
+header("Location: $base_path/admin/elective_requests");
 exit;
 ?>

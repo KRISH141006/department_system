@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    header("Location: $base_path/public/community/profile.php");
+    header("Location: $base_path/community/profile");
     exit;
 }
 
@@ -14,7 +14,7 @@ $role = $_SESSION['role'];
 $name = trim($_POST['name'] ?? '');
 if (empty($name)) {
     $_SESSION['profile_error'] = "Full Name is required.";
-    header("Location: $base_path/public/community/profile.php");
+    header("Location: $base_path/community/profile");
     exit;
 }
 
@@ -139,8 +139,8 @@ try {
     }
 
     $_SESSION['profile_success'] = "Profile updated successfully!";
-    header("Location: $base_path/public/community/profile.php");
+    header("Location: $base_path/community/profile");
 } catch (Exception $e) {
     $_SESSION['profile_error'] = $e->getMessage();
-    header("Location: $base_path/public/community/profile.php");
+    header("Location: $base_path/community/profile");
 }

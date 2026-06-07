@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_faculty_dashboard')) {
-    header("Location: $base_path/public/dashboard.php");
+    header("Location: $base_path/dashboard");
     exit();
 }
 
@@ -34,7 +34,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
             <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem;">Assignment History</h1>
             <p style="color: var(--text-2);">Track and manage assignments you've published.</p>
         </div>
-        <a href="<?= $base_path ?>/public/academics/assign_task.php" class="btn btn-primary">+ New Assignment</a>
+        <a href="<?= $base_path ?>/academics/assign_task" class="btn btn-primary">+ New Assignment</a>
     </div>
 
     <div class="card" style="padding: 0; overflow: hidden;">
@@ -70,7 +70,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                         </td>
                         <td style="padding: 1.25rem; text-align: right;">
                             <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                                <a href="<?= $base_path ?>/public/academics/submissions.php?assignment_id=<?= $a['id'] ?>" class="btn btn-sm btn-secondary">View Submissions</a>
+                                <a href="<?= $base_path ?>/academics/submissions?assignment_id=<?= $a['id'] ?>" class="btn btn-sm btn-secondary">View Submissions</a>
                             </div>
                         </td>
                     </tr>

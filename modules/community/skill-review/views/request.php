@@ -59,7 +59,7 @@ include __DIR__ . '/../../../../shared/layout/header.php';
                     <?php if ($error): ?><div class="alert alert-error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
                     <?php if ($success): ?><div class="alert alert-success"><?= htmlspecialchars($success) ?></div><?php endif; ?>
 
-                    <form action="<?= $base_path ?>/app/actions/community/submit_request.php" method="POST">
+                    <form action="<?= $base_path ?>/api/community/submit_request" method="POST">
                         <div class="form-group">
                             <label for="skill">Skill to be evaluated</label>
                             <input type="text" id="skill" name="skill" placeholder="e.g. Python, React, AWS..." required>

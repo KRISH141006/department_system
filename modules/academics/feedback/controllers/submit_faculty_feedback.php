@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_student_dashboard')) {
-    header("Location: $base_path/public/dashboard.php");
+    header("Location: $base_path/dashboard");
     exit();
 }
 
@@ -13,7 +13,7 @@ $responses  = $_POST['responses'] ?? []; // Array of [question_id => answer]
 
 if (!$form_id || empty($responses)) {
     $_SESSION['msg_error'] = "No responses submitted.";
-    header("Location: $base_path/public/academics/faculty_feedback.php?form_id=$form_id");
+    header("Location: $base_path/academics/faculty_feedback?form_id=$form_id");
     exit();
 }
 
@@ -60,6 +60,6 @@ try {
     $_SESSION['msg_error'] = "Failed to submit: " . $e->getMessage();
 }
 
-header("Location: $base_path/public/academics/student_dashboard.php");
+header("Location: $base_path/academics/student_dashboard");
 exit;
 ?>

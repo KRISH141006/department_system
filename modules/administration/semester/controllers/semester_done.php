@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_admin_dashboard')) {
-    header("Location: $base_path/public/dashboard.php");
+    header("Location: $base_path/dashboard");
     exit();
 }
 
@@ -39,5 +39,5 @@ try {
     $_SESSION['msg_error'] = "Error during transition: " . $e->getMessage();
 }
 
-header("Location: $base_path/public/dashboard.php");
+header("Location: $base_path/dashboard");
 exit();

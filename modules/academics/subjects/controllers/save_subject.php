@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_faculty_dashboard')) {
-    header("Location: $base_path/public/dashboard.php");
+    header("Location: $base_path/dashboard");
     exit();
 }
 
@@ -22,7 +22,7 @@ if (empty($subject_code)) {
 
 if (empty($subject_name) || empty($class_name) || $semester === 0) {
     $_SESSION['msg_error'] = "Required fields missing.";
-    header("Location: $base_path/public/academics/create_subject.php");
+    header("Location: $base_path/academics/create_subject");
     exit();
 }
 
@@ -147,11 +147,11 @@ try {
 
     $conn->commit();
     $_SESSION['msg_success'] = "Subject and syllabus structure updated successfully.";
-    header("Location: $base_path/public/academics/faculty_dashboard.php");
+    header("Location: $base_path/academics/faculty_dashboard");
 
 } catch (Exception $e) {
     $conn->rollback();
     $_SESSION['msg_error'] = "Failed to save subject: " . $e->getMessage();
-    header("Location: $base_path/public/academics/create_subject.php" . ($subject_id ? "?id=$subject_id" : ""));
+    header("Location: $base_path/academics/create_subject" . ($subject_id ? "?id=$subject_id" : ""));
 }
 ?>

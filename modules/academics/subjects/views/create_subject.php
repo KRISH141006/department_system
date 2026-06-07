@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_faculty_dashboard')) {
-    header("Location: $base_path/public/dashboard.php");
+    header("Location: $base_path/dashboard");
     exit();
 }
 
@@ -63,7 +63,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
     <div class="card" style="max-width: 800px; margin: 0 auto;">
         <h2 style="margin-bottom: 1.5rem;"><?= $subject_id ? "Edit" : "Create" ?> Subject</h2>
 
-        <form action="<?= $base_path ?>/app/actions/academics/save_subject.php" method="POST" id="subjectForm">
+        <form action="<?= $base_path ?>/api/academics/save_subject" method="POST" id="subjectForm">
             <?php if ($subject_id): ?>
                 <input type="hidden" name="subject_id" value="<?= $subject_id ?>">
             <?php endif; ?>

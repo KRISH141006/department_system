@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_admin_dashboard')) {
-    header("Location: $base_path/public/dashboard.php");
+    header("Location: $base_path/dashboard");
     exit();
 }
 
@@ -43,7 +43,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                 <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem;">Elective Unlock Requests</h1>
                 <p style="color: var(--text-2);">Review and approve requests from faculty to open locked elective enrollments.</p>
             </div>
-            <a href="<?= $base_path ?>/public/dashboard.php" class="btn btn-secondary">← Back to Dashboard</a>
+            <a href="<?= $base_path ?>/dashboard" class="btn btn-secondary">← Back to Dashboard</a>
         </div>
 
         <?php if (isset($_SESSION['msg_success'])): ?>
@@ -98,12 +98,12 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                             <td style="padding: 1.25rem; text-align: right;">
                                 <?php if ($r['status'] === 'pending'): ?>
                                     <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                                        <form action="<?= $base_path ?>/app/actions/admin/manage_elective_requests.php" method="POST">
+                                        <form action="<?= $base_path ?>/api/admin/manage_elective_requests" method="POST">
                                             <input type="hidden" name="request_ids" value="<?= htmlspecialchars($r['all_request_ids']) ?>">
                                             <input type="hidden" name="action" value="approve">
                                             <button type="submit" class="btn btn-sm" style="background: var(--success); color: white; border: none; padding: 6px 15px;">Approve</button>
                                         </form>
-                                        <form action="<?= $base_path ?>/app/actions/admin/manage_elective_requests.php" method="POST">
+                                        <form action="<?= $base_path ?>/api/admin/manage_elective_requests" method="POST">
                                             <input type="hidden" name="request_ids" value="<?= htmlspecialchars($r['all_request_ids']) ?>">
                                             <input type="hidden" name="action" value="reject">
                                             <button type="submit" class="btn btn-sm" style="background: var(--error); color: white; border: none; padding: 6px 15px;">Reject</button>

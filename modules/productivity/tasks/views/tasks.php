@@ -350,7 +350,7 @@ $userName = htmlspecialchars($stmt->get_result()->fetch_assoc()['name'] ?? 'User
         <!-- VIEW 2: ADD TASK VIEW -->
         <div class="neo-card" style="margin-top: 250px;">
             <h1 style="font-family: 'DM Serif Display', serif; margin-bottom: 2rem;">✍️ New Idea / Task</h1>
-            <form method="POST" action="<?= $base_path ?>/app/actions/productivity/add_task.php">
+            <form method="POST" action="<?= $base_path ?>/api/productivity/add_task">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
                     <div class="form-group">
                         <label style="font-weight: 800;">Task Name</label>
@@ -394,7 +394,7 @@ $userName = htmlspecialchars($stmt->get_result()->fetch_assoc()['name'] ?? 'User
             <!-- Workbench inside Add View -->
             <div style="margin-top: 3rem; border-top: 2px dashed #1a1a1a; padding-top: 2rem;">
                 <h3 style="font-weight: 800; margin-bottom: 1.5rem;">🎨 Priority Palette</h3>
-                <form method="POST" action="<?= $base_path ?>/app/actions/productivity/update_priorities.php">
+                <form method="POST" action="<?= $base_path ?>/api/productivity/update_priorities">
                     <?php foreach ($priorities as $prio): ?>
                         <div style="display:grid; grid-template-columns: 1fr 1fr 50px; gap: 1rem; margin-bottom: 1rem; align-items: center;">
                             <input type="text" name="priorities[<?php echo $prio['id']; ?>][name]" value="<?php echo htmlspecialchars($prio['name']); ?>" required class="custom-input" style="padding: 6px 12px !important;">
@@ -454,7 +454,7 @@ $userName = htmlspecialchars($stmt->get_result()->fetch_assoc()['name'] ?? 'User
                     ?>
                     <div class="task-strip" style="display: block; padding: 1.5rem;">
                         <div style="display: flex; align-items: flex-start; gap: 1.25rem;">
-                            <a href="<?= $base_path ?>/app/actions/productivity/complete_task.php?id=<?php echo $row['id']; ?>" class="bulb-container">
+                            <a href="<?= $base_path ?>/api/productivity/complete_task?id=<?php echo $row['id']; ?>" class="bulb-container">
                                 <svg class="bulb-svg bulb-off" viewBox="0 0 24 24"><path d="M9 21h6v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1l-.85.6V16h-4v-2.3l-.85-.6C8.67 12.05 8 10.58 8 9c0-2.21 1.79-4 4-4s4 1.79 4 4c0 1.58-.67 3.05-2.15 4.1z"/></svg>
                             </a>
                             <div style="flex:1;">
@@ -470,7 +470,7 @@ $userName = htmlspecialchars($stmt->get_result()->fetch_assoc()['name'] ?? 'User
                                     <div class="time-label"><?php echo date('H:i', strtotime($row['deadline'])); ?></div>
                                 </div>
                             <?php endif; ?>
-                            <a href="<?= $base_path ?>/app/actions/productivity/delete_task.php?id=<?php echo $row['id']; ?>" style="color: #ef4444; font-weight: 900; text-decoration: none; margin-left: 10px;" onclick="return confirm('Delete?')">✕</a>
+                            <a href="<?= $base_path ?>/api/productivity/delete_task?id=<?php echo $row['id']; ?>" style="color: #ef4444; font-weight: 900; text-decoration: none; margin-left: 10px;" onclick="return confirm('Delete?')">✕</a>
                         </div>
                         
                         <?php if (isset($row['description']) && $row['description']): ?>
@@ -489,7 +489,7 @@ $userName = htmlspecialchars($stmt->get_result()->fetch_assoc()['name'] ?? 'User
                 <?php while ($row = mysqli_fetch_assoc($completed_result)): ?>
                     <div class="task-strip completed" style="display: block; padding: 1.5rem;">
                         <div style="display: flex; align-items: flex-start; gap: 1.25rem;">
-                            <a href="<?= $base_path ?>/app/actions/productivity/undo_task.php?id=<?php echo $row['id']; ?>" class="bulb-container">
+                            <a href="<?= $base_path ?>/api/productivity/undo_task?id=<?php echo $row['id']; ?>" class="bulb-container">
                                 <svg class="bulb-svg bulb-on" viewBox="0 0 24 24"><path d="M9 21h6v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/></svg>
                             </a>
                             <div style="flex:1;">
@@ -498,7 +498,7 @@ $userName = htmlspecialchars($stmt->get_result()->fetch_assoc()['name'] ?? 'User
                                     <span class="creative-pill" style="opacity: 0.5;"><?php echo htmlspecialchars($row['category_name'] ?: 'General'); ?></span>
                                 </div>
                             </div>
-                            <a href="<?= $base_path ?>/app/actions/productivity/delete_task.php?id=<?php echo $row['id']; ?>" style="color: #cbd5e0;" onclick="return confirm('Remove?')">✕</a>
+                            <a href="<?= $base_path ?>/api/productivity/delete_task?id=<?php echo $row['id']; ?>" style="color: #cbd5e0;" onclick="return confirm('Remove?')">✕</a>
                         </div>
                         <?php if (isset($row['description']) && $row['description']): ?>
                             <div style="margin-top: 12px; padding-left: 45px; color: #94a3b8; font-size: 0.9rem; line-height: 1.4; text-decoration: line-through;">

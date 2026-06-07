@@ -11,7 +11,7 @@ $base_path = '/' . ltrim(str_replace('\\', '/', $base_path), '/');
 $base_path = rtrim($base_path, '/');
 
 if (!isset($_SESSION['user_id'])) {
-    header("Location: $base_path/public/login.php");
+    header("Location: $base_path/login");
     exit();
 }
 

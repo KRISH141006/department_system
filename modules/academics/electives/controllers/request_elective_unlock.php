@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_faculty_dashboard')) {
-    header("Location: $base_path/public/dashboard.php");
+    header("Location: $base_path/dashboard");
     exit();
 }
 
@@ -14,7 +14,7 @@ $reason = trim($_POST['reason'] ?? '');
 
 if (empty($class_subject_ids) || empty($reason)) {
     $_SESSION['msg_error'] = "Missing request details.";
-    header("Location: $base_path/public/academics/manage_elective_students.php?id=$subject_id");
+    header("Location: $base_path/academics/manage_elective_students?id=$subject_id");
     exit();
 }
 
@@ -40,6 +40,6 @@ try {
     $_SESSION['msg_error'] = "Action failed: " . $e->getMessage();
 }
 
-header("Location: $base_path/public/academics/manage_elective_students.php?id=$subject_id");
+header("Location: $base_path/academics/manage_elective_students?id=$subject_id");
 exit;
 ?>

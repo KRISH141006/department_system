@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_student_dashboard')) {
-    header("Location: $base_path/public/dashboard.php");
+    header("Location: $base_path/dashboard");
     exit();
 }
 
@@ -16,7 +16,7 @@ $end_time   = $_POST['end_time'] ?? null;
 
 if (!$session_id) {
     $_SESSION['msg_error'] = "Invalid verification session.";
-    header("Location: $base_path/public/academics/student_dashboard.php");
+    header("Location: $base_path/academics/student_dashboard");
     exit();
 }
 
@@ -65,6 +65,6 @@ try {
     $_SESSION['msg_error'] = "Error: " . $e->getMessage();
 }
 
-header("Location: $base_path/public/academics/student_dashboard.php");
+header("Location: $base_path/academics/student_dashboard");
 exit;
 ?>

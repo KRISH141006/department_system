@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('view_faculty_dashboard')) {
-    header("Location: $base_path/public/dashboard.php");
+    header("Location: $base_path/dashboard");
     exit();
 }
 
@@ -11,7 +11,7 @@ $assignment_id = (int) ($_POST['assignment_id'] ?? 0);
 $class_subject_id = (int) ($_POST['class_subject_id'] ?? 0);
 
 if (!$assignment_id) {
-    header("Location: $base_path/public/academics/faculty_dashboard.php");
+    header("Location: $base_path/academics/faculty_dashboard");
     exit();
 }
 
@@ -66,6 +66,6 @@ try {
     $_SESSION['msg_error'] = "Failed to reassign: " . $e->getMessage();
 }
 
-header("Location: $base_path/public/academics/select_student.php?class_id=" . $class_subject_id);
+header("Location: $base_path/academics/select_student?class_id=" . $class_subject_id);
 exit;
 ?>

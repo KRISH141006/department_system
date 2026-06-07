@@ -3,7 +3,7 @@ require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
 if (!has_permission('select_electives')) {
-    header("Location: $base_path/public/dashboard.php");
+    header("Location: $base_path/dashboard");
     exit();
 }
 
@@ -138,7 +138,7 @@ while ($row = $res_electives->fetch_assoc()) {
                     Class: <strong><?= htmlspecialchars($student_info['class_name'] ?? 'N/A') ?></strong> | Semester: <strong><?= $semester ?></strong>
                 </p>
             </div>
-            <a href="<?= $base_path ?>/public/academics/student_dashboard.php" class="btn btn-secondary">← Dashboard</a>
+            <a href="<?= $base_path ?>/academics/student_dashboard" class="btn btn-secondary">← Dashboard</a>
         </div>
 
         <?php if (isset($_SESSION['msg_success'])): ?>
@@ -169,7 +169,7 @@ while ($row = $res_electives->fetch_assoc()) {
             <?php if (empty($electives)): ?>
                 <p style="color: var(--text-3); text-align: center; padding: 3rem; font-style: italic;">No elective subjects are offered for your class this semester.</p>
             <?php else: ?>
-                <form action="<?= $base_path ?>/app/actions/academics/save_electives.php" method="POST" id="electives-form">
+                <form action="<?= $base_path ?>/api/academics/save_electives" method="POST" id="electives-form">
                     <input type="hidden" name="semester" value="<?= $semester ?>">
                     <input type="hidden" name="class_id" value="<?= $class_id ?>">
                     
