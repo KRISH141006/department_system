@@ -13,7 +13,9 @@ register_shutdown_function(function() {
 });
 
 ob_start();
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 header('Content-Type: application/json');
 
 ini_set('display_errors', 0);

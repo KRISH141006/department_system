@@ -21,7 +21,9 @@ set_error_handler(function($errno, $errstr, $errfile, $errline) {
 });
 
 try {
-    session_start();
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
     header('Content-Type: application/json');
 
     ini_set('display_errors', 0);
