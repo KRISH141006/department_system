@@ -1,5 +1,7 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
 // Load the routing map
 $routes = require_once __DIR__ . '/routes.php';

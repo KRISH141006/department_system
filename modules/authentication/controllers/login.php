@@ -1,6 +1,8 @@
 <?php
 // auth.php intentionally not included — this IS the authentication entry point.
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 require_once __DIR__ . '/../../../shared/config/db.php';
 
 if ($conn->connect_error) {
