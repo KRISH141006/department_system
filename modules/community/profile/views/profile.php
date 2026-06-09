@@ -144,25 +144,67 @@ include __DIR__ . '/../../../../shared/layout/header.php';
                                 <label>Faculty ID / Employee ID <span style="color:red;">*</span></label>
                                 <input type="text" name="emp_id" value="<?= htmlspecialchars($role_data['emp_id'] ?? '') ?>" required placeholder="e.g. EMP123">
                             </div>
-                            <div class="form-group" style="padding-top: 1.8rem;">
-                                <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                                    <input type="checkbox" name="is_cc" id="is_cc" value="1" <?= ($role_data['is_cc'] ?? 0) ? 'checked' : '' ?> onchange="document.getElementById('cc_class_group').style.display = this.checked ? 'block' : 'none'">
-                                    <strong>Are you a Class Coordinator (CC)?</strong>
-                                </label>
+                            <?php if ($role === 'admin'): ?>
+                                <div class="form-group" style="padding-top: 1.8rem;">
+                                    <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
+                                        <input type="checkbox" name="is_cc" id="is_cc" value="1" <?= ($role_data['is_cc'] ?? 0) ? 'checked' : '' ?> onchange="document.getElementById('cc_class_group').style.display = this.checked ? 'block' : 'none'">
+                                        <strong>Are you a Class Coordinator (CC)?</strong>
+                                    </label>
+                                </div>
+                            <?php else: ?>
+                                <div class="form-group" style="padding-top: 1.8rem;">
+                                    <label><strong>Class Coordinator (CC) Status:</strong></label>
+                                    <div style="margin-top: 0.5rem;">
+                                        <?php if (($role_data['is_cc'] ?? 0) == 1): ?>
+                                            <span class="badge" style="background-color: var(--success); color: white; padding: 0.35rem 0.75rem; border-radius: 4px; font-weight: 600; font-size: 0.85rem;">Assigned as CC</span>
+                                        <?php else: ?>
+                                            <span class="badge" style="background-color: var(--text-3); color: white; padding: 0.35rem 0.75rem; border-radius: 4px; font-weight: 600; font-size: 0.85rem;">Not assigned class for CC</span>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+
+                        <div class="grid-2" style="margin-top: 1rem;">
+                            <div class="form-group">
+                                <label>Branch / Department</label>
+                                <input type="text" value="ICT" readonly style="background: var(--bg-2); color: var(--text-2);">
+                            </div>
+                            <div class="form-group">
+                                <label>College / University</label>
+                                <input type="text" value="Marwadi University" readonly style="background: var(--bg-2); color: var(--text-2);">
                             </div>
                         </div>
 
-                        <div class="form-group" id="cc_class_group" style="display: <?= ($role_data['is_cc'] ?? 0) ? 'block' : 'none' ?>; margin-top: 1rem;">
-                            <label>Coordinated Class <span style="color:red;">*</span></label>
-                            <select name="coordinated_class_id">
-                                <option value="">-- Select Coordinated Class --</option>
-                                <?php foreach ($classes as $c): ?>
-                                    <option value="<?= $c['id'] ?>" <?= ($role_data['coordinated_class_id'] ?? '') == $c['id'] ? 'selected' : '' ?>>
-                                        <?= htmlspecialchars($c['name']) ?> (Sem <?= $c['semester'] ?> - <?= htmlspecialchars($c['branch']) ?>)
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
+                        <?php if ($role === 'admin'): ?>
+                            <div class="form-group" id="cc_class_group" style="display: <?= ($role_data['is_cc'] ?? 0) ? 'block' : 'none' ?>; margin-top: 1rem;">
+                                <label>Coordinated Class <span style="color:red;">*</span></label>
+                                <select name="coordinated_class_id">
+                                    <option value="">-- Select Coordinated Class --</option>
+                                    <?php foreach ($classes as $c): ?>
+                                        <option value="<?= $c['id'] ?>" <?= ($role_data['coordinated_class_id'] ?? '') == $c['id'] ? 'selected' : '' ?>>
+                                            <?= htmlspecialchars($c['name']) ?> (Sem <?= $c['semester'] ?> - <?= htmlspecialchars($c['branch']) ?>)
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        <?php else: ?>
+                            <?php if (($role_data['is_cc'] ?? 0) == 1): ?>
+                                <?php
+                                $assigned_class_name = 'Unknown Class';
+                                foreach ($classes as $c) {
+                                    if ($c['id'] == ($role_data['coordinated_class_id'] ?? 0)) {
+                                        $assigned_class_name = htmlspecialchars($c['name']) . ' (Sem ' . $c['semester'] . ' - ' . htmlspecialchars($c['branch']) . ')';
+                                        break;
+                                    }
+                                }
+                                ?>
+                                <div class="form-group" style="margin-top: 1rem;">
+                                    <label>Coordinated Class</label>
+                                    <input type="text" value="<?= $assigned_class_name ?>" readonly style="background: var(--bg-2); color: var(--text-2);">
+                                </div>
+                            <?php endif; ?>
+                        <?php endif; ?>
 
                         <div class="form-group">
                             <label>Teaching Interests / Research Areas</label>

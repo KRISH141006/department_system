@@ -87,12 +87,56 @@ try {
 
     } elseif ($role === 'faculty' || $role === 'admin') {
         $emp_id               = strtoupper(trim($_POST['emp_id'] ?? ''));
-        $is_cc                = isset($_POST['is_cc']) ? 1 : 0;
-        $coordinated_class_id = $is_cc ? (int)($_POST['coordinated_class_id'] ?? 0) : null;
         $teaching_interests   = trim($_POST['teaching_interests'] ?? '');
 
         if (empty($emp_id)) {
             throw new Exception("Employee ID is required for faculty.");
+        }
+
+        // Retrieve existing CC details from database to avoid overwriting them
+        $is_cc = 0;
+        $coordinated_class_id = null;
+        $getExisting = $conn->prepare("SELECT is_cc, coordinated_class_id FROM faculty WHERE user_id = ?");
+        $getExisting->bind_param("i", $user_id);
+        $getExisting->execute();
+        $res = $getExisting->get_result()->fetch_assoc();
+        if ($res) {
+            $is_cc = (int) $res['is_cc'];
+            $coordinated_class_id = $res['coordinated_class_id'] ? (int) $res['coordinated_class_id'] : null;
+        }
+        $getExisting->close();
+
+        // If logged in user is admin, they can override these fields
+        if ($role === 'admin') {
+            $is_cc                = isset($_POST['is_cc']) ? 1 : 0;
+            $coordinated_class_id = $is_cc ? (int)($_POST['coordinated_class_id'] ?? 0) : null;
+
+            if ($is_cc) {
+                if (!$coordinated_class_id) {
+                    throw new Exception("Please select a coordinated class.");
+                }
+
+                $checkStmt = $conn->prepare("
+                    SELECT u.name 
+                    FROM faculty f 
+                    JOIN users u ON f.user_id = u.id 
+                    WHERE f.is_cc = 1 AND f.coordinated_class_id = ? AND f.user_id != ?
+                ");
+                $checkStmt->bind_param("ii", $coordinated_class_id, $user_id);
+                $checkStmt->execute();
+                $checkRes = $checkStmt->get_result()->fetch_assoc();
+                $checkStmt->close();
+
+                if ($checkRes) {
+                    $cStmt = $conn->prepare("SELECT name, semester, branch FROM classes WHERE id = ?");
+                    $cStmt->bind_param("i", $coordinated_class_id);
+                    $cStmt->execute();
+                    $cRow = $cStmt->get_result()->fetch_assoc();
+                    $className = $cRow ? ($cRow['name'] . ' (Sem ' . $cRow['semester'] . ' - ' . $cRow['branch'] . ')') : 'Selected Class';
+                    $cStmt->close();
+                    throw new Exception("The class \"$className\" is already assigned to another coordinator (" . $checkRes['name'] . ").");
+                }
+            }
         }
 
         $fStmt = $conn->prepare("
@@ -106,6 +150,7 @@ try {
         ");
         $fStmt->bind_param("isiis", $user_id, $emp_id, $is_cc, $coordinated_class_id, $teaching_interests);
         $fStmt->execute();
+        $fStmt->close();
 
     } elseif ($role === 'expert') {
         $company          = trim($_POST['company'] ?? '');

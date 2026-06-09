@@ -35,6 +35,12 @@ $role = $_SESSION['role'] ?? 'student';
                 <a href="<?= $base_path ?>/admin/manage_permissions" class="btn" style="background: var(--accent); color: white;">Manage Permissions</a>
             </div>
 
+            <div class="card module-card" style="border: 2px solid var(--success);">
+                <h2 style="color: var(--success);">Class Coordinators</h2>
+                <p>Assign and manage Class Coordinators (CC) for each class.</p>
+                <a href="<?= $base_path ?>/admin/manage_cc" class="btn" style="background: var(--success); color: white;">Manage CCs</a>
+            </div>
+
             <div class="card module-card" style="border-top: 4px solid var(--warning);">
                 <h2>Elective Requests</h2>
                 <p>Manage faculty requests for unlocking elective subject enrollments.</p>

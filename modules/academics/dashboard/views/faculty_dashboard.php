@@ -11,13 +11,13 @@ $faculty_id = (int) $_SESSION['user_id'];
 $today = date('Y-m-d');
 
 // 1. Fetch Faculty identity - Updated for normalized schema
-$stmt = $conn->prepare("SELECT u.name, f.emp_id FROM users u JOIN faculty f ON u.id = f.user_id WHERE u.id = ?");
+$stmt = $conn->prepare("SELECT u.name, f.emp_id FROM users u LEFT JOIN faculty f ON u.id = f.user_id WHERE u.id = ?");
 $stmt->bind_param("i", $faculty_id);
 $stmt->execute();
 $uRow = $stmt->get_result()->fetch_assoc();
 
-$name = $uRow['name'] ?? 'Faculty';
-$emp_id = $uRow['emp_id'] ?? 'N/A';
+$name = $uRow['name'] ?? ($_SESSION['name'] ?? 'Faculty');
+$emp_id = $uRow['emp_id'] ?? 'Not Set';
 
 // 2. Check if CC - Updated for V1 schema
 $is_cc = 0;

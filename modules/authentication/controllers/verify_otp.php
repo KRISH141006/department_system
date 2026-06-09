@@ -61,7 +61,7 @@ try {
 
     $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
-    if (!$conn) {
+    if (!isset($conn) || !$conn) {
         throw new Exception("Database connection variable (\$conn) is missing.");
     }
 
@@ -91,10 +91,30 @@ try {
 
     if ($stmt->execute()) {
         $new_user_id = $conn->insert_id;
+        $stmt->close(); // Close insert statement before fetching permissions
         
         $_SESSION['user_id'] = $new_user_id;
         $_SESSION['role']    = $role;
         $_SESSION['name']    = $name;
+
+        // Fetch Permissions for the role immediately after signup
+        $p_sql = "
+            SELECT p.permission_name 
+            FROM permissions p 
+            JOIN role_permissions rp ON p.id = rp.permission_id 
+            WHERE rp.role = ?
+        ";
+        $perm_stmt = $conn->prepare($p_sql);
+        if ($perm_stmt) {
+            $perm_stmt->bind_param("s", $role);
+            $perm_stmt->execute();
+            $perm_res = $perm_stmt->get_result();
+            $_SESSION['permissions'] = [];
+            while ($p_row = $perm_res->fetch_assoc()) {
+                $_SESSION['permissions'][] = $p_row['permission_name'];
+            }
+            $perm_stmt->close();
+        }
 
         unset($_SESSION['otp']);
         unset($_SESSION['user_data']);
@@ -106,7 +126,9 @@ try {
             "redirect" => "community/profile"
         ]);
     } else {
-        throw new Exception("Insert failed: " . $stmt->error);
+        $error_msg = $stmt->error;
+        $stmt->close();
+        throw new Exception("Insert failed: " . $error_msg);
     }
 
 } catch (Exception $e) {
