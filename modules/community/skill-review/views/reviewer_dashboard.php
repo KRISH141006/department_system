@@ -98,7 +98,7 @@ include __DIR__ . '/../../../../shared/layout/header.php';
               <td style="padding: 12px 24px;">
                 <div style="font-weight: 600;"><?= htmlspecialchars($req['student_name']) ?></div>
                 <div style="font-size: 12px; color: var(--text-2);"><?= htmlspecialchars($req['branch']) ?></div>
-                <a href="view_student.php?id=<?= $req['user_id'] ?>" style="font-size: 12px; color: var(--accent); text-decoration: none; font-weight: 500;">👁 View Full Profile</a>
+                <a href="<?= $base_path ?>/community/view_student?id=<?= $req['user_id'] ?>" style="font-size: 12px; color: var(--accent); text-decoration: none; font-weight: 500;">👁 View Full Profile</a>
               </td>
               <td style="padding: 12px 24px;">
                 <span class="badge" style="background: var(--bg-2); color: var(--text); border: 1px solid var(--border);"><?= htmlspecialchars($req['skill']) ?></span>
@@ -132,7 +132,7 @@ include __DIR__ . '/../../../../shared/layout/header.php';
                     <h3 style="margin: 0; font-size: 1.1rem;"><?= htmlspecialchars($req['student_name']) ?></h3>
                     <p style="font-size: 13px; color: var(--text-2); margin-top: 4px;">Testing: <strong><?= htmlspecialchars($req['skill']) ?></strong></p>
                 </div>
-                <a href="view_student.php?id=<?= $req['user_id'] ?>" class="btn btn-secondary btn-sm" style="font-size: 11px;">Profile</a>
+                <a href="<?= $base_path ?>/community/view_student?id=<?= $req['user_id'] ?>" class="btn btn-secondary btn-sm" style="font-size: 11px;">Profile</a>
             </div>
 
             <?php if (!$isOpen): ?>
@@ -186,7 +186,7 @@ include __DIR__ . '/../../../../shared/layout/header.php';
                 <tr style="border-bottom: 1px solid var(--border); <?= $index >= 3 ? 'display: none;' : '' ?>" class="history-row">
                     <td style="padding: 12px 24px;">
                         <div style="font-weight: 600;"><?= htmlspecialchars($c['student_name']) ?></div>
-                        <a href="view_student.php?id=<?= $c['student_id'] ?>" style="font-size: 11px; color: var(--accent); text-decoration: none;">View Profile</a>
+                        <a href="<?= $base_path ?>/community/view_student?id=<?= $c['student_id'] ?>" style="font-size: 11px; color: var(--accent); text-decoration: none;">View Profile</a>
                     </td>
                     <td style="padding: 12px 24px;"><span style="font-size: 13px;"><?= htmlspecialchars($c['skill']) ?></span></td>
                     <td style="padding: 12px 24px;"><strong style="color:var(--accent); font-size: 1.1rem;"><?= $c['marks'] ?></strong><span class="text-muted text-sm"> / 100</span></td>

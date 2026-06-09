@@ -70,7 +70,7 @@ $leaders = $leader_query->fetch_all(MYSQLI_ASSOC);
                                     <div style="width: 36px; height: 36px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700; color: white; font-size: 0.9rem;">
                                         <?= strtoupper(substr($student['name'], 0, 1)) ?>
                                     </div>
-                                    <a href="view_student.php?id=<?= $student['id'] ?>" style="text-decoration: none; color: var(--text); font-weight: 700; font-size: 1rem;">
+                                    <a href="<?= $base_path ?>/community/view_student?id=<?= $student['id'] ?>" style="text-decoration: none; color: var(--text); font-weight: 700; font-size: 1rem;">
                                         <?= htmlspecialchars($student['name']) ?>
                                     </a>
                                 </div>

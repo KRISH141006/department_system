@@ -334,14 +334,14 @@ $userName = htmlspecialchars($stmt->get_result()->fetch_assoc()['name'] ?? 'User
     <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
         <a href="<?= $base_path ?>/productivity/index" class="neo-pill">← Back to Dashboard</a>
         <?php if ($total_tasks > 0 && $view === 'add'): ?>
-            <a href="tasks.php?view=list" class="neo-pill">Cancel ✕</a>
+            <a href="<?= $base_path ?>/productivity/tasks?view=list" class="neo-pill">Cancel ✕</a>
         <?php endif; ?>
     </div>
 
     <?php if ($total_tasks == 0 && $view !== 'add'): ?>
         <!-- VIEW 1: EMPTY STATE -->
         <div class="central-plus-container">
-            <a href="tasks.php?view=add" class="plus-btn-giant">+</a>
+            <a href="<?= $base_path ?>/productivity/tasks?view=add" class="plus-btn-giant">+</a>
             <h2 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem;">No tasks yet. Start something?</h2>
             <p style="color: #64748b; font-weight: 600;">Click the plus to add your first idea.</p>
         </div>
@@ -416,7 +416,7 @@ $userName = htmlspecialchars($stmt->get_result()->fetch_assoc()['name'] ?? 'User
             </div>
             <div style="font-family: 'DM Serif Display', serif; font-size: 1.5rem;">Your Workbench</div>
             <div class="nav-group">
-                <a href="tasks.php?view=add" class="neo-pill" style="background: #1a1a1a; color: #fff; box-shadow: 4px 4px 0px #fbbf24;">+ New Task</a>
+                <a href="<?= $base_path ?>/productivity/tasks?view=add" class="neo-pill" style="background: #1a1a1a; color: #fff; box-shadow: 4px 4px 0px #fbbf24;">+ New Task</a>
             </div>
         </div>
 
