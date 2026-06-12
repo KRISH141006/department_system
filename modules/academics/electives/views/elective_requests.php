@@ -7,8 +7,7 @@ if (!has_permission('view_admin_dashboard')) {
     exit();
 }
 
-// Fetch all pending and recent requests - deduplicated by subject + faculty
-// (An elective subject spans multiple class_subjects; we want one row per request, not per class)
+// Fetch all pending and recent requests
 $query = "
     SELECT 
         MIN(ecr.id) as id,
@@ -36,88 +35,75 @@ $page_title = "Elective Unlock Requests";
 require_once __DIR__ . '/../../../../shared/layout/header.php';
 ?>
 
-<div class="wrapper" style="padding: 2rem;">
-    <div style="max-width: 1000px; margin: 0 auto;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-            <div>
-                <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem;">Elective Unlock Requests</h1>
-                <p style="color: var(--text-2);">Review and approve requests from faculty to open locked elective enrollments.</p>
-            </div>
-            <a href="<?= $base_path ?>/dashboard" class="btn btn-secondary">← Back to Dashboard</a>
+<div class="wrapper">
+    <div class="section-header" style="margin-top: 0;">
+        <div>
+            <h1 class="page-title">Elective Control</h1>
+            <p class="page-subtitle">Review and authorize faculty requests to modify elective enrollments.</p>
         </div>
+    </div>
 
-        <?php if (isset($_SESSION['msg_success'])): ?>
-            <div class="alert alert-success"><?= $_SESSION['msg_success']; unset($_SESSION['msg_success']); ?></div>
-        <?php endif; ?>
-        <?php if (isset($_SESSION['msg_error'])): ?>
-            <div class="alert alert-error"><?= $_SESSION['msg_error']; unset($_SESSION['msg_error']); ?></div>
-        <?php endif; ?>
-
-        <div class="card" style="padding: 0; overflow: hidden; border: 1px solid var(--border);">
-            <table style="width: 100%; border-collapse: collapse; text-align: left;">
-                <thead style="background: var(--bg-2); border-bottom: 1px solid var(--border);">
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Requester</th>
+                    <th>Course & Context</th>
+                    <th>Reasoning</th>
+                    <th>Status</th>
+                    <th style="text-align: right;">Authorization</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (empty($requests)): ?>
                     <tr>
-                        <th style="padding: 1.25rem; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-3);">Faculty</th>
-                        <th style="padding: 1.25rem; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-3);">Subject & Class</th>
-                        <th style="padding: 1.25rem; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-3);">Reason</th>
-                        <th style="padding: 1.25rem; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-3);">Status</th>
-                        <th style="padding: 1.25rem; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-3); text-align: right;">Action</th>
+                        <td colspan="5" style="padding: 4rem; text-align: center; color: var(--text-3);">
+                            <div style="font-size: 2rem; margin-bottom: 1rem;">🍃</div>
+                            No active unlock requests in the queue.
+                        </td>
                     </tr>
-                </thead>
-                <tbody>
-                    <?php if (empty($requests)): ?>
-                        <tr>
-                            <td colspan="5" style="padding: 4rem; text-align: center; color: var(--text-3);">
-                                <div style="font-size: 2rem; margin-bottom: 1rem;">🍃</div>
-                                No unlock requests found.
-                            </td>
-                        </tr>
-                    <?php endif; ?>
-                    <?php foreach ($requests as $r): ?>
-                        <tr style="border-bottom: 1px solid var(--border); transition: background 0.2s;" onmouseover="this.style.background='var(--bg-2)'" onmouseout="this.style.background='transparent'">
-                            <td style="padding: 1.25rem;">
-                                <div style="font-weight: 700; color: var(--text);"><?= htmlspecialchars($r['faculty_name']) ?></div>
-                                <div style="font-size: 11px; color: var(--text-3); margin-top: 4px;"><?= date('d M, h:i A', strtotime($r['created_at'])) ?></div>
-                            </td>
-                            <td style="padding: 1.25rem;">
-                                <div style="font-weight: 600; color: var(--accent);"><?= htmlspecialchars($r['subject_name']) ?></div>
-                                <div style="font-size: 12px; color: var(--text-2);"><?= htmlspecialchars($r['class_names']) ?> (Sem <?= $r['semester'] ?>)</div>
-                            </td>
-                            <td style="padding: 1.25rem;">
-                                <div style="font-size: 13px; color: var(--text-2); max-width: 300px; line-height: 1.5;"><?= htmlspecialchars($r['reason']) ?></div>
-                            </td>
-                            <td style="padding: 1.25rem;">
-                                <?php if ($r['status'] === 'pending'): ?>
-                                    <span class="badge" style="background: #fef3c7; color: #92400e; border: 1px solid #fde68a;">Pending</span>
-                                <?php elseif ($r['status'] === 'approved'): ?>
-                                    <span class="badge" style="background: #dcfce7; color: #166534; border: 1px solid #bbf7d0;">Approved</span>
-                                <?php else: ?>
-                                    <span class="badge" style="background: #fee2e2; color: #991b1b; border: 1px solid #fecaca;">Rejected</span>
-                                <?php endif; ?>
-                            </td>
-                            <td style="padding: 1.25rem; text-align: right;">
-                                <?php if ($r['status'] === 'pending'): ?>
-                                    <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                                        <form action="<?= $base_path ?>/api/admin/manage_elective_requests" method="POST">
-                                            <input type="hidden" name="request_ids" value="<?= htmlspecialchars($r['all_request_ids']) ?>">
-                                            <input type="hidden" name="action" value="approve">
-                                            <button type="submit" class="btn btn-sm" style="background: var(--success); color: white; border: none; padding: 6px 15px;">Approve</button>
-                                        </form>
-                                        <form action="<?= $base_path ?>/api/admin/manage_elective_requests" method="POST">
-                                            <input type="hidden" name="request_ids" value="<?= htmlspecialchars($r['all_request_ids']) ?>">
-                                            <input type="hidden" name="action" value="reject">
-                                            <button type="submit" class="btn btn-sm" style="background: var(--error); color: white; border: none; padding: 6px 15px;">Reject</button>
-                                        </form>
-                                    </div>
-                                <?php else: ?>
-                                    <span style="color: var(--text-3); font-size: 11px; font-weight: 700; text-transform: uppercase;">Processed</span>
-                                <?php endif; ?>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
+                <?php endif; ?>
+                <?php foreach ($requests as $r): 
+                    $isPending = $r['status'] === 'pending';
+                    $statusBadge = $r['status'] === 'approved' ? 'badge-success' : ($isPending ? 'badge-warning' : 'badge-error');
+                ?>
+                    <tr>
+                        <td>
+                            <div style="font-weight: 700; color: var(--text);"><?= htmlspecialchars($r['faculty_name']) ?></div>
+                            <div style="font-size: 0.75rem; color: var(--text-3); font-weight: 500; margin-top: 4px;"><?= date('d M Y, h:i A', strtotime($r['created_at'])) ?></div>
+                        </td>
+                        <td>
+                            <div style="font-weight: 700; color: var(--accent);"><?= htmlspecialchars($r['subject_name']) ?></div>
+                            <div style="font-size: 0.75rem; color: var(--text-2); font-weight: 600;"><?= htmlspecialchars($r['class_names']) ?> (Sem <?= $r['semester'] ?>)</div>
+                        </td>
+                        <td style="max-width: 300px;">
+                            <div style="font-size: 0.85rem; color: var(--text-2); line-height: 1.5; font-style: italic; background: var(--bg); padding: 0.75rem; border-radius: var(--radius-sm); border-left: 3px solid var(--border);">"<?= htmlspecialchars($r['reason']) ?>"</div>
+                        </td>
+                        <td>
+                            <span class="badge <?= $statusBadge ?>"><?= ucfirst($r['status']) ?></span>
+                        </td>
+                        <td style="text-align: right;">
+                            <?php if ($isPending): ?>
+                                <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                    <form action="<?= $base_path ?>/api/admin/manage_elective_requests" method="POST">
+                                        <input type="hidden" name="request_ids" value="<?= htmlspecialchars($r['all_request_ids']) ?>">
+                                        <input type="hidden" name="action" value="approve">
+                                        <button type="submit" class="btn btn-sm btn-primary">Approve</button>
+                                    </form>
+                                    <form action="<?= $base_path ?>/api/admin/manage_elective_requests" method="POST">
+                                        <input type="hidden" name="request_ids" value="<?= htmlspecialchars($r['all_request_ids']) ?>">
+                                        <input type="hidden" name="action" value="reject">
+                                        <button type="submit" class="btn btn-sm btn-secondary" style="color: var(--error);">Reject</button>
+                                    </form>
+                                </div>
+                            <?php else: ?>
+                                <div style="color: var(--text-3); font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">Processed</div>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
     </div>
 </div>
 

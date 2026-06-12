@@ -17,7 +17,7 @@ while ($row = $res->fetch_assoc()) {
     $all_perms[] = $row;
 }
 
-// Define roles to manage (excluding admin as admin always has all perms)
+// Define roles to manage
 $roles = ['student', 'faculty', 'expert'];
 
 // Fetch current role permissions
@@ -28,50 +28,55 @@ while ($row = $rp_query->fetch_assoc()) {
 }
 ?>
 
-<div class="wrapper" style="padding: 2rem;">
-    <div style="max-width: 1000px; margin: 0 auto;">
-        <h1 class="page-title" style="font-family: 'DM Serif Display', serif; font-size: 2.5rem; margin-bottom: 0.5rem;">Rights Management</h1>
-        <p style="color: var(--text-2); margin-bottom: 2rem;">Configure which modules and actions each role can access across the system.</p>
+<div class="wrapper">
+    <div class="section-header" style="margin-top: 0;">
+        <div>
+            <h1 class="page-title">Rights Management</h1>
+            <p class="page-subtitle">Configure granular access controls and dynamic permissions for all system roles.</p>
+        </div>
+    </div>
 
-        <form action="<?= $base_path ?>/api/admin/save_permissions" method="POST">
-            <div class="card" style="padding: 0; overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; text-align: left; min-width: 600px;">
-                    <thead style="background: var(--bg-2); border-bottom: 1px solid var(--border);">
+    <form action="<?= $base_path ?>/api/admin/save_permissions" method="POST">
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Access Permission</th>
+                        <?php foreach ($roles as $role): ?>
+                            <th style="text-align: center; width: 120px;"><?= ucfirst($role) ?></th>
+                        <?php endforeach; ?>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($all_perms as $perm): ?>
                         <tr>
-                            <th style="padding: 1.25rem 2rem; color: var(--text-3); font-weight: 500;">Permission</th>
+                            <td>
+                                <div style="font-weight: 700; color: var(--text);"><?= htmlspecialchars($perm['permission_name']) ?></div>
+                                <div style="font-size: 0.8rem; color: var(--text-3); margin-top: 2px;"><?= htmlspecialchars($perm['description']) ?></div>
+                            </td>
                             <?php foreach ($roles as $role): ?>
-                                <th style="padding: 1.25rem; color: var(--text-3); font-weight: 500; text-align: center;"><?= ucfirst($role) ?></th>
-                            <?php endforeach; ?>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($all_perms as $perm): ?>
-                            <tr style="border-bottom: 1px solid var(--border);">
-                                <td style="padding: 1.25rem 2rem;">
-                                    <div style="font-weight: 600; color: var(--text);"><?= htmlspecialchars($perm['permission_name']) ?></div>
-                                    <div style="font-size: 12px; color: var(--text-2);"><?= htmlspecialchars($perm['description']) ?></div>
-                                </td>
-                                <?php foreach ($roles as $role): ?>
-                                    <td style="padding: 1.25rem; text-align: center;">
+                                <td style="text-align: center;">
+                                    <label class="custom-checkbox" style="display: inline-block; cursor: pointer;">
                                         <input type="checkbox" 
                                                name="perms[<?= $role ?>][]" 
                                                value="<?= $perm['id'] ?>"
                                                <?= (isset($role_perms[$role]) && in_array($perm['id'], $role_perms[$role])) ? 'checked' : '' ?>
-                                               style="width: 18px; height: 18px; cursor: pointer;">
-                                    </td>
-                                <?php endforeach; ?>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
+                                               style="width: 20px; height: 20px; accent-color: var(--accent);">
+                                    </label>
+                                </td>
+                            <?php endforeach; ?>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
 
-            <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
-                <a href="<?= $base_path ?>/dashboard" class="btn btn-secondary">Cancel</a>
-                <button type="submit" class="btn btn-primary" style="padding-left: 3rem; padding-right: 3rem;">Save Rights Configuration</button>
-            </div>
-        </form>
-    </div>
+        <div style="margin-top: 2.5rem; display: flex; justify-content: flex-end; gap: 1rem; align-items: center;">
+            <p style="font-size: 0.85rem; color: var(--text-3); margin-right: auto;">⚠️ Changes take effect immediately for all logged-in users.</p>
+            <a href="<?= $base_path ?>/dashboard" class="btn btn-secondary">Discard Changes</a>
+            <button type="submit" class="btn btn-primary" style="padding-left: 2.5rem; padding-right: 2.5rem;">Save Permissions</button>
+        </div>
+    </form>
 </div>
 
 <?php require_once __DIR__ . '/../../../../shared/layout/footer.php'; ?>

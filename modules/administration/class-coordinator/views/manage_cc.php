@@ -35,83 +35,87 @@ $error = $_SESSION['admin_cc_error'] ?? '';
 unset($_SESSION['admin_cc_success'], $_SESSION['admin_cc_error']);
 ?>
 
-<div class="wrapper" style="padding: 2rem;">
-    <div style="max-width: 1000px; margin: 0 auto;">
-        <h1 class="page-title" style="font-family: 'DM Serif Display', serif; font-size: 2.5rem; margin-bottom: 0.5rem;">Class Coordinator Assignments</h1>
-        <p style="color: var(--text-2); margin-bottom: 2rem;">Assign Class Coordinators (CC) to classes and manage their designated access.</p>
+<div class="wrapper">
+    <div class="section-header" style="margin-top: 0;">
+        <div>
+            <h1 class="page-title">Class Coordinator Assignments</h1>
+            <p class="page-subtitle">Designate faculty members as Class Coordinators (CC) for specific departments and academic levels.</p>
+        </div>
+    </div>
 
-        <?php if ($success): ?>
-            <div class="alert alert-success" style="margin-bottom: 1.5rem;"><?= htmlspecialchars($success) ?></div>
-        <?php endif; ?>
+    <?php if ($success): ?><div class="alert alert-success"><?= htmlspecialchars($success) ?></div><?php endif; ?>
+    <?php if ($error): ?><div class="alert alert-error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
 
-        <?php if ($error): ?>
-            <div class="alert alert-error" style="margin-bottom: 1.5rem;"><?= htmlspecialchars($error) ?></div>
-        <?php endif; ?>
+    <div class="card card-accent-blue" style="margin-bottom: 2rem; padding: 1.25rem 1.5rem;">
+        <div style="display: flex; gap: 1rem; align-items: flex-start;">
+            <div style="font-size: 1.5rem;">ℹ️</div>
+            <div>
+                <h4 style="margin: 0 0 0.25rem 0; font-size: 0.95rem; font-weight: 700;">Designation Guidelines</h4>
+                <p style="margin: 0; font-size: 0.85rem; color: var(--text-2); line-height: 1.5;">Faculty members must have an Employee ID assigned before they can coordinate a class. Each academic class should have exactly one primary coordinator.</p>
+            </div>
+        </div>
+    </div>
 
-        <div class="alert alert-info" style="margin-bottom: 1.5rem; background: rgba(52, 152, 219, 0.1); border-left: 4px solid var(--primary); padding: 1rem; border-radius: 4px;">
-            <strong>Important note:</strong> Each class should ideally have only one designated Class Coordinator. Faculty members must have their profiles (Employee ID) set up before they can coordinate a class.
+    <form action="<?= $base_path ?>/api/admin/save_cc" method="POST" id="ccForm">
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Faculty Member</th>
+                        <th style="width: 150px;">Employee ID</th>
+                        <th style="text-align: center; width: 100px;">Is CC?</th>
+                        <th style="width: 350px;">Coordinated Class</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($faculty as $f): ?>
+                        <?php $has_profile = !empty($f['emp_id']); ?>
+                        <tr style="<?= !$has_profile ? 'opacity: 0.6;' : '' ?>">
+                            <td>
+                                <div style="font-weight: 700; color: var(--text);"><?= htmlspecialchars($f['name']) ?></div>
+                                <div style="font-size: 0.8rem; color: var(--text-3); font-weight: 500;"><?= htmlspecialchars($f['email']) ?></div>
+                            </td>
+                            <td>
+                                <?php if ($has_profile): ?>
+                                    <span style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; font-weight: 600; color: var(--text-2);"><?= htmlspecialchars($f['emp_id']) ?></span>
+                                <?php else: ?>
+                                    <span style="color: var(--error); font-size: 0.75rem; font-weight: 700; text-transform: uppercase;">Profile Required</span>
+                                <?php endif; ?>
+                            </td>
+                            <td style="text-align: center;">
+                                <input type="checkbox" 
+                                       name="faculty[<?= $f['id'] ?>][is_cc]" 
+                                       value="1"
+                                       <?= ($f['is_cc'] ?? 0) ? 'checked' : '' ?>
+                                       <?= !$has_profile ? 'disabled' : '' ?>
+                                       onchange="document.getElementById('class_select_<?= $f['id'] ?>').disabled = !this.checked; if (!this.checked) document.getElementById('class_select_<?= $f['id'] ?>').value = '';"
+                                       style="width: 20px; height: 20px; cursor: pointer; accent-color: var(--accent);">
+                            </td>
+                            <td>
+                                <select name="faculty[<?= $f['id'] ?>][coordinated_class_id]" 
+                                        id="class_select_<?= $f['id'] ?>"
+                                        class="form-control"
+                                        <?= (!($f['is_cc'] ?? 0) || !$has_profile) ? 'disabled' : '' ?>
+                                        style="font-size: 0.85rem; padding: 0.5rem 0.75rem;">
+                                    <option value="">-- Choose Class --</option>
+                                    <?php foreach ($classes as $c): ?>
+                                        <option value="<?= $c['id'] ?>" <?= (($f['coordinated_class_id'] ?? 0) == $c['id']) ? 'selected' : '' ?>>
+                                            <?= htmlspecialchars($c['name']) ?> (Sem <?= $c['semester'] ?> - <?= htmlspecialchars($c['branch']) ?>)
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
         </div>
 
-        <form action="<?= $base_path ?>/api/admin/save_cc" method="POST" id="ccForm">
-            <div class="card" style="padding: 0; overflow-x: auto;">
-                <table style="width: 100%; border-collapse: collapse; text-align: left; min-width: 700px;">
-                    <thead style="background: var(--bg-2); border-bottom: 1px solid var(--border);">
-                        <tr>
-                            <th style="padding: 1.25rem 2rem; color: var(--text-3); font-weight: 500;">Faculty Member</th>
-                            <th style="padding: 1.25rem; color: var(--text-3); font-weight: 500;">Employee ID</th>
-                            <th style="padding: 1.25rem; color: var(--text-3); font-weight: 500; text-align: center;">Is CC?</th>
-                            <th style="padding: 1.25rem; color: var(--text-3); font-weight: 500;">Coordinated Class</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($faculty as $f): ?>
-                            <?php $has_profile = !empty($f['emp_id']); ?>
-                            <tr style="border-bottom: 1px solid var(--border); <?= !$has_profile ? 'opacity: 0.7;' : '' ?>">
-                                <td style="padding: 1.25rem 2rem;">
-                                    <div style="font-weight: 600; color: var(--text);"><?= htmlspecialchars($f['name']) ?></div>
-                                    <div style="font-size: 12px; color: var(--text-2);"><?= htmlspecialchars($f['email']) ?></div>
-                                </td>
-                                <td style="padding: 1.25rem; font-family: monospace; font-size: 14px;">
-                                    <?php if ($has_profile): ?>
-                                        <?= htmlspecialchars($f['emp_id']) ?>
-                                    <?php else: ?>
-                                        <span style="color: var(--error); font-style: italic; font-size: 12px;">Profile Incomplete</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td style="padding: 1.25rem; text-align: center;">
-                                    <input type="checkbox" 
-                                           name="faculty[<?= $f['id'] ?>][is_cc]" 
-                                           value="1"
-                                           <?= ($f['is_cc'] ?? 0) ? 'checked' : '' ?>
-                                           <?= !$has_profile ? 'disabled' : '' ?>
-                                           onchange="document.getElementById('class_select_<?= $f['id'] ?>').disabled = !this.checked; if (!this.checked) document.getElementById('class_select_<?= $f['id'] ?>').value = '';"
-                                           style="width: 18px; height: 18px; cursor: pointer;">
-                                </td>
-                                <td style="padding: 1.25rem;">
-                                    <select name="faculty[<?= $f['id'] ?>][coordinated_class_id]" 
-                                            id="class_select_<?= $f['id'] ?>"
-                                            <?= (!($f['is_cc'] ?? 0) || !$has_profile) ? 'disabled' : '' ?>
-                                            style="padding: 0.5rem; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); width: 100%; max-width: 300px;">
-                                        <option value="">-- Select Class --</option>
-                                        <?php foreach ($classes as $c): ?>
-                                            <option value="<?= $c['id'] ?>" <?= (($f['coordinated_class_id'] ?? 0) == $c['id']) ? 'selected' : '' ?>>
-                                                <?= htmlspecialchars($c['name']) ?> (Sem <?= $c['semester'] ?> - <?= htmlspecialchars($c['branch']) ?>)
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-
-            <div style="margin-top: 2rem; display: flex; justify-content: flex-end; gap: 1rem;">
-                <a href="<?= $base_path ?>/dashboard" class="btn btn-secondary">Cancel</a>
-                <button type="submit" class="btn btn-primary" style="padding-left: 3rem; padding-right: 3rem;">Save CC Assignments</button>
-            </div>
-        </form>
-    </div>
+        <div style="margin-top: 2.5rem; display: flex; justify-content: flex-end; gap: 1rem; align-items: center;">
+            <a href="<?= $base_path ?>/dashboard" class="btn btn-secondary">Discard</a>
+            <button type="submit" class="btn btn-primary" style="padding-left: 2.5rem; padding-right: 2.5rem;">Save Designation Updates</button>
+        </div>
+    </form>
 </div>
 
 <script>
@@ -121,7 +125,6 @@ document.getElementById('ccForm').addEventListener('submit', function(e) {
     let selectedClasses = {};
     let hasError = false;
     
-    // Validate that each checked CC has a class selected and classes are unique
     document.querySelectorAll('input[type="checkbox"][name^="faculty"]').forEach(function(cb) {
         if (cb.checked) {
             let userId = cb.name.match(/\d+/)[0];
@@ -156,7 +159,6 @@ document.getElementById('ccForm').addEventListener('submit', function(e) {
     }
 });
 
-// Conflict validation on dropdown value change
 document.querySelectorAll('select[id^="class_select_"]').forEach(function(select) {
     select.addEventListener('change', function() {
         let currentSelect = this;
@@ -178,7 +180,6 @@ document.querySelectorAll('select[id^="class_select_"]').forEach(function(select
     });
 });
 
-// Warn if trying to close or navigate away while CC is checked but class is unselected
 window.addEventListener('beforeunload', function(e) {
     if (isSubmitting) return;
     

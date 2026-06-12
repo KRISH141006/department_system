@@ -30,6 +30,7 @@ CREATE TABLE users (
     phone       VARCHAR(20),
     password    VARCHAR(255) NOT NULL,
     role        ENUM('student','faculty','expert','admin') NOT NULL,
+    avatar      VARCHAR(255) DEFAULT 'male',
     is_verified TINYINT(1) NOT NULL DEFAULT 0,
     created_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -781,7 +782,7 @@ INSERT INTO profiles (user_id, bio, skills, hobbies) VALUES
 (127,'Student profile','HTML, CSS, PHP, MySQL','Coding, Reading'),
 (128,'Student profile','HTML, CSS, PHP, MySQL','Coding, Reading'),
 (129,'Student profile','HTML, CSS, PHP, MySQL','Coding, Reading'),
-(130,'Student profile','HTML, CSS, PHP, MySQL','Coding, Reading'),
+`(130,'Student profile','HTML, CSS, PHP, MySQL','Coding, Reading'),
 (131,'Student profile','HTML, CSS, PHP, MySQL','Coding, Reading'),
 (132,'Student profile','HTML, CSS, PHP, MySQL','Coding, Reading'),
 (133,'Student profile','HTML, CSS, PHP, MySQL','Coding, Reading'),
@@ -876,7 +877,7 @@ INSERT INTO faculty (user_id, emp_id, is_cc, coordinated_class_id, teaching_inte
 (16, 'F015', 0, NULL, 'Web Development, DBMS, Java');
 
 
--- ------------------------------------------------------------
+-- ----------------------------------------------------------11--
 -- 6. experts  (role-specific extension)
 -- ------------------------------------------------------------
 INSERT INTO experts (user_id, company, designation, expertise_area, experience_years, is_alumni, college_name, graduation_year, degree) VALUES

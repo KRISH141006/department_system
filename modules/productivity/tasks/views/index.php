@@ -1,101 +1,43 @@
 <?php
 require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
-$page_title = 'Productivity Dashboard';
+$page_title = 'Productivity Center';
 require_once __DIR__ . '/../../../../shared/layout/header.php';
 
 $user_id = $_SESSION['user_id'];
+$role = $_SESSION['role'] ?? 'student';
 ?>
 
-<style>
-    .productivity-landing {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 2.5rem;
-        padding: 2rem 0;
-        min-height: 400px;
-    }
+<div class="wrapper">
+    <div class="section-header" style="margin-top: 0;">
+        <div>
+            <h1 class="page-title">Productivity Center</h1>
+            <?php if ($role === 'student'): ?>
+                <p class="page-subtitle">Manage your personal goals and academic assignments in one place.</p>
+            <?php else: ?>
+                <p class="page-subtitle">Focus on your personal tasks and daily academic planning.</p>
+            <?php endif; ?>
+        </div>
+    </div>
 
-    .landing-card {
-        background: #fff;
-        border: 2px solid #1a1a1a;
-        border-radius: 20px;
-        box-shadow: 8px 8px 0px #1a1a1a;
-        padding: 4rem 2rem;
-        text-align: center;
-        text-decoration: none;
-        color: #1a1a1a;
-        transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        cursor: pointer;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 100%;
-    }
-
-    .landing-card:hover {
-        transform: translate(-5px, -5px);
-        box-shadow: 13px 13px 0px #1a1a1a;
-        background: #fdfdfd;
-    }
-
-    .landing-card:active {
-        transform: translate(3px, 3px);
-        box-shadow: 2px 2px 0px #1a1a1a;
-        background: #fff3cd !important;
-    }
-
-    .landing-card h2 {
-        font-family: 'DM Serif Display', serif;
-        font-size: 2.2rem;
-        margin-bottom: 1.5rem;
-        line-height: 1.2;
-    }
-
-    .landing-card .icon {
-        font-size: 4.5rem;
-        margin-bottom: 2rem;
-        transition: transform 0.3s;
-    }
-
-    .landing-card:hover .icon {
-        transform: scale(1.1) rotate(5deg);
-    }
-
-    .landing-card p {
-        font-weight: 600;
-        color: #64748b;
-        font-size: 1rem;
-        max-width: 250px;
-    }
-
-    @media (max-width: 768px) {
-        .productivity-landing {
-            grid-template-columns: 1fr;
-            min-height: auto;
-        }
-        .landing-card {
-            padding: 3rem 2rem;
-        }
-    }
-</style>
-
-<div class="page-wrap medium">
-    <div class="productivity-landing">
-        <!-- Personal Task Manager -->
-        <a href="<?= $base_path ?>/productivity/tasks" class="landing-card">
-            <div class="icon">✍️</div>
-            <h2>Personal Task Manager</h2>
-            <p>Organize your own thoughts, deadlines, and priorities.</p>
+    <div class="<?= ($role === 'student') ? 'grid-2' : '' ?>" style="<?= ($role !== 'student') ? 'max-width: 600px;' : '' ?>">
+        <!-- Personal Task Manager (Always present) -->
+        <a href="<?= $base_path ?>/productivity/tasks" class="card card-accent-blue" style="text-decoration: none;">
+            <div style="font-size: 3rem; margin-bottom: 1.5rem;">✍️</div>
+            <h2 class="card-title">Personal Task Manager</h2>
+            <p class="card-desc">Organize your personal schedule, set private deadlines, and track your daily priorities.</p>
+            <div style="margin-top: 2rem; color: var(--accent); font-size: 0.9rem; font-weight: 600;">Open Manager →</div>
         </a>
 
-        <!-- Assigned Task Manager -->
-        <a href="<?= $base_path ?>/academics/assigned_tasks" class="landing-card assigned-card">
-            <div class="icon">📋</div>
-            <h2>Assigned Task Manager</h2>
-            <p>Tasks assigned to you by faculty or department leads.</p>
-        </a>
+        <?php if ($role === 'student'): ?>
+            <!-- Assigned Task Manager (Only for students) -->
+            <a href="<?= $base_path ?>/academics/assigned_tasks" class="card card-accent-purple" style="text-decoration: none;">
+                <div style="font-size: 3rem; margin-bottom: 1.5rem;">📋</div>
+                <h2 class="card-title">Assigned Tasks</h2>
+                <p class="card-desc">Complete academic work, research tasks, and projects assigned to you by faculty.</p>
+                <div style="margin-top: 2rem; color: var(--accent); font-size: 0.9rem; font-weight: 600;">View Assignments →</div>
+            </a>
+        <?php endif; ?>
     </div>
 </div>
 

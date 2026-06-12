@@ -11,114 +11,94 @@ $name_result = $name_stmt->get_result();
 $user_name = ($name_result->num_rows > 0) ? $name_result->fetch_assoc()['name'] : ($_SESSION['name'] ?? 'User');
 
 require_once __DIR__ . '/../../../shared/layout/header.php';
-
-$role = $_SESSION['role'] ?? 'student';
 ?>
 
-<div class="dashboard-wrapper" style="padding: 2rem;">
-    <h1>Welcome, <?= htmlspecialchars($user_name) ?></h1>
-    <p>Your role: <strong><?= htmlspecialchars(ucfirst($_SESSION['role'] ?? '')) ?></strong></p>
+<style>
+.dashboard-landing {
+    height: calc(100vh - 120px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
 
-    <div class="dashboard-modules" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 2rem;">
+/* Force specific dashboard sizes while leveraging global logo-floater gradients */
+.dashboard-landing .logo-floater {
+    margin: 0 !important;
+    line-height: 1.1;
+}
+
+/* Ensure the dot can actually move (inline elements can't have transforms) */
+.logo-dot {
+    display: inline-block !important;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.1s;
+}
+
+.dribble-active {
+    animation: dribbleAndDamp 2s ease-out forwards;
+}
+
+@keyframes dribbleAndDamp {
+  0% { transform: translateY(0); animation-timing-function: ease-out; }
+  15% { transform: translateY(-12px); animation-timing-function: ease-in; }
+  30% { transform: translateY(0); animation-timing-function: ease-out; }
+  45% { transform: translateY(-8px); animation-timing-function: ease-in; }
+  60% { transform: translateY(0); animation-timing-function: ease-out; }
+  75% { transform: translateY(-4px); animation-timing-function: ease-in; }
+  85% { transform: translateY(0); animation-timing-function: ease-out; }
+  92% { transform: translateY(-2px); animation-timing-function: ease-in; }
+  100% { transform: translateY(0); }
+}
+
+/* Fade in for the whole landing area */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.dashboard-landing h1, .dashboard-landing .user-name-branded {
+    animation: fadeInUp 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@media (max-width: 768px) {
+    .dashboard-landing .logo-floater { font-size: 3.5rem !important; }
+    .dashboard-landing .user-name-branded { font-size: 1.8rem !important; }
+}
+</style>
+
+<div class="wrapper">
+    <div class="dashboard-landing">
+        <!-- Main branded heading -->
+        <h1 class="logo-floater" style="font-size: 5rem;">
+            ICT<span class="logo-dot dribble-active" id="logoDotDashboard" onclick="triggerDribble(this)">.</span>Community
+        </h1>
         
-        <?php if ($_SESSION['role'] === 'admin'): ?>
-            <!-- EXCLUSIVE ADMIN VIEW -->
-            <div class="card module-card" style="border: 2px solid var(--primary);">
-                <h2 style="color: var(--primary);">System Academics</h2>
-                <p>Manage all subjects, lectures, and academic records across the department.</p>
-                <a href="<?= $base_path ?>/academics/manage_subjects" class="btn btn-primary">Manage Academics</a>
-            </div>
-
-            <div class="card module-card" style="border: 2px solid var(--accent);">
-                <h2 style="color: var(--accent);">Rights Management</h2>
-                <p>Configure dynamic role-based permissions and system access.</p>
-                <a href="<?= $base_path ?>/admin/manage_permissions" class="btn" style="background: var(--accent); color: white;">Manage Permissions</a>
-            </div>
-
-            <div class="card module-card" style="border: 2px solid var(--success);">
-                <h2 style="color: var(--success);">Class Coordinators</h2>
-                <p>Assign and manage Class Coordinators (CC) for each class.</p>
-                <a href="<?= $base_path ?>/admin/manage_cc" class="btn" style="background: var(--success); color: white;">Manage CCs</a>
-            </div>
-
-            <div class="card module-card" style="border-top: 4px solid var(--warning);">
-                <h2>Elective Requests</h2>
-                <p>Manage faculty requests for unlocking elective subject enrollments.</p>
-                <a href="<?= $base_path ?>/admin/elective_requests" class="btn btn-warning">Review Unlock Requests</a>
-            </div>
-
-            <div class="card module-card" style="border: 2px solid var(--warning);">
-                <h2 style="color: var(--warning);">Community Overview</h2>
-                <p>Monitor community reviews, validation requests, and student performances.</p>
-                <a href="<?= $base_path ?>/community/reviewer_dashboard" class="btn" style="background: var(--warning); color: var(--bg);">Review Dashboard</a>
-            </div>
-
-            <div class="card module-card" style="border-top: 4px solid var(--error);">
-                <h2>Feedback Panel</h2>
-                <p>Review all anonymous submissions from the student feedback box.</p>
-                <a href="<?= $base_path ?>/academics/admin_feedback_panel" class="btn btn-primary">Review Feedbacks</a>
-            </div>
-
-            <div class="card module-card">
-                <h2>Semester Management</h2>
-                <p>Move all students to the next semester globally and update rosters.</p>
-                <form action="<?= $base_path ?>/api/admin/semester_done" method="POST" onsubmit="return confirm('Are you sure you want to end the current semester? All students will be moved to the next semester and their class names will be updated.')">
-                    <button type="submit" class="btn btn-secondary">Announce Semester Done</button>
-                </form>
-            </div>
-            
-        <?php else: ?>
-            <!-- STANDARD ROLE VIEWS (STUDENT, FACULTY, EXPERT) -->
-            <?php if (has_permission('manage_tasks')): ?>
-                <!-- Productivity view -->
-                <div class="card module-card">
-                    <h2>Productivity</h2>
-                    <p>Manage your daily tasks and revision reminders.</p>
-                    <a href="<?= $base_path ?>/productivity/index" class="btn btn-primary">Go to Tasks</a>
-                </div>
-            <?php endif; ?>
-
-            <?php if (has_permission('view_student_dashboard')): ?>
-                <!-- Student view: Academics, Skills -->
-                <div class="card module-card">
-                    <h2>Academics</h2>
-                    <p>Track lectures, subjects, and submit feedback.</p>
-                    <a href="<?= $base_path ?>/academics/student_dashboard" class="btn btn-primary">Go to Academics</a>
-                </div>
-
-                <div class="card module-card">
-                    <h2>Community</h2>
-                    <p>Request skill validation and build your reputation.</p>
-                    <a href="<?= $base_path ?>/community/request" class="btn btn-primary">Skill Validation</a>
-                </div>
-
-                <div class="card module-card" style="border-top: 4px solid var(--warning);">
-                    <h2>Anonymous Feedback Box</h2>
-                    <p>Submit honest, private feedback about any faculty or subject.</p>
-                    <a href="<?= $base_path ?>/academics/continuous_feedback" class="btn btn-secondary">Open Feedback Box</a>
-                </div>
-            <?php endif; ?>
-
-            <?php if (has_permission('view_faculty_dashboard')): ?>
-                <!-- Faculty view -->
-                <div class="card module-card">
-                    <h2>Academics Management</h2>
-                    <p>Manage subjects, lectures, and view student feedback.</p>
-                    <a href="<?= $base_path ?>/academics/faculty_dashboard" class="btn btn-primary">Go to Academics</a>
-                </div>
-            <?php endif; ?>
-                
-            <?php if (has_permission('review_requests')): ?>
-                <!-- Expert/Faculty view -->
-                <div class="card module-card">
-                    <h2>Community Reviews</h2>
-                    <p>Review student skills and assignments.</p>
-                    <a href="<?= $base_path ?>/community/reviewer_dashboard" class="btn btn-primary">Go to Reviews</a>
-                </div>
-            <?php endif; ?>
-        <?php endif; ?>
-
+        <!-- User name using the same logo gradient style -->
+        <span class="logo-floater user-name-branded" style="font-size: 2.5rem; opacity: 0.8; margin-top: 0.5rem; display: block;">
+            <?= htmlspecialchars($user_name) ?>
+        </span>
     </div>
 </div>
+
+<script>
+function triggerDribble(el) {
+    if (!el) return;
+    el.classList.remove('dribble-active');
+    void el.offsetWidth; // Trigger reflow
+    el.classList.add('dribble-active');
+}
+
+// Auto-trigger dot animation every 10 seconds for visual flair
+// Using the specific ID to avoid confusion with any other dots in the header
+setInterval(() => {
+    const dot = document.getElementById('logoDotDashboard');
+    if (dot) {
+        triggerDribble(dot);
+    }
+}, 10000);
+</script>
 
 <?php require_once __DIR__ . '/../../../shared/layout/footer.php'; ?>

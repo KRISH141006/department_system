@@ -22,3 +22,5 @@ uploads/resources/**
 !uploads/resources/.gitkeep
 uploads/submissions/**
 !uploads/submissions/.gitkeep
+app/config/google_credentials.json
+app/config/tokens/

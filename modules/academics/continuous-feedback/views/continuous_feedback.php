@@ -15,23 +15,18 @@ $fac_query = $conn->query("SELECT id, name FROM users WHERE role = 'faculty' ORD
 $faculty_members = $fac_query->fetch_all(MYSQLI_ASSOC);
 ?>
 
-<div class="wrapper" style="padding: 2rem;">
-    <div style="max-width: 600px; margin: 0 auto;">
-        <h1 class="page-title" style="font-family: 'DM Serif Display', serif; font-size: 2.5rem; margin-bottom: 0.5rem;">Anonymous Feedback Box</h1>
-        <p style="color: var(--text-2); margin-bottom: 2rem;">Your identity will remain completely anonymous. This feedback is only visible to the Department Admin and Faculty.</p>
+<div class="wrapper">
+    <div style="max-width: 700px; margin: 0 auto;">
+        <div class="section-header" style="margin-top: 0; text-align: center; display: block;">
+            <h1 class="page-title">Anonymous Feedback Box</h1>
+            <p class="page-subtitle">Your identity will remain completely anonymous. Help us improve by providing honest feedback.</p>
+        </div>
 
-        <?php if (isset($_SESSION['msg_success'])): ?>
-            <div class="alert alert-success"><?= $_SESSION['msg_success']; unset($_SESSION['msg_success']); ?></div>
-        <?php endif; ?>
-        <?php if (isset($_SESSION['msg_error'])): ?>
-            <div class="alert alert-error"><?= $_SESSION['msg_error']; unset($_SESSION['msg_error']); ?></div>
-        <?php endif; ?>
-
-        <div class="card">
+        <div class="card card-accent-orange">
             <form action="<?= $base_path ?>/api/academics/submit_continuous_feedback" method="POST">
-                <div class="form-group">
-                    <label>Select Faculty</label>
-                    <select name="faculty_id" id="facultySelect" required onchange="loadFacultySubjects()">
+                <div style="margin-bottom: 1.5rem;">
+                    <label class="form-label">Select Faculty Member</label>
+                    <select name="faculty_id" id="facultySelect" class="form-control" required onchange="loadFacultySubjects()">
                         <option value="">-- Choose Faculty --</option>
                         <?php foreach ($faculty_members as $fac): ?>
                             <option value="<?= $fac['id'] ?>"><?= htmlspecialchars($fac['name']) ?></option>
@@ -39,23 +34,26 @@ $faculty_members = $fac_query->fetch_all(MYSQLI_ASSOC);
                     </select>
                 </div>
 
-                <div class="form-group">
-                    <label>Select Subject (Optional)</label>
-                    <select name="subject_id" id="subjectSelect">
+                <div style="margin-bottom: 1.5rem;">
+                    <label class="form-label">Select Subject <span style="font-weight: 400; opacity: 0.7;">(Optional)</span></label>
+                    <select name="subject_id" id="subjectSelect" class="form-control">
                         <option value="">-- General Feedback --</option>
-                        <!-- Dynamically loaded -->
                     </select>
                 </div>
 
-                <div class="form-group">
-                    <label>Your Feedback</label>
-                    <textarea name="feedback_text" required placeholder="Write your honest feedback here..." style="height: 150px;"></textarea>
+                <div style="margin-bottom: 1.5rem;">
+                    <label class="form-label">Your Honest Feedback</label>
+                    <textarea name="feedback_text" class="form-control" required placeholder="Describe your experience or suggest improvements..." style="min-height: 180px; resize: vertical;"></textarea>
                 </div>
 
-                <div style="margin-top: 2rem;">
-                    <button type="submit" class="btn btn-primary btn-full">Submit Anonymous Feedback</button>
+                <div style="margin-top: 2.5rem;">
+                    <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 1rem;">Submit Confidential Feedback</button>
                 </div>
             </form>
+        </div>
+        
+        <div style="margin-top: 2rem; text-align: center; color: var(--text-3); font-size: 0.8rem;">
+            🛡️ Encrypted & Anonymous Submission System
         </div>
     </div>
 </div>
@@ -65,13 +63,10 @@ async function loadFacultySubjects() {
     const facId = document.getElementById('facultySelect').value;
     const subSelect = document.getElementById('subjectSelect');
     
-    // Reset subjects
     subSelect.innerHTML = '<option value="">-- General Feedback --</option>';
-    
     if (!facId) return;
 
     try {
-        // We can reuse a similar logic to get_topics_ajax but for subjects
         const response = await fetch(`<?= $base_path ?>/academics/get_faculty_subjects_ajax?faculty_id=${facId}`);
         const result = await response.json();
 

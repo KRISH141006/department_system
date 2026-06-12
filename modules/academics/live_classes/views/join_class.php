@@ -31,38 +31,25 @@ $page_title = "Joining: " . $meeting['subject_name'];
 require_once __DIR__ . '/../../../../shared/layout/header.php';
 ?>
 
-<div class="wrapper" style="padding: 2rem; max-width: 1200px; margin: 0 auto;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-        <div>
-            <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.2rem; color: #1a1a1a; margin: 0;">🎥 Virtual Classroom</h1>
-            <p style="color: var(--text-2); margin: 5px 0 0 0;">Subject: <strong><?= htmlspecialchars($meeting['subject_name']) ?></strong> | Faculty: <strong><?= htmlspecialchars($meeting['faculty_name']) ?></strong></p>
-        </div>
-        <a href="<?= $base_path ?>/dashboard" class="btn btn-secondary" style="padding: 10px 25px;">Exit Classroom</a>
+<div class="wrapper" style="padding: 2rem; max-width: 900px; margin: 0 auto; text-align: center;">
+    <div style="margin-bottom: 2rem;">
+        <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem; color: var(--text); margin: 0;">🎥 Virtual Classroom</h1>
+        <p style="color: var(--text-2); margin: 10px 0 0 0; font-size: 1.1rem;">Subject: <strong><?= htmlspecialchars($meeting['subject_name']) ?></strong> | Faculty: <strong><?= htmlspecialchars($meeting['faculty_name']) ?></strong></p>
     </div>
 
-    <div id="meet" style="height: 600px; width: 100%; border: 4px solid #1a1a1a; box-shadow: 12px 12px 0px #1a1a1a; border-radius: 12px; overflow: hidden; background: #000;"></div>
+    <div class="card" style="padding: 4rem 2rem; max-width: 600px; margin: 0 auto; border: 2px solid var(--accent); box-shadow: 0 10px 30px rgba(79, 70, 229, 0.1);">
+        <div style="font-size: 4rem; margin-bottom: 1rem;">📹</div>
+        <h2 style="font-size: 1.8rem; margin-bottom: 1rem; color: var(--text);">Class is Live!</h2>
+        <p style="color: var(--text-2); margin-bottom: 2.5rem; font-size: 1.1rem;">Your faculty has started the session via Google Meet. Click the button below to join the virtual classroom.</p>
+        
+        <div style="display: flex; gap: 1rem; justify-content: center;">
+            <a href="<?= htmlspecialchars($meeting['room_code']) ?>" target="_blank" class="btn btn-primary" style="padding: 15px 30px; font-size: 1.2rem; display: flex; align-items: center; gap: 10px;">
+                <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+                Join Google Meet
+            </a>
+            <a href="<?= $base_path ?>/dashboard" class="btn btn-secondary" style="padding: 15px 30px; font-size: 1.2rem;">Leave</a>
+        </div>
+    </div>
 </div>
-
-<script src="https://meet.jit.si/external_api.js"></script>
-<script>
-    const domain = 'meet.jit.si';
-    const options = {
-        roomName: '<?= $room_code ?>',
-        width: '100%',
-        height: 600,
-        parentNode: document.querySelector('#meet'),
-        userInfo: {
-            displayName: '<?= $student_name ?>'
-        },
-        interfaceConfigOverwrite: {
-            TOOLBAR_BUTTONS: [
-                'microphone', 'camera', 'closedcaptions', 'desktop', 'fullscreen',
-                'fodeviceselection', 'hangup', 'profile', 'chat', 'raisehand',
-                'videoquality', 'filmstrip', 'tileview', 'help'
-            ],
-        }
-    };
-    const api = new JitsiMeetExternalAPI(domain, options);
-</script>
 
 <?php require_once __DIR__ . '/../../../../shared/layout/footer.php'; ?>

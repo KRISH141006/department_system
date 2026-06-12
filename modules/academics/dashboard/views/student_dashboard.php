@@ -90,25 +90,25 @@ $page_title = "Student Academics";
 require_once __DIR__ . '/../../../../shared/layout/header.php';
 ?>
 
-<div class="wrapper" style="padding: 2rem;">
-    <div class="dashboard-header" style="margin-bottom: 2rem;">
-        <div class="dashboard-title">
-            <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem; color: var(--text);">Welcome, <?= htmlspecialchars($name) ?></h1>
-            <p style="color: var(--text-2);">Class: <strong><?= htmlspecialchars($class_name) ?></strong> | Semester: <strong><?= htmlspecialchars($semester) ?></strong></p>
+<div class="wrapper">
+    <div class="section-header" style="margin-top: 0;">
+        <div>
+            <h1 class="page-title">Welcome, <?= htmlspecialchars($name) ?></h1>
+            <p class="page-subtitle">Class: <strong><?= htmlspecialchars($class_name) ?></strong> | Semester: <strong><?= htmlspecialchars($semester) ?></strong></p>
         </div>
     </div>
 
     <!-- ACTION REQUIRED -->
     <?php if (!empty($pending_verifications)): ?>
-    <div style="margin-bottom: 40px;">
-        <h2 style="margin-bottom: 20px;">Verification Required</h2>
-        <div style="display: grid; gap: 16px;">
+    <div style="margin-bottom: 3rem;">
+        <h2 class="section-title" style="margin-bottom: 1.5rem;">Verification Required</h2>
+        <div style="display: grid; gap: 1rem;">
             <?php foreach ($pending_verifications as $v): ?>
-                <div class="card" style="border-left: 4px solid var(--accent); background: rgba(var(--accent-rgb), 0.02);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                <div class="card card-accent-blue">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
                         <div>
-                            <h3 style="font-size: 1.1rem; color: var(--accent);">Syllabus Feedback: <?= htmlspecialchars($v['subject_name']) ?></h3>
-                            <p style="color: var(--text-2); font-size: 14px;">You have been randomly selected to report today's covered topics.</p>
+                            <h3 class="card-title" style="color: var(--accent); margin-bottom: 0.25rem;">Syllabus Feedback: <?= htmlspecialchars($v['subject_name']) ?></h3>
+                            <p class="card-desc">You have been randomly selected to report today's covered topics.</p>
                         </div>
                         <a href="<?= $base_path ?>/academics/lecture_feedback?session_id=<?= $v['session_id'] ?>" class="btn btn-primary">Provide Feedback</a>
                     </div>
@@ -118,7 +118,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
     </div>
     <?php endif; ?>
 
-    <h2 style="margin-bottom: 20px;">My Subjects</h2>
+    <h2 class="section-title" style="margin-bottom: 1.5rem;">My Subjects</h2>
     <div class="grid-2">
         <?php 
         // 3. Query for core subjects and enrolled electives
@@ -142,23 +142,24 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
         while ($sub = $subjects->fetch_assoc()) {
             $isElective = $sub['type'] === 'elective';
         ?>
-            <a href="<?= $base_path ?>/academics/units?subject_id=<?php echo $sub['id']; ?>" class="card" style="text-decoration: none; color: inherit; border-top: 4px solid <?php echo $isElective ? 'var(--primary)' : 'transparent'; ?>;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <h3 style="margin-bottom: 8px; font-size: 1.25rem; font-weight: 600;"><?php echo htmlspecialchars($sub['subject_name']); ?></h3>
+            <a href="<?= $base_path ?>/academics/units?subject_id=<?php echo $sub['id']; ?>" class="card <?= $isElective ? 'card-accent-purple' : '' ?>" style="text-decoration: none;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                    <h3 class="card-title" style="margin-bottom: 0;"><?php echo htmlspecialchars($sub['subject_name']); ?></h3>
                     <?php if ($isElective): ?>
-                        <span class="badge" style="background: var(--primary); color: #fff; font-size: 10px;">Elective</span>
+                        <span class="badge badge-primary">Elective</span>
                     <?php endif; ?>
                 </div>
-                <p style="font-size: 14px; color: var(--text-2); margin-top: 8px;">View Syllabus & Progress</p>
+                <p class="card-desc">View Syllabus, Track topics and academic progress.</p>
+                <div style="margin-top: auto; padding-top: 1rem; color: var(--accent); font-size: 0.85rem; font-weight: 600;">View Details →</div>
             </a>
         <?php } ?>
     </div>
 
     <!-- OTHER ACTIONS -->
-    <div style="margin-top: 60px;">
-        <h2 style="margin-bottom: 24px;">Other Tasks</h2>
+    <div style="margin-top: 4rem;">
+        <h2 class="section-title" style="margin-bottom: 1.5rem;">Pending Tasks</h2>
         
-        <div style="display: grid; gap: 16px;">
+        <div style="display: grid; gap: 1rem;">
             <?php
             // 4. Check for pending elective requests
             $inv_check = $conn->prepare("
@@ -174,11 +175,11 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
 
             if ($pending_invitations > 0) {
             ?>
-                <div class="card" style="border-left: 4px solid var(--primary);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                <div class="card card-accent-purple">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
                         <div>
-                            <h3 style="font-size: 1.1rem;">New Elective Invitations</h3>
-                            <p style="color: var(--text-2); font-size: 14px;">You have <?= $pending_invitations ?> elective subject invitation<?= $pending_invitations > 1 ? 's' : '' ?> to respond to.</p>
+                            <h3 class="card-title" style="margin-bottom: 0.25rem;">New Elective Invitations</h3>
+                            <p class="card-desc">You have <?= $pending_invitations ?> elective subject invitation<?= $pending_invitations > 1 ? 's' : '' ?> to respond to.</p>
                         </div>
                         <a href="<?= $base_path ?>/academics/select_electives" class="btn btn-primary">Respond Now</a>
                     </div>
@@ -203,11 +204,11 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
             if ($formRes->num_rows > 0) {
                 $form = $formRes->fetch_assoc();
             ?>
-                <div class="card" style="border-left: 4px solid var(--warning);">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div class="card card-accent-orange">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
                         <div>
-                            <h3 style="font-size: 1.1rem;">Faculty Feedback: <?= htmlspecialchars($form['title']) ?></h3>
-                            <p style="color: var(--text-2); font-size: 14px;">A new faculty evaluation form is available for submission.</p>
+                            <h3 class="card-title" style="margin-bottom: 0.25rem;">Faculty Feedback: <?= htmlspecialchars($form['title']) ?></h3>
+                            <p class="card-desc">A new faculty evaluation form is available for submission.</p>
                         </div>
                         <a href="<?= $base_path ?>/academics/faculty_feedback?form_id=<?php echo $form['id']; ?>" class="btn btn-primary">Evaluate Faculty</a>
                     </div>
@@ -233,182 +234,72 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
             box-shadow: var(--shadow);
             border: 1px solid var(--border);
             padding: 1.5rem;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
+            display: flex; flex-direction: column; justify-content: space-between;
+            transition: var(--transition);
         }
-        .faculty-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
-        }
+        .faculty-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: var(--accent); }
+        
         .faculty-avatar {
-            width: 46px;
-            height: 46px;
-            border-radius: 50%;
+            width: 48px; height: 48px; border-radius: 50%;
             background: linear-gradient(135deg, var(--accent), #9b51e0);
-            color: #ffffff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 1.2rem;
-            flex-shrink: 0;
-            box-shadow: 0 4px 10px rgba(74, 144, 226, 0.15);
+            color: #ffffff; display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 1.25rem; flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
         }
-        .faculty-name {
-            margin: 0;
-            font-size: 1.15rem;
-            font-weight: 600;
-            color: var(--text);
-            letter-spacing: -0.01em;
-            line-height: 1.3;
-        }
-        .faculty-subject-tag {
-            font-size: 0.8rem;
-            color: var(--text-2);
-            margin-top: 3px;
-            display: block;
-            text-overflow: ellipsis;
-            overflow: hidden;
-            white-space: nowrap;
-        }
+        .faculty-name { margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--text); letter-spacing: -0.01em; }
+        .faculty-subject-tag { font-size: 0.8rem; color: var(--text-2); margin-top: 2px; display: block; opacity: 0.8; }
+        
         .faculty-details-container {
-            margin-top: 1.25rem;
-            padding-top: 1.25rem;
-            border-top: 1px solid var(--border);
+            margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--border);
             animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
-        @keyframes slideDown {
-            from { opacity: 0; transform: translateY(-6px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .faculty-info-row {
-            margin-bottom: 0.6rem;
-            font-size: 0.85rem;
-            line-height: 1.4;
-            display: flex;
-        }
-        .faculty-info-label {
-            font-weight: 500;
-            color: var(--text-2);
-            flex-shrink: 0;
-            width: 75px;
-        }
-        .faculty-info-value {
-            color: var(--text);
-            word-break: break-all;
-        }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .faculty-info-row { margin-bottom: 0.6rem; font-size: 0.85rem; display: flex; align-items: baseline; }
+        .faculty-info-label { font-weight: 600; color: var(--text-3); width: 80px; flex-shrink: 0; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.05em; }
+        .faculty-info-value { color: var(--text); font-weight: 500; }
+        
         .faculty-bio-block {
-            background: var(--bg);
-            border-radius: var(--radius-sm);
-            padding: 0.65rem 0.85rem;
-            font-style: italic;
-            color: var(--text-2);
-            font-size: 0.8rem;
-            margin: 0.75rem 0;
-            line-height: 1.4;
-            border-left: 3px solid var(--accent);
+            background: var(--surface-2); border-radius: var(--radius-sm);
+            padding: 0.75rem 1rem; font-style: italic; color: var(--text-2);
+            font-size: 0.85rem; margin: 1rem 0; border-left: 3px solid var(--accent);
         }
-        .faculty-section-title {
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: var(--text-3);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-top: 0.85rem;
-            margin-bottom: 0.4rem;
-        }
+        .faculty-section-title { font-size: 0.75rem; font-weight: 700; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.05em; margin: 1.25rem 0 0.5rem 0; }
+        
         .faculty-skill-pill {
-            background: var(--accent-light);
-            color: var(--accent);
-            font-weight: 500;
-            padding: 3px 8px;
-            border-radius: 12px;
-            font-size: 0.72rem;
-            display: inline-block;
-            margin-right: 4px;
-            margin-bottom: 4px;
-        }
-        .faculty-workload-list {
-            margin: 0;
-            padding-left: 1.15rem;
-            font-size: 0.8rem;
-            color: var(--text-2);
-        }
-        .faculty-workload-item {
-            margin-bottom: 3px;
-        }
-        .faculty-social-links {
-            display: flex;
-            gap: 0.75rem;
-            margin-top: 1.25rem;
-            padding-top: 0.85rem;
-            border-top: 1px solid var(--border);
-        }
-        .faculty-social-btn {
-            font-size: 0.78rem;
-            color: var(--accent);
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 3px;
-            font-weight: 500;
-            transition: color 0.15s;
-        }
-        .faculty-social-btn:hover {
-            color: var(--accent-hover);
-            text-decoration: underline;
+            background: var(--accent-light); color: var(--accent); font-weight: 600;
+            padding: 4px 10px; border-radius: 20px; font-size: 0.75rem;
+            display: inline-block; margin: 0 4px 4px 0;
         }
         .faculty-toggle-btn {
-            width: 100%;
-            padding: 0.55rem 1rem;
-            font-size: 0.82rem;
-            font-weight: 500;
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--border);
-            background: var(--surface-2);
-            color: var(--text);
-            cursor: pointer;
-            transition: all 0.2s ease;
-            margin-top: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            width: 100%; padding: 0.65rem; font-size: 0.85rem; font-weight: 600;
+            border-radius: var(--radius-sm); border: 1px solid var(--border);
+            background: var(--surface-2); color: var(--text);
+            cursor: pointer; transition: var(--transition); margin-top: 1.25rem;
         }
-        .faculty-toggle-btn:hover {
-            background: var(--border);
-        }
-        .faculty-toggle-btn.active {
-            background: var(--accent);
-            color: #ffffff;
-            border-color: var(--accent);
-        }
-        .faculty-toggle-btn.active:hover {
-            background: var(--accent-hover);
-        }
+        .faculty-toggle-btn:hover { background: var(--border); }
+        .faculty-toggle-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
     </style>
 
-    <div style="margin-top: 60px;">
-        <h2 style="margin-bottom: 24px; font-family: 'DM Serif Display', serif; font-size: 2rem;">Faculty Teaching This Semester</h2>
+    <div style="margin-top: 4rem;">
+        <h2 class="section-title">Faculty Teaching This Semester</h2>
         <?php if (empty($faculties)): ?>
-            <p style="color: var(--text-3); font-style: italic;">No faculty members found teaching in this semester.</p>
+            <p style="color: var(--text-3); font-style: italic; margin-top: 1rem;">No faculty members found teaching in this semester.</p>
         <?php else: ?>
             <div class="faculty-grid">
                 <?php foreach ($faculties as $fac): ?>
                     <div class="faculty-card">
                         <div>
                             <!-- Basic Header Info -->
-                            <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="display: flex; align-items: center; gap: 1rem;">
                                 <div class="faculty-avatar">
                                     <?= strtoupper(substr($fac['faculty_name'], 0, 1)) ?>
                                 </div>
                                 <div style="overflow: hidden;">
-                                    <h3 class="faculty-name" title="<?= htmlspecialchars($fac['faculty_name']) ?>"><?= htmlspecialchars($fac['faculty_name']) ?></h3>
+                                    <h3 class="faculty-name"><?= htmlspecialchars($fac['faculty_name']) ?></h3>
                                     <?php if (!empty($fac['subjects'])): ?>
                                         <span class="faculty-subject-tag">
-                                            Taught: <?= implode(', ', array_map(function($sub) { return htmlspecialchars($sub['subject_name']); }, $fac['subjects'])) ?>
+                                            <?= implode(', ', array_map(function($sub) { return htmlspecialchars($sub['subject_name']); }, $fac['subjects'])) ?>
                                         </span>
                                     <?php endif; ?>
                                 </div>
@@ -417,17 +308,13 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                             <!-- Toggleable Details Drawer -->
                             <div id="details_<?= $fac['faculty_id'] ?>" class="faculty-details-container" style="display: none;">
                                 <div class="faculty-info-row">
-                                    <span class="faculty-info-label">Email:</span>
+                                    <span class="faculty-info-label">Email</span>
                                     <span class="faculty-info-value"><a href="mailto:<?= htmlspecialchars($fac['faculty_email']) ?>" style="color: var(--accent); text-decoration: none;"><?= htmlspecialchars($fac['faculty_email']) ?></a></span>
-                                </div>
-                                <div class="faculty-info-row">
-                                    <span class="faculty-info-label">Emp ID:</span>
-                                    <span class="faculty-info-value"><?= htmlspecialchars($fac['emp_id'] ?? 'N/A') ?></span>
                                 </div>
                                 
                                 <?php if (!empty($fac['teaching_interests'])): ?>
                                     <div class="faculty-info-row">
-                                        <span class="faculty-info-label">Interests:</span>
+                                        <span class="faculty-info-label">Interests</span>
                                         <span class="faculty-info-value"><?= htmlspecialchars($fac['teaching_interests']) ?></span>
                                     </div>
                                 <?php endif; ?>
@@ -441,7 +328,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                                 <?php if (!empty($fac['skills'])): ?>
                                     <div>
                                         <div class="faculty-section-title">Expertise Skills</div>
-                                        <div style="margin-top: 4px;">
+                                        <div style="display: flex; flex-wrap: wrap;">
                                             <?php 
                                             $skills_list = explode(',', $fac['skills']);
                                             foreach ($skills_list as $skill): 
@@ -452,42 +339,11 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                                         </div>
                                     </div>
                                 <?php endif; ?>
-
-                                <?php if (!empty($fac['subjects'])): ?>
-                                    <div>
-                                        <div class="faculty-section-title">Semester Workload</div>
-                                        <ul class="faculty-workload-list">
-                                            <?php foreach ($fac['subjects'] as $sub): ?>
-                                                <li class="faculty-workload-item">
-                                                    <strong><?= htmlspecialchars($sub['subject_name']) ?></strong> 
-                                                    <span style="color: var(--text-3); font-size: 11px;">(<?= htmlspecialchars($sub['class_name']) ?>)</span>
-                                                </li>
-                                            <?php endforeach; ?>
-                                        </ul>
-                                    </div>
-                                <?php endif; ?>
-
-                                <?php if (!empty($fac['linkedin_url']) || !empty($fac['github_url'])): ?>
-                                    <div class="faculty-social-links">
-                                        <?php if (!empty($fac['linkedin_url'])): ?>
-                                            <a href="<?= htmlspecialchars($fac['linkedin_url']) ?>" target="_blank" class="faculty-social-btn">
-                                                LinkedIn ↗
-                                            </a>
-                                        <?php endif; ?>
-                                        <?php if (!empty($fac['github_url'])): ?>
-                                            <a href="<?= htmlspecialchars($fac['github_url']) ?>" target="_blank" class="faculty-social-btn">
-                                                GitHub ↗
-                                            </a>
-                                        <?php endif; ?>
-                                    </div>
-                                <?php endif; ?>
                             </div>
                         </div>
                         
                         <!-- Toggle Action Button -->
-                        <div>
-                            <button onclick="toggleFacultyProfile(<?= $fac['faculty_id'] ?>, this)" class="faculty-toggle-btn">View Profile</button>
-                        </div>
+                        <button onclick="toggleFacultyProfile(<?= $fac['faculty_id'] ?>, this)" class="faculty-toggle-btn">View Full Profile</button>
                     </div>
                 <?php endforeach; ?>
             </div>
@@ -504,7 +360,7 @@ function toggleFacultyProfile(facId, btn) {
         btn.classList.add('active');
     } else {
         details.style.display = 'none';
-        btn.textContent = 'View Profile';
+        btn.textContent = 'View Full Profile';
         btn.classList.remove('active');
     }
 }

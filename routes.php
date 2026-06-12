@@ -76,8 +76,10 @@ return [
     '/api/productivity/update_priorities' => 'modules/productivity/tasks/controllers/update_priorities.php',
     '/api/productivity/complete_task' => 'modules/productivity/tasks/controllers/complete_task.php',
     '/api/productivity/undo_task' => 'modules/productivity/tasks/controllers/undo_task.php',
+    '/admin/semester' => 'modules/administration/semester/views/index.php',
     '/api/auth/login' => 'modules/authentication/controllers/login.php',
     '/api/auth/logout' => 'modules/authentication/controllers/logout.php',
     '/api/auth/send_otp' => 'modules/authentication/controllers/send_otp.php',
     '/api/auth/verify_otp' => 'modules/authentication/controllers/verify_otp.php',
+    '/api/community/update_avatar' => 'modules/community/profile/controllers/update_avatar.php',
 ];

@@ -5,27 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sign Up — ICT Community</title>
   <link rel="stylesheet" href="<?= $base_path ?>/assets/css/style.css">
-  <style>
-    body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 2rem 1rem; }
-    .auth-box { width: 100%; max-width: 460px; }
-    .auth-logo { text-align: center; margin-bottom: 2rem; }
-    .auth-logo h1 { font-family: 'DM Serif Display', serif; font-size: 2rem; color: var(--text); }
-    .auth-logo h1 span { color: var(--accent); }
-    .auth-logo p { color: var(--text-2); font-size: 0.9rem; margin-top: 0.25rem; }
-    .auth-footer { text-align: center; margin-top: 1.25rem; font-size: 0.875rem; color: var(--text-2); }
-    .auth-footer a { color: var(--accent); text-decoration: none; font-weight: 500; }
-    #otpBox { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
-    .step-label { font-size: 0.78rem; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 0.75rem; }
-  </style>
+  <link rel="stylesheet" href="<?= $base_path ?>/assets/css/auth.css">
 </head>
-<body>
+<body class="auth-page signup-theme">
   <div class="auth-box">
     <div class="auth-logo">
-      <h1>ICT<span>.</span>Community</h1>
+      <h1>ICT<span id="logoDot" class="logo-dot">.</span>Community</h1>
       <p>Create your account</p>
     </div>
 
-    <div class="card">
+    <div class="card-auth">
       <div id="alertBox"></div>
 
       <form id="signupForm">
@@ -58,7 +47,7 @@
           </select>
         </div>
 
-        <button type="submit" class="btn btn-primary btn-full" id="sendBtn">Send OTP</button>
+        <button type="submit" class="btn-auth" id="sendBtn">Send OTP</button>
       </form>
 
       <div id="otpBox" style="display:none;">
@@ -67,7 +56,7 @@
           <label>Enter OTP sent to your email</label>
           <input type="text" id="otpInput" placeholder="6-digit code" maxlength="6">
         </div>
-        <button onclick="verifyOTP()" class="btn btn-primary btn-full" id="verifyBtn">Verify & Create Account</button>
+        <button onclick="verifyOTP()" class="btn-auth" id="verifyBtn">Verify & Create Account</button>
       </div>
     </div>
 
@@ -75,6 +64,20 @@
   </div>
 
   <script>
+    const logoDot = document.getElementById('logoDot');
+
+    function triggerDribble() {
+      logoDot.classList.remove('dribble-active');
+      void logoDot.offsetWidth; // Trigger reflow
+      logoDot.classList.add('dribble-active');
+    }
+
+    // Initial load animation
+    setTimeout(triggerDribble, 1200);
+
+    // Click to restart
+    logoDot.addEventListener('click', triggerDribble);
+
     let signupFormData;
 
     document.getElementById("signupForm").onsubmit = async (e) => {
@@ -168,7 +171,7 @@
           alertBox.innerHTML =
             `<div class="alert alert-success">Account created! Redirecting…</div>`;
           setTimeout(() => {
-            window.location.href = data.redirect || "login";
+            window.location.href = data.redirect || "<?= $base_path ?>/login";
           }, 1000);
         } else {
           alertBox.innerHTML =

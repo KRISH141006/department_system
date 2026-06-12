@@ -22,55 +22,50 @@ $fb_query = $conn->query($query);
 $feedbacks = $fb_query->fetch_all(MYSQLI_ASSOC);
 ?>
 
-<div class="wrapper" style="padding: 2rem;">
-    <div class="dashboard-header" style="margin-bottom: 2rem;">
-        <div class="dashboard-title">
-            <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem; color: var(--text);">Anonymous Feedback Panel</h1>
-            <p style="color: var(--text-2);">Confidential student submissions for faculty and subject monitoring.</p>
-        </div>
-        <div class="dashboard-actions">
-            <a href="<?= $base_path ?>/dashboard" class="btn btn-secondary">Back to Dashboard</a>
+<div class="wrapper">
+    <div class="section-header" style="margin-top: 0;">
+        <div>
+            <h1 class="page-title">Anonymous Feedback Panel</h1>
+            <p class="page-subtitle">Confidential student submissions for faculty and subject monitoring.</p>
         </div>
     </div>
 
     <?php if (empty($feedbacks)): ?>
-        <div class="card" style="text-align: center; padding: 3rem;">
-            <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
-            <h3>The Feedback Box is Empty</h3>
-            <p style="color: var(--text-2);">No anonymous submissions have been received yet.</p>
+        <div class="card" style="text-align: center; padding: 4rem 2rem;">
+            <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;">📭</div>
+            <h3 class="card-title">The Feedback Box is Empty</h3>
+            <p class="card-desc">No anonymous submissions have been received yet.</p>
         </div>
     <?php else: ?>
-        <div class="card" style="padding: 0; overflow: hidden;">
-            <div class="table-wrap">
-                <table class="table-minimal" style="width: 100%; border-collapse: collapse;">
-                    <thead>
-                        <tr style="text-align: left; border-bottom: 1px solid var(--border); background: #f9fafb;">
-                            <th style="padding: 12px 24px; width: 200px;">Faculty / Subject</th>
-                            <th style="padding: 12px 24px;">Student Feedback</th>
-                            <th style="padding: 12px 24px; width: 150px;">Submitted On</th>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 250px;">Faculty / Subject</th>
+                        <th>Student Feedback</th>
+                        <th style="width: 180px;">Submitted On</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($feedbacks as $fb): ?>
+                        <tr>
+                            <td>
+                                <div style="font-weight: 700; color: var(--text);"><?= htmlspecialchars($fb['faculty_name']) ?></div>
+                                <div style="font-size: 0.75rem; color: var(--accent); font-weight: 600; text-transform: uppercase; margin-top: 4px;">
+                                    <?= $fb['subject_name'] ? htmlspecialchars($fb['subject_name']) : 'General Feedback' ?>
+                                </div>
+                            </td>
+                            <td style="vertical-align: top;">
+                                <div style="font-size: 0.9rem; color: var(--text-2); line-height: 1.6; white-space: pre-wrap; background: var(--bg); padding: 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border); font-style: italic;">"<?= htmlspecialchars($fb['feedback_text']) ?>"</div>
+                            </td>
+                            <td>
+                                <div style="font-weight: 600; font-size: 0.85rem; color: var(--text);"><?= date('d M Y', strtotime($fb['created_at'])) ?></div>
+                                <div style="font-size: 0.75rem; color: var(--text-3); font-weight: 500;"><?= date('H:i A', strtotime($fb['created_at'])) ?></div>
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($feedbacks as $fb): ?>
-                            <tr style="border-bottom: 1px solid var(--border);">
-                                <td style="padding: 12px 24px;">
-                                    <div style="font-weight: 600; color: var(--text);"><?= htmlspecialchars($fb['faculty_name']) ?></div>
-                                    <div style="font-size: 12px; color: var(--accent); margin-top: 2px;">
-                                        <?= $fb['subject_name'] ? htmlspecialchars($fb['subject_name']) : 'General Feedback' ?>
-                                    </div>
-                                </td>
-                                <td style="padding: 12px 24px;">
-                                    <div style="font-size: 14px; color: var(--text-2); line-height: 1.5; white-space: pre-wrap;"><?= htmlspecialchars($fb['feedback_text']) ?></div>
-                                </td>
-                                <td style="padding: 12px 24px; color: var(--text-3); font-size: 13px;">
-                                    <?= date('d M Y', strtotime($fb['created_at'])) ?>
-                                    <div style="font-size: 11px;"><?= date('H:i', strtotime($fb['created_at'])) ?></div>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
         </div>
     <?php endif; ?>
 </div>

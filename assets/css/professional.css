@@ -1,0 +1,197 @@
+/* ── Professional SaaS Service UI Overrides ── */
+
+/* ── Global Layout Improvements ── */
+.grid-2, .grid-3 {
+    display: grid;
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.grid-2 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+.grid-3 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+
+@media (max-width: 768px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+}
+
+/* ── Premium Global Form Controls ── */
+.form-control, 
+input[type="text"], 
+input[type="email"], 
+input[type="password"], 
+input[type="number"], 
+select, 
+textarea {
+    width: 100%;
+    padding: 0.875rem 1.15rem;
+    background: var(--surface-2);
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: var(--transition);
+    outline: none;
+    font-family: inherit;
+}
+
+select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7' /%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 1.15rem;
+    padding-right: 2.5rem;
+}
+
+[data-theme="dark"] select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7' /%3E%3C/svg%3E");
+}
+
+.form-control:hover, 
+input:hover, 
+select:hover, 
+textarea:hover {
+    border-color: var(--accent-hover);
+    background-color: var(--surface);
+}
+
+.form-control:focus, 
+input:focus, 
+select:focus, 
+textarea:focus {
+    border-color: var(--accent);
+    background-color: var(--surface);
+    box-shadow: 0 0 0 4px var(--accent-light);
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 0.65rem;
+    font-weight: 700;
+    color: var(--text-2);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* ── Refined Card System ── */
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.75rem;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow);
+}
+
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--accent);
+}
+
+.card-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.02em;
+}
+
+.card-desc {
+    font-size: 0.9rem;
+    color: var(--text-2);
+    line-height: 1.6;
+}
+
+/* Role-specific Accents */
+.card-accent-blue { border-top: 4px solid #4f46e5; }
+.card-accent-green { border-top: 4px solid #10b981; }
+.card-accent-purple { border-top: 4px solid #8b5cf6; }
+.card-accent-orange { border-top: 4px solid #f59e0b; }
+.card-accent-red { border-top: 4px solid #ef4444; }
+
+/* ── Refined Table Design ── */
+.table-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin: 1.5rem 0;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th {
+    background: var(--surface-2);
+    color: var(--text-3);
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.075em;
+    padding: 1rem 1.5rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+}
+
+td {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    font-size: 0.95rem;
+}
+
+tr:last-child td { border-bottom: none; }
+
+tr:hover td { background: var(--surface-2); }
+
+/* ── Badges ── */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.badge-primary { background: var(--accent-light); color: var(--accent); }
+.badge-success { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+.badge-warning { background: rgba(245, 158, 11, 0.1); color: #d97706; }
+.badge-error { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+
+/* ── Section Headers ── */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 3.5rem 0 1.5rem 0;
+}
+
+.section-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text);
+    letter-spacing: -0.02em;
+}
+
+/* ── Dark Mode Refinements ── */
+[data-theme="dark"] .table-container { background: var(--surface); }
+[data-theme="dark"] th { background: #1e293b; color: #94a3b8; }
+[data-theme="dark"] tr:hover td { background: rgba(255,255,255,0.02); }
+[data-theme="dark"] .card-accent-blue { border-top-color: #818cf8; }
+[data-theme="dark"] .card-accent-green { border-top-color: #34d399; }
+[data-theme="dark"] .card-accent-purple { border-top-color: #a78bfa; }
+[data-theme="dark"] .card-accent-orange { border-top-color: #fbbf24; }
+[data-theme="dark"] .card-accent-red { border-top-color: #f87171; }

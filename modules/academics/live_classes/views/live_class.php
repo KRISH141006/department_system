@@ -50,14 +50,21 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
         </div>
 
         <div class="grid-2" style="grid-template-columns: 2fr 1fr; gap: 2rem;">
-            <!-- Placeholder for Video/Jitsi/WebRTC -->
-            <div class="card" style="aspect-ratio: 16/9; background: #000; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;">
-                <div style="text-align: center; color: #fff;">
-                    <div style="font-size: 4rem; margin-bottom: 1rem;">🎥</div>
-                    <h2 style="font-family: 'DM Serif Display', serif;">Classroom Active</h2>
-                    <p style="color: #64748b;">(Video streaming component would be integrated here)</p>
-                    <div style="margin-top: 2rem; background: rgba(255,255,255,0.1); padding: 1rem 2rem; border-radius: 50px; display: inline-block; border: 1px solid rgba(255,255,255,0.2);">
-                        Invite Code: <strong style="color: var(--accent); letter-spacing: 1px;"><?= strtoupper($room_code) ?></strong>
+            <!-- Google Meet Integration -->
+            <div class="card" style="display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; border: 2px solid var(--accent); box-shadow: 0 10px 30px rgba(79, 70, 229, 0.1);">
+                <div style="text-align: center;">
+                    <div style="font-size: 4rem; margin-bottom: 1rem;">📹</div>
+                    <h2 style="font-family: 'DM Serif Display', serif; font-size: 2rem; margin-bottom: 0.5rem;">Class is Live!</h2>
+                    <p style="color: var(--text-2); margin-bottom: 2rem;">Your Google Meet session is ready. Students have been notified.</p>
+                    
+                    <a href="<?= htmlspecialchars($session['room_code']) ?>" target="_blank" class="btn btn-primary" style="padding: 15px 30px; font-size: 1.2rem; display: inline-flex; align-items: center; gap: 10px;">
+                        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+                        Open Google Meet
+                    </a>
+
+                    <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                        <p style="font-size: 0.9rem; color: var(--text-3);">Meeting Link:</p>
+                        <code style="background: var(--surface-2); padding: 5px 10px; border-radius: 4px; font-size: 0.85rem; word-break: break-all; color: var(--text);"><?= htmlspecialchars($session['room_code']) ?></code>
                     </div>
                 </div>
             </div>
@@ -67,16 +74,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                 <div class="card" style="flex: 1;">
                     <h3 style="margin-bottom: 1rem; font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 10px;">Students In Class</h3>
                     <div id="participantList" style="display: flex; flex-direction: column; gap: 12px; height: 300px; overflow-y: auto; padding-right: 10px;">
-                        <p style="color: var(--text-3); font-size: 14px; font-style: italic;">Waiting for students to join...</p>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <h3 style="margin-bottom: 1rem; font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 10px;">Session Controls</h3>
-                    <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-                        <button class="btn btn-sm btn-secondary" onclick="alert('Mic Muted')">🔇 Mute All</button>
-                        <button class="btn btn-sm btn-secondary" onclick="alert('Screen Sharing Started')">🖥 Share Screen</button>
-                        <button class="btn btn-sm btn-secondary" onclick="alert('Recording Started')">🔴 Record</button>
+                        <p style="color: var(--text-3); font-size: 14px; font-style: italic;">Students will join via Google Meet.</p>
                     </div>
                 </div>
             </div>

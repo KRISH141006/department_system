@@ -1,0 +1,220 @@
+/* ICT Community - Authentication UI Styles */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  width: 100%;
+}
+
+body.auth-page { 
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  justify-content: center; 
+  min-height: 100vh; 
+  font-family: 'Inter', sans-serif;
+  position: relative;
+}
+
+/* Full Screen Campus Sketch Background */
+body.auth-page::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('../images/campus_sketch.jpg') no-repeat center center;
+  background-size: cover;
+  z-index: 0;
+}
+
+/* Theme 1: Login Light */
+body.login-theme { background-color: #ecfbff; color: #373435; }
+body.login-theme::before {
+  opacity: 0.35;
+  filter: grayscale(100%) contrast(200%) brightness(85%); 
+}
+
+/* Theme 2: Signup Dark Cyan */
+body.signup-theme { background-color: #00a9b4; color: #ecfbff; }
+body.signup-theme::before {
+  opacity: 0.28;
+  filter: invert(1) brightness(1.6) contrast(140%) drop-shadow(0 0 12px rgba(255, 255, 255, 0.7)); 
+}
+
+@keyframes boxReveal {
+  0% { opacity: 0; transform: scale(0.98); filter: blur(8px); }
+  100% { opacity: 1; transform: scale(1); filter: blur(0); }
+}
+
+@keyframes contentFade {
+  0% { opacity: 0; transform: translateY(5px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes dribbleAndDamp {
+  0% { transform: translateY(0); animation-timing-function: ease-out; }
+  15% { transform: translateY(-12px); animation-timing-function: ease-in; }
+  30% { transform: translateY(0); animation-timing-function: ease-out; }
+  45% { transform: translateY(-8px); animation-timing-function: ease-in; }
+  60% { transform: translateY(0); animation-timing-function: ease-out; }
+  75% { transform: translateY(-4px); animation-timing-function: ease-in; }
+  85% { transform: translateY(0); animation-timing-function: ease-out; }
+  92% { transform: translateY(-2px); animation-timing-function: ease-in; }
+  100% { transform: translateY(0); }
+}
+
+.auth-box { 
+  width: 300px;
+  height: 510px;
+  padding: 1.5rem 1.75rem; 
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; 
+  margin: 1.5rem;
+  animation: boxReveal 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  border-radius: 12px;
+  border: 2px solid #373435; 
+  position: relative;
+  z-index: 1;
+}
+
+/* Login Box Variation */
+.login-theme .auth-box {
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 
+    inset 0 1px 0 rgba(255,255,255,1),
+    0 20px 25px -5px rgba(0, 0, 0, 0.08), 
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Signup Box Variation */
+.signup-theme .auth-box {
+  background: #ecfbff;
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border-color: #004868; 
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  padding: 1.25rem 1.5rem; 
+}
+
+.signup-theme .auth-box::after {
+  content: '';
+  position: absolute;
+  top: 6px; left: 6px; right: 6px; bottom: 6px;
+  border: 1px solid rgba(0, 72, 104, 0.1);
+  border-radius: 8px;
+  pointer-events: none;
+}
+
+.auth-logo { text-align: center; opacity: 0; animation: contentFade 0.5s ease-out 0.3s forwards; }
+.auth-logo h1 { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 1.75rem; color: #373435; margin: 0; }
+.auth-logo p { color: #5f6368; font-size: 0.8rem; margin-top: 0.3rem; }
+.signup-theme .auth-logo p { font-size: 0.75rem; margin-top: 0.2rem; }
+
+.logo-dot { 
+  color: #00a964; 
+  display: inline-block; 
+  cursor: pointer;
+  user-select: none;
+  transition: transform 0.1s;
+} 
+
+.dribble-active {
+  animation: dribbleAndDamp 2s ease-out forwards;
+}
+
+.logo-dot:active { transform: scale(0.8); }
+
+.card-auth { background: transparent; border: none; box-shadow: none; padding: 0; flex-grow: 1; display: flex; flex-direction: column; justify-content: center; opacity: 0; animation: contentFade 0.5s ease-out 0.5s forwards; }
+.signup-theme .card-auth { margin-top: 0.5rem; }
+
+.form-group { margin-bottom: 1.5rem; }
+.signup-theme .form-group { margin-bottom: 0.5rem; }
+
+.form-group label { 
+  display: block; 
+  margin-bottom: 0.5rem; 
+  color: #373435; 
+  font-weight: 500; 
+  font-size: 0.875rem; 
+}
+.signup-theme .form-group label { margin-bottom: 0.2rem; color: #004868; font-size: 0.75rem; }
+
+.form-group input, .form-group select { 
+  width: 100%; 
+  padding: 0.8rem 1rem; 
+  border-radius: 4px; 
+  border: 1px solid #dadce0; 
+  font-family: inherit;
+  box-sizing: border-box;
+  font-size: 1rem;
+  color: #373435;
+  transition: all 0.2s;
+}
+.signup-theme .form-group input, .signup-theme .form-group select { 
+  padding: 0.5rem 0.75rem; 
+  font-size: 0.85rem; 
+  background: #ffffff;
+}
+
+.form-group input::placeholder { color: #9aa0a6; }
+.signup-theme .form-group input::placeholder { color: #555555; }
+
+.form-group input:focus, .form-group select:focus {
+  outline: none;
+  border-color: #004868;
+  border-width: 2px;
+  padding: 0.75rem 0.95rem;
+}
+.signup-theme .form-group input:focus, .signup-theme .form-group select:focus {
+  padding: 0.45rem 0.7rem;
+}
+
+.btn-auth { 
+  width: 100%; 
+  padding: 0.8rem; 
+  border-radius: 4px; 
+  font-weight: 600; 
+  font-size: 0.9rem; 
+  cursor: pointer; 
+  transition: all 0.2s; 
+  border: none; 
+  background: #004868; 
+  color: #ffffff;
+}
+.btn-auth:hover { background: #00364d; }
+
+.signup-theme .btn-auth { 
+  padding: 0.6rem; 
+  font-size: 0.85rem; 
+  background: #47c1c9; 
+  color: #004868; 
+  margin-top: 0.25rem;
+}
+.signup-theme .btn-auth:hover { background: #3baab1; transform: translateY(-1px); }
+
+.auth-footer { text-align: center; margin-top: 1.5rem; font-size: 0.875rem; color: #5f6368; opacity: 0; animation: contentFade 0.5s ease-out 0.7s forwards; position: relative; z-index: 1; }
+.signup-theme .auth-footer { margin-top: 0.5rem; font-size: 0.75rem; }
+
+
+.auth-footer a { color: #004868; text-decoration: none; font-weight: 600; }
+.auth-footer a:hover { text-decoration: underline; }
+
+.alert { padding: 0.75rem; border-radius: 4px; margin-bottom: 1rem; font-size: 0.875rem; }
+.signup-theme .alert { padding: 0.5rem; margin-bottom: 0.5rem; font-size: 0.75rem; }
+.alert-error { background: #fce8e6; color: #d93025; border: 1px solid #fce8e6; }
+.alert-success { background: #e6f4ea; color: #1e8e3e; border: 1px solid #e6f4ea; }
+
+#otpBox { margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid #dadce0; }
+.step-label { font-size: 0.7rem; font-weight: 700; color: #5f6368; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+@media (max-width: 400px) { .grid-2 { grid-template-columns: 1fr; } }

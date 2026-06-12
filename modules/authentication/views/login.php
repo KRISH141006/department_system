@@ -5,26 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login — Department System</title>
   <link rel="stylesheet" href="<?= $base_path ?>/assets/css/style.css">
-  <style>
-    body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
-    .auth-box { width: 100%; max-width: 420px; padding: 1rem; }
-    .auth-logo { text-align: center; margin-bottom: 2rem; }
-    .auth-logo h1 { font-family: 'DM Serif Display', serif; font-size: 2rem; color: var(--text); }
-    .auth-logo h1 span { color: var(--accent); }
-    .auth-logo p { color: var(--text-2); font-size: 0.9rem; margin-top: 0.25rem; }
-    .auth-footer { text-align: center; margin-top: 1.25rem; font-size: 0.875rem; color: var(--text-2); }
-    .auth-footer a { color: var(--accent); text-decoration: none; font-weight: 500; }
-    .auth-footer a:hover { text-decoration: underline; }
-  </style>
+  <link rel="stylesheet" href="<?= $base_path ?>/assets/css/auth.css">
 </head>
-<body>
+<body class="auth-page login-theme">
   <div class="auth-box">
     <div class="auth-logo">
-      <h1>ICT<span>.</span>Community</h1>
+      <h1>ICT<span id="logoDot" class="logo-dot">.</span>Community</h1>
       <p>Sign in to your account</p>
     </div>
 
-    <div class="card">
+    <div class="card-auth">
       <div id="alertBox"></div>
 
       <form id="loginForm">
@@ -36,7 +26,7 @@
           <label for="password">Password</label>
           <input type="password" id="password" name="password" placeholder="••••••••" required>
         </div>
-        <button type="submit" class="btn btn-primary btn-full" id="loginBtn">Sign In</button>
+        <button type="submit" class="btn-auth" id="loginBtn">Sign In</button>
       </form>
     </div>
 
@@ -46,6 +36,20 @@
   </div>
 
   <script>
+    const logoDot = document.getElementById('logoDot');
+
+    function triggerDribble() {
+      logoDot.classList.remove('dribble-active');
+      void logoDot.offsetWidth; // Trigger reflow
+      logoDot.classList.add('dribble-active');
+    }
+
+    // Initial load animation
+    setTimeout(triggerDribble, 1200);
+
+    // Click to restart
+    logoDot.addEventListener('click', triggerDribble);
+
     document.getElementById("loginForm").onsubmit = async (e) => {
       e.preventDefault();
       const btn = document.getElementById("loginBtn");
