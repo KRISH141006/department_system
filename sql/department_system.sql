@@ -417,6 +417,7 @@ CREATE TABLE assignments (
     resource_path    VARCHAR(255) NULL,
     resource_name    VARCHAR(255) NULL,
     allowed_formats  VARCHAR(100) NULL,
+    max_files        INT NOT NULL DEFAULT 1,
     created_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_asgn_faculty
         FOREIGN KEY (faculty_id)       REFERENCES faculty(user_id)   ON DELETE RESTRICT,
@@ -424,11 +425,20 @@ CREATE TABLE assignments (
         FOREIGN KEY (class_subject_id) REFERENCES class_subjects(id) ON DELETE CASCADE
 );
 
+CREATE TABLE assignment_resources (
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    assignment_id INT NOT NULL,
+    file_path     VARCHAR(255) NOT NULL,
+    file_name     VARCHAR(255) NOT NULL,
+    CONSTRAINT fk_res_assignment
+        FOREIGN KEY (assignment_id) REFERENCES assignments(id) ON DELETE CASCADE
+);
+
 CREATE TABLE submissions (
     id              INT AUTO_INCREMENT PRIMARY KEY,
     assignment_id   INT NOT NULL,
     student_id      INT NOT NULL,
-    submission_path VARCHAR(255) NOT NULL,
+    submission_path VARCHAR(255) NULL,
     submission_name VARCHAR(255) NULL,
     grade           VARCHAR(20)  NULL,
     feedback        TEXT NULL,
@@ -440,6 +450,15 @@ CREATE TABLE submissions (
         FOREIGN KEY (assignment_id) REFERENCES assignments(id)    ON DELETE CASCADE,
     CONSTRAINT fk_sub_student
         FOREIGN KEY (student_id)    REFERENCES students(user_id)  ON DELETE CASCADE
+);
+
+CREATE TABLE submission_files (
+    id            INT AUTO_INCREMENT PRIMARY KEY,
+    submission_id INT NOT NULL,
+    file_path     VARCHAR(255) NOT NULL,
+    file_name     VARCHAR(255) NOT NULL,
+    CONSTRAINT fk_sf_submission
+        FOREIGN KEY (submission_id) REFERENCES submissions(id) ON DELETE CASCADE
 );
 
 
@@ -1051,27 +1070,27 @@ INSERT INTO students (user_id, gr_no, roll_no, class_id, batch, target_role, pac
 -- ------------------------------------------------------------
 INSERT INTO subjects (id, name, code, type) VALUES
 -- Sem 1
-(1,  'Basic Electrical Engineering',   'BEE101',  'core'),
-(2,  'Engineering Mathematics-I',      'EM101',   'core'),
-(3,  'Programming for Problem Solving','PPS101',  'core'),
-(4,  'Physics',                        'PHY101',  'core'),
+(1,  'Basic Electrical Engineering',   '01CT0101',  'core'),
+(2,  'Engineering Mathematics-I',      '01CT0102',  'core'),
+(3,  'Programming for Problem Solving','01CT0103',  'core'),
+(4,  'Physics',                        '01CT0104',  'core'),
 -- Sem 3
-(5,  'Database Management System',     'DBMS301', 'core'),
-(6,  'Object Oriented Programming',    'OOP301',  'core'),
-(7,  'Signal and System',              'SNS301',  'core'),
-(8,  'Probability and Statistics',     'PAS301',  'core'),
+(5,  'Database Management System',     '01CT0301',  'core'),
+(6,  'Object Oriented Programming',    '01CT0302',  'core'),
+(7,  'Signal and System',              '01CT0303',  'core'),
+(8,  'Probability and Statistics',     '01CT0304',  'core'),
 -- Sem 5
-(9,  'Computer Networks',              'CN501',   'core'),
-(10, 'Software Engineering',           'SE501',   'core'),
-(11, 'Theory of Computation',          'TOC501',  'core'),
-(12, 'Python Programming',             'PP501',   'core'),
-(13, 'Mobile App Development',         'MAD501',  'elective'),
-(14, 'Cloud Computing',                'CC501',   'elective'),
+(9,  'Computer Networks',              '01CT0501',  'core'),
+(10, 'Software Engineering',           '01CT0502',  'core'),
+(11, 'Theory of Computation',          '01CT0503',  'core'),
+(12, 'Python Programming',             '01CT0504',  'core'),
+(13, 'Mobile App Development',         '01CT0505',  'elective'),
+(14, 'Cloud Computing',                '01CT0506',  'elective'),
 -- Sem 7
-(15, 'Artificial Intelligence',        'AI701',   'core'),
-(16, 'Cyber Security',                 'CS701',   'core'),
-(17, 'Internet of Things',             'IOT701',  'core'),
-(18, 'Big Data Analytics',             'BDA701',  'core');
+(15, 'Artificial Intelligence',        '01CT0701',  'core'),
+(16, 'Cyber Security',                 '01CT0702',  'core'),
+(17, 'Internet of Things',             '01CT0703',  'core'),
+(18, 'Big Data Analytics',             '01CT0704',  'core');
 
 
 -- ------------------------------------------------------------

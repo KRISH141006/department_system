@@ -59,16 +59,21 @@ try {
             throw new Exception("Class and Roll Number are required for students.");
         }
 
-        // Generate a GR Number if not provided (it's NOT NULL UNIQUE)
-        if (empty($gr_no)) {
-            // Check if user already has a GR number
-            $checkGR = $conn->prepare("SELECT gr_no FROM students WHERE user_id = ?");
-            $checkGR->bind_param("i", $user_id);
-            $checkGR->execute();
-            $existing = $checkGR->get_result()->fetch_assoc();
-            if ($existing && !empty($existing['gr_no'])) {
-                $gr_no = $existing['gr_no'];
-            } else {
+        // Check if student profile already exists in the database to lock fields after initial save
+        $checkS = $conn->prepare("SELECT class_id, roll_no, gr_no FROM students WHERE user_id = ?");
+        $checkS->bind_param("i", $user_id);
+        $checkS->execute();
+        $existingStudent = $checkS->get_result()->fetch_assoc();
+        $checkS->close();
+
+        if ($existingStudent && !empty($existingStudent['class_id']) && !empty($existingStudent['roll_no'])) {
+            // Discard POST inputs and retain database values
+            $class_id = (int) $existingStudent['class_id'];
+            $roll_no  = $existingStudent['roll_no'];
+            $gr_no    = $existingStudent['gr_no'];
+        } else {
+            // Generate a GR Number if not provided (for initial save)
+            if (empty($gr_no)) {
                 $gr_no = "GR" . str_pad($user_id, 6, "0", STR_PAD_LEFT);
             }
         }

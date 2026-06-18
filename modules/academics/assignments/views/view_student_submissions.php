@@ -34,6 +34,19 @@ if (!$submission) {
     exit();
 }
 
+$sf_stmt = $conn->prepare("SELECT * FROM submission_files WHERE submission_id = ?");
+$sf_stmt->bind_param("i", $submission_id);
+$sf_stmt->execute();
+$sub_files = $sf_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+// Fallback for legacy submission files
+if (empty($sub_files) && !empty($submission['submission_path'])) {
+    $sub_files[] = [
+        'file_path' => $submission['submission_path'],
+        'file_name' => $submission['submission_name'] ?: basename($submission['submission_path'])
+    ];
+}
+
 $page_title = "Review Submission: " . htmlspecialchars($submission['student_name']);
 require_once __DIR__ . '/../../../../shared/layout/header.php';
 ?>
@@ -56,19 +69,26 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                 <div class="card" style="margin-bottom: 2rem;">
                     <h3 style="margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 10px;">Submission Details</h3>
                     
-                    <?php if ($submission['submission_path']): ?>
-                        <div style="background: var(--bg-2); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--border);">
-                            <div style="display: flex; align-items: center; gap: 15px;">
-                                <div style="font-size: 2rem;">📎</div>
-                                <div style="flex: 1;">
-                                    <p style="font-weight: 600; margin-bottom: 4px;">Attachment Provided</p>
-                                    <p style="font-size: 12px; color: var(--text-3);"><?= htmlspecialchars($submission['submission_name'] ?: basename($submission['submission_path'])) ?></p>
+                    <?php if (!empty($sub_files)): ?>
+                        <div style="display: flex; flex-direction: column; gap: 15px;">
+                            <?php foreach ($sub_files as $sf): 
+                                $sf_path = $sf['file_path'];
+                                $sf_name = $sf['file_name'];
+                                $sub_url = $base_path . "/" . htmlspecialchars($sf_path);
+                            ?>
+                                <div style="background: var(--bg-2); padding: 1.25rem; border-radius: 8px; border: 1px solid var(--border);">
+                                    <div style="display: flex; align-items: center; gap: 15px;">
+                                        <div style="font-size: 1.5rem;">📎</div>
+                                        <div style="flex: 1;">
+                                            <p style="font-weight: 600; margin-bottom: 4px; font-size: 0.9rem;"><?= htmlspecialchars($sf_name) ?></p>
+                                        </div>
+                                        <a href="<?= $sub_url ?>" class="btn btn-sm btn-primary" target="_blank">Download</a>
+                                    </div>
                                 </div>
-                                <a href="<?= $base_path ?>/<?= htmlspecialchars($submission['submission_path']) ?>" class="btn btn-sm btn-primary" target="_blank">Download File</a>
-                            </div>
+                            <?php endforeach; ?>
                         </div>
                     <?php else: ?>
-                        <p style="color: var(--text-3); text-align: center; padding: 2rem;">No file attached.</p>
+                        <p style="color: var(--text-3); text-align: center; padding: 2rem;">No files attached.</p>
                     <?php endif; ?>
                 </div>
             </div>

@@ -122,8 +122,8 @@ function render_avatar($avatar, $male_svg, $female_svg, $base_path) {
         })();
     </script>
 
-    <link rel="stylesheet" href="<?= $base_path ?>/assets/css/style.css">
-    <link rel="stylesheet" href="<?= $base_path ?>/assets/css/professional.css">
+    <link rel="stylesheet" href="<?= $base_path ?>/assets/css/style.css?v=<?= filemtime(__DIR__ . '/../../assets/css/style.css') ?>">
+    <link rel="stylesheet" href="<?= $base_path ?>/assets/css/professional.css?v=<?= filemtime(__DIR__ . '/../../assets/css/professional.css') ?>">
 </head>
 <body class="<?= $is_student ? 'student-portal' : '' ?>">
 
@@ -179,6 +179,11 @@ function render_avatar($avatar, $male_svg, $female_svg, $base_path) {
             <a href="<?= $base_path ?>/academics/manage_subjects" class="sidebar-link <?= strpos($_SERVER['PHP_SELF'], 'manage_subjects.php') !== false ? 'active' : '' ?>">
                 <i><?= $academic_icon ?></i> Manage Academics
             </a>
+            <?php if (has_permission('review_requests')): ?>
+                <a href="<?= $base_path ?>/community/reviewer_dashboard" class="sidebar-link <?= strpos($_SERVER['PHP_SELF'], 'reviewer_dashboard.php') !== false ? 'active' : '' ?>">
+                    <i>📋</i> Review Dashboard
+                </a>
+            <?php endif; ?>
             <a href="<?= $base_path ?>/admin/manage_permissions" class="sidebar-link <?= strpos($_SERVER['PHP_SELF'], 'manage_permissions.php') !== false ? 'active' : '' ?>">
                 <i>🔐</i> Rights Management
             </a>
@@ -258,22 +263,9 @@ function render_avatar($avatar, $male_svg, $female_svg, $base_path) {
                 <?php endif; ?>
             </div>
 
-            <div class="avatar-trigger" id="avatarTrigger" onclick="toggleAvatarMenu()">
+            <a href="<?= $base_path ?>/community/profile" class="avatar-trigger" title="Profile" aria-label="Open profile">
                 <?= render_avatar($user_avatar, $male_svg, $female_svg, $base_path) ?>
-            </div>
-            
-            <div class="avatar-menu" id="avatarMenu">
-                <div class="avatar-option <?= $user_avatar === 'male' ? 'selected' : '' ?>" onclick="updateAvatar('male')">
-                    <?= $male_svg ?>
-                </div>
-                <div class="avatar-option <?= $user_avatar === 'female' ? 'selected' : '' ?>" onclick="updateAvatar('female')">
-                    <?= $female_svg ?>
-                </div>
-                <div class="avatar-option avatar-add-btn" onclick="document.getElementById('avatarUpload').click()">
-                    +
-                    <input type="file" id="avatarUpload" hidden accept="image/*" onchange="uploadAvatar(this)">
-                </div>
-            </div>
+            </a>
 
             <a href="<?= $base_path ?>/api/auth/logout" class="nav-icon-link" title="Sign out">
                 <?= $logout_icon ?>
@@ -314,10 +306,6 @@ function toggleTheme() {
     }, 150);
 }
 
-function toggleAvatarMenu() {
-    document.getElementById('avatarMenu').classList.toggle('is-active');
-}
-
 function toggleNotifications() {
     const dropdown = document.getElementById('notif-dropdown');
     if (dropdown) {
@@ -325,51 +313,8 @@ function toggleNotifications() {
     }
 }
 
-function updateAvatar(type) {
-    const formData = new FormData();
-    formData.append('type', type);
-
-    fetch('<?= $base_path ?>/api/community/update_avatar', {
-        method: 'POST',
-        body: formData
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        }
-    });
-}
-
-function uploadAvatar(input) {
-    if (!input.files || !input.files[0]) return;
-
-    const formData = new FormData();
-    formData.append('type', 'upload');
-    formData.append('avatar_file', input.files[0]);
-
-    fetch('<?= $base_path ?>/api/community/update_avatar', {
-        method: 'POST',
-        body: formData
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert(data.message);
-        }
-    });
-}
-
 // Close menus on click outside
 window.addEventListener('click', (e) => {
-    const trigger = document.getElementById('avatarTrigger');
-    const menu = document.getElementById('avatarMenu');
-    if (trigger && !trigger.contains(e.target) && menu && !menu.contains(e.target)) {
-        menu.classList.remove('is-active');
-    }
-
     const notifTrigger = document.querySelector('.notification-trigger');
     const notifMenu = document.getElementById('notif-dropdown');
     if (notifTrigger && !notifTrigger.contains(e.target) && notifMenu && !notifMenu.contains(e.target)) {

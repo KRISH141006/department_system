@@ -17,6 +17,9 @@ $subject_id = (int) ($_GET['id'] ?? 0);
 $subject_data = null;
 $units_data = [];
 
+// Fetch distinct classes for dropdown selection
+$class_list = $conn->query("SELECT DISTINCT name, semester FROM classes ORDER BY semester, name")->fetch_all(MYSQLI_ASSOC);
+
 if ($subject_id) {
     // New query joining through class_subjects and classes
     $sStmt = $conn->prepare("
@@ -55,6 +58,30 @@ if ($subject_id) {
     }
 }
 
+$form_data = $_SESSION['form_data'] ?? [];
+unset($_SESSION['form_data']);
+
+if (!empty($form_data)) {
+    $subject_data = [
+        'id' => $subject_id ?: ($form_data['subject_id'] ?? 0),
+        'name' => $form_data['subject_name'] ?? '',
+        'code' => '', // Clear only the subject code part as requested
+        'type' => isset($form_data['is_elective']) ? 'elective' : 'core',
+        'class_name' => $form_data['class_name'] ?? '',
+        'semester' => $form_data['semester'] ?? ''
+    ];
+    
+    $units_data = [];
+    $names = $form_data['unit_names'] ?? [];
+    $topics = $form_data['unit_topics'] ?? [];
+    foreach ($names as $i => $name) {
+        $units_data[] = [
+            'name' => $name,
+            'topics' => $topics[$i] ?? ''
+        ];
+    }
+}
+
 $page_title = $subject_id ? "Edit Subject" : "Create Subject";
 require_once __DIR__ . '/../../../../shared/layout/header.php';
 ?>
@@ -85,13 +112,21 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                 </div>
                 <div class="form-group">
                     <label>Subject Code <span style="color:red;">*</span></label>
-                    <input type="text" name="subject_code" value="<?= htmlspecialchars($subject_data['code'] ?? '') ?>" placeholder="e.g. IT301" required>
+                    <input type="text" name="subject_code" value="<?= htmlspecialchars($subject_data['code'] ?? '') ?>" placeholder="e.g. 01CT0101" pattern="^01CT0[1-8]\d{2}$" title="Must match format: 01CT0<semester_no><2-digit-code> (e.g. 01CT0101 for Semester 1)" required>
                 </div>
             </div>
 
             <div class="form-group" id="classGroup">
                 <label>Target Class</label>
-                <input type="text" name="class_name" value="<?= htmlspecialchars($subject_data['class_name'] ?? '') ?>" placeholder="e.g. 4EK1" id="classInput" oninput="autoSelectSemester()">
+                <select name="class_name" id="classInput" onchange="autoSelectSemester()">
+                    <option value="">-- Select Class --</option>
+                    <option value="ALL" <?= ($subject_data['class_name'] ?? '') === 'ALL' ? 'selected' : '' ?>>ALL (Elective Pool)</option>
+                    <?php foreach ($class_list as $c): ?>
+                        <option value="<?= htmlspecialchars($c['name']) ?>" <?= ($subject_data['class_name'] ?? '') === $c['name'] ? 'selected' : '' ?>>
+                            <?= htmlspecialchars($c['name']) ?> (Sem <?= $c['semester'] ?>)
+                        </option>
+                    <?php endforeach; ?>
+                </select>
             </div>
 
             <div class="form-group">

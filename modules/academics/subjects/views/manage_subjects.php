@@ -18,7 +18,7 @@ $query = "
         s.code as subject_code,
         s.type,
         GROUP_CONCAT(DISTINCT c.name ORDER BY c.name SEPARATOR ', ') as class_names,
-        GROUP_CONCAT(DISTINCT c.semester ORDER BY c.name SEPARATOR ', ') as semesters
+        GROUP_CONCAT(DISTINCT c.semester ORDER BY c.semester SEPARATOR ', ') as semesters
     FROM subjects s
     LEFT JOIN class_subjects cs ON s.id = cs.subject_id
     LEFT JOIN classes c ON cs.class_id = c.id
@@ -89,9 +89,20 @@ $class_stats = $conn->query("SELECT semester, COUNT(*) as count FROM classes GRO
                             <code style="background: var(--surface-2); padding: 4px 8px; border-radius: 4px; font-weight: 700; color: var(--accent);"><?= htmlspecialchars($s['subject_code']) ?></code>
                         </td>
                         <td>
-                            <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-2);"><?= htmlspecialchars($s['class_names'] ?: 'None') ?></div>
-                            <?php if ($s['semesters']): ?>
-                                <div style="font-size: 0.7rem; color: var(--text-3);">Semesters: <?= htmlspecialchars($s['semesters']) ?></div>
+                            <?php if ($isElective): ?>
+                                <?php 
+                                $semList = '';
+                                if (!empty($s['semesters'])) {
+                                    $sems = explode(',', $s['semesters']);
+                                    $sems = array_map(function($sem) {
+                                        return 'Sem ' . trim($sem);
+                                    }, $sems);
+                                    $semList = implode(', ', $sems);
+                                }
+                                ?>
+                                <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-2);"><?= htmlspecialchars($semList ?: 'None') ?></div>
+                            <?php else: ?>
+                                <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-2);"><?= htmlspecialchars($s['class_names'] ?: 'None') ?></div>
                             <?php endif; ?>
                         </td>
                         <td style="text-align: right;">
