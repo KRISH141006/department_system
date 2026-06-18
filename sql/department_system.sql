@@ -782,7 +782,7 @@ INSERT INTO profiles (user_id, bio, skills, hobbies) VALUES
 (127,'Student profile','HTML, CSS, PHP, MySQL','Coding, Reading'),
 (128,'Student profile','HTML, CSS, PHP, MySQL','Coding, Reading'),
 (129,'Student profile','HTML, CSS, PHP, MySQL','Coding, Reading'),
-`(130,'Student profile','HTML, CSS, PHP, MySQL','Coding, Reading'),
+(130,'Student profile','HTML, CSS, PHP, MySQL','Coding, Reading'),
 (131,'Student profile','HTML, CSS, PHP, MySQL','Coding, Reading'),
 (132,'Student profile','HTML, CSS, PHP, MySQL','Coding, Reading'),
 (133,'Student profile','HTML, CSS, PHP, MySQL','Coding, Reading'),

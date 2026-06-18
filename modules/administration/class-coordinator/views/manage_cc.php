@@ -96,7 +96,7 @@ unset($_SESSION['admin_cc_success'], $_SESSION['admin_cc_error']);
                                         id="class_select_<?= $f['id'] ?>"
                                         class="form-control"
                                         <?= (!($f['is_cc'] ?? 0) || !$has_profile) ? 'disabled' : '' ?>
-                                        style="font-size: 0.85rem; padding: 0.5rem 0.75rem;">
+                                        style="font-size: 0.85rem; padding: 0.5rem 2.5rem 0.5rem 0.75rem;">
                                     <option value="">-- Choose Class --</option>
                                     <?php foreach ($classes as $c): ?>
                                         <option value="<?= $c['id'] ?>" <?= (($f['coordinated_class_id'] ?? 0) == $c['id']) ? 'selected' : '' ?>>
