@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login — Department System</title>
-  <link rel="stylesheet" href="<?= $base_path ?>/assets/css/style.css">
-  <link rel="stylesheet" href="<?= $base_path ?>/assets/css/auth.css">
+  <link rel="stylesheet" href="<?= $base_path ?>/assets/css/style.css?v=<?= filemtime(__DIR__ . '/../../../assets/css/style.css') ?>">
+  <link rel="stylesheet" href="<?= $base_path ?>/assets/css/auth.css?v=<?= filemtime(__DIR__ . '/../../../assets/css/auth.css') ?>">
 </head>
 <body class="auth-page login-theme">
   <div class="auth-box">

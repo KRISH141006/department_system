@@ -70,15 +70,27 @@ $search_query = $_GET['search'] ?? '';
 $search_results = [];
 if (!empty($search_query)) {
     $searchTerm = "%$search_query%";
-    $searchStmt = $conn->prepare("
-        SELECT u.id, u.name, s.roll_no, c.name as class_name, c.semester 
-        FROM users u 
-        LEFT JOIN students s ON u.id = s.user_id 
-        LEFT JOIN classes c ON s.class_id = c.id
-        WHERE u.role = 'student' AND (u.name LIKE ? OR s.roll_no LIKE ? OR u.email LIKE ?) 
-        LIMIT 10
-    ");
-    $searchStmt->bind_param("sss", $searchTerm, $searchTerm, $searchTerm);
+    if ($role === 'faculty') {
+        $searchStmt = $conn->prepare("
+            SELECT u.id, u.name, s.roll_no, c.name as class_name, c.semester 
+            FROM users u 
+            JOIN students s ON u.id = s.user_id 
+            JOIN classes c ON s.class_id = c.id
+            WHERE u.role = 'student' AND s.class_id = ? AND (u.name LIKE ? OR s.roll_no LIKE ? OR u.email LIKE ?) 
+            LIMIT 10
+        ");
+        $searchStmt->bind_param("isss", $class_id, $searchTerm, $searchTerm, $searchTerm);
+    } else {
+        $searchStmt = $conn->prepare("
+            SELECT u.id, u.name, s.roll_no, c.name as class_name, c.semester 
+            FROM users u 
+            LEFT JOIN students s ON u.id = s.user_id 
+            LEFT JOIN classes c ON s.class_id = c.id
+            WHERE u.role = 'student' AND (u.name LIKE ? OR s.roll_no LIKE ? OR u.email LIKE ?) 
+            LIMIT 10
+        ");
+        $searchStmt->bind_param("sss", $searchTerm, $searchTerm, $searchTerm);
+    }
     $searchStmt->execute();
     $search_results = $searchStmt->get_result()->fetch_all(MYSQLI_ASSOC);
 }
@@ -117,8 +129,8 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
         <div class="grid-2" style="grid-template-columns: 1fr 1.5fr; align-items: start;">
             
             <div class="card card-accent-blue">
-                <h3 class="card-title">Add Student to Roster</h3>
-                <p class="card-desc" style="margin-bottom: 1.5rem;">Move a student into this class from the system pool.</p>
+                <h3 class="card-title"><?= $role === 'faculty' ? 'Search Student Roster' : 'Add Student to Roster' ?></h3>
+                <p class="card-desc" style="margin-bottom: 1.5rem;"><?= $role === 'faculty' ? 'Search for a student currently enrolled in your class.' : 'Move a student into this class from the system pool.' ?></p>
                 
                 <form method="GET" style="display: flex; gap: 10px; margin-bottom: 1.5rem;">
                     <input type="hidden" name="class_id" value="<?= $class_id ?>">
@@ -139,12 +151,16 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                                                 <div style="font-weight: 700; font-size: 0.9rem;"><?= htmlspecialchars($s['name']) ?></div>
                                                 <div style="font-size: 0.75rem; color: var(--text-3);">Roll: <?= htmlspecialchars($s['roll_no'] ?? 'N/A') ?> | Current: <?= htmlspecialchars($s['class_name'] ?: 'None') ?></div>
                                             </div>
-                                            <form action="<?= $base_path ?>/api/academics/manage_student_class" method="POST">
-                                                <input type="hidden" name="student_id" value="<?= $s['id'] ?>">
-                                                <input type="hidden" name="class_id" value="<?= $class_id ?>">
-                                                <input type="hidden" name="action" value="add">
-                                                <button type="submit" class="btn btn-sm btn-primary">Add</button>
-                                            </form>
+                                            <?php if ($role === 'faculty'): ?>
+                                                <a href="<?= $base_path ?>/academics/student_progress?student_id=<?= $s['id'] ?>" class="btn btn-sm btn-secondary">Report</a>
+                                            <?php else: ?>
+                                                <form action="<?= $base_path ?>/api/academics/manage_student_class" method="POST">
+                                                    <input type="hidden" name="student_id" value="<?= $s['id'] ?>">
+                                                    <input type="hidden" name="class_id" value="<?= $class_id ?>">
+                                                    <input type="hidden" name="action" value="add">
+                                                    <button type="submit" class="btn btn-sm btn-primary">Add</button>
+                                                </form>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
                                 <?php endforeach; ?>
@@ -183,11 +199,14 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                                     <td style="text-align: right;">
                                         <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
                                             <a href="<?= $base_path ?>/academics/student_progress?student_id=<?= $s['id'] ?>" class="btn btn-sm btn-secondary">Report</a>
+                                            <?php if ($role !== 'faculty'): ?>
                                             <form action="<?= $base_path ?>/api/academics/manage_student_class" method="POST" onsubmit="return confirm('Remove student from class?')">
                                                 <input type="hidden" name="student_id" value="<?= $s['id'] ?>">
+                                                <input type="hidden" name="class_id" value="<?= $class_id ?>">
                                                 <input type="hidden" name="action" value="remove">
                                                 <button type="submit" class="btn btn-sm" style="color: var(--error);">Remove</button>
                                             </form>
+                                            <?php endif; ?>
                                         </div>
                                     </td>
                                 </tr>

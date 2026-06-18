@@ -32,6 +32,20 @@ if (!$assignment) {
     exit();
 }
 
+// Fetch multiple resource files
+$res_stmt = $conn->prepare("SELECT * FROM assignment_resources WHERE assignment_id = ?");
+$res_stmt->bind_param("i", $assignment_id);
+$res_stmt->execute();
+$resources = $res_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+// Fallback for legacy resource files
+if (empty($resources) && !empty($assignment['resource_path'])) {
+    $resources[] = [
+        'file_path' => $assignment['resource_path'],
+        'file_name' => $assignment['resource_name'] ?: basename($assignment['resource_path'])
+    ];
+}
+
 $class_id = $assignment['class_id'];
 
 // 2. Fetch all students in this class and their submission status
@@ -69,10 +83,17 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
         <div class="card" style="border-left: 5px solid var(--accent);">
             <h3 style="margin-bottom: 0.5rem;">Assignment Details</h3>
             <p style="font-size: 14px; color: var(--text-2);"><?= nl2br(htmlspecialchars($assignment['description'])) ?></p>
-            <?php if ($assignment['resource_path']): ?>
-                <div style="margin-top: 1rem; padding: 10px; background: var(--bg-2); border-radius: 6px; display: flex; align-items: center; gap: 10px;">
-                    <span style="font-size: 20px;">📎</span>
-                    <a href="<?= $base_path ?>/<?= htmlspecialchars($assignment['resource_path']) ?>" target="_blank" style="font-size: 13px; font-weight: 600; color: var(--accent);"><?= htmlspecialchars($assignment['resource_name']) ?></a>
+            <?php if (!empty($resources)): ?>
+                <div style="margin-top: 1rem; display: flex; flex-direction: column; gap: 8px;">
+                    <?php foreach ($resources as $res): 
+                        $res_path = $res['file_path'] ?? $res['path'];
+                        $res_name = $res['file_name'] ?? $res['name'];
+                    ?>
+                        <div style="padding: 10px; background: var(--bg-2); border-radius: 6px; display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 20px;">📎</span>
+                            <a href="<?= $base_path ?>/<?= htmlspecialchars($res_path) ?>" target="_blank" style="font-size: 13px; font-weight: 600; color: var(--accent);"><?= htmlspecialchars($res_name) ?></a>
+                        </div>
+                    <?php endforeach; ?>
                 </div>
             <?php endif; ?>
         </div>

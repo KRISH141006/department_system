@@ -17,12 +17,35 @@ $is_elective = isset($_POST['is_elective']) ? 1 : 0;
 $class_name = strtoupper(trim($_POST['class_name'] ?? ''));
 
 if (empty($subject_code)) {
-    $subject_code = strtoupper(substr($branch, 0, 2)) . ($semester ?: '0') . strtoupper(substr($subject_name, 0, 3));
+    $_SESSION['form_data'] = $_POST;
+    unset($_SESSION['form_data']['subject_code']);
+    $_SESSION['msg_error'] = "Subject Code is required.";
+    header("Location: $base_path/academics/create_subject" . ($subject_id ? "?id=$subject_id" : ""));
+    exit();
+}
+
+if (!preg_match('/^01CT0[1-8]\d{2}$/', $subject_code)) {
+    $_SESSION['form_data'] = $_POST;
+    unset($_SESSION['form_data']['subject_code']);
+    $_SESSION['msg_error'] = "Invalid Subject Code format. Must match 01CT0<semester_no><2-digit-code> (e.g. 01CT0101 for Sem 1).";
+    header("Location: $base_path/academics/create_subject" . ($subject_id ? "?id=$subject_id" : ""));
+    exit();
+}
+
+$code_semester = (int) $subject_code[5];
+if ($code_semester !== $semester) {
+    $_SESSION['form_data'] = $_POST;
+    unset($_SESSION['form_data']['subject_code']);
+    $_SESSION['msg_error'] = "Subject Code semester digit ($code_semester) must match the target semester ($semester).";
+    header("Location: $base_path/academics/create_subject" . ($subject_id ? "?id=$subject_id" : ""));
+    exit();
 }
 
 if (empty($subject_name) || empty($class_name) || $semester === 0) {
+    $_SESSION['form_data'] = $_POST;
+    unset($_SESSION['form_data']['subject_code']);
     $_SESSION['msg_error'] = "Required fields missing.";
-    header("Location: $base_path/academics/create_subject");
+    header("Location: $base_path/academics/create_subject" . ($subject_id ? "?id=$subject_id" : ""));
     exit();
 }
 
@@ -151,6 +174,8 @@ try {
 
 } catch (Exception $e) {
     $conn->rollback();
+    $_SESSION['form_data'] = $_POST;
+    unset($_SESSION['form_data']['subject_code']);
     $_SESSION['msg_error'] = "Failed to save subject: " . $e->getMessage();
     header("Location: $base_path/academics/create_subject" . ($subject_id ? "?id=$subject_id" : ""));
 }
