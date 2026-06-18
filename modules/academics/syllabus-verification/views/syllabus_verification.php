@@ -11,7 +11,12 @@ $faculty_id = (int) $_SESSION['user_id'];
 
 // 1. Fetch recent verification sessions
 $stmt = $conn->prepare("
-    SELECT vs.*, s.name as subject_name, c.name as class_name,
+    SELECT vs.*, s.name as subject_name, s.type, c.name as class_name,
+           (SELECT GROUP_CONCAT(DISTINCT c2.name ORDER BY c2.name SEPARATOR ', ')
+            FROM faculty_subjects fs2
+            JOIN class_subjects cs2 ON fs2.class_subject_id = cs2.id
+            JOIN classes c2 ON cs2.class_id = c2.id
+            WHERE fs2.faculty_id = vs.faculty_id AND cs2.subject_id = s.id) as elective_class_names,
            (SELECT COUNT(*) FROM verification_assignments va WHERE va.session_id = vs.id) as assigned_count,
            (SELECT COUNT(*) FROM verification_assignments va WHERE va.session_id = vs.id AND va.status = 'submitted') as response_count
     FROM verification_sessions vs
@@ -69,7 +74,15 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                     <div>
                         <h3 style="margin-bottom: 4px;"><?= htmlspecialchars($sess['subject_name']) ?></h3>
                         <div style="font-size: 13px; color: var(--text-2);">
-                            Class: <strong><?= htmlspecialchars($sess['class_name']) ?></strong> | 
+                            <?php if ($sess['type'] === 'elective'): ?>
+                                Elective Pool: <strong>All enrolled students</strong>
+                                <?php if (!empty($sess['elective_class_names'])): ?>
+                                    | Classes: <strong><?= htmlspecialchars($sess['elective_class_names']) ?></strong>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                Class: <strong><?= htmlspecialchars($sess['class_name']) ?></strong>
+                            <?php endif; ?>
+                            |
                             Date: <strong><?= date('d M, Y', strtotime($sess['session_date'])) ?></strong>
                         </div>
                     </div>

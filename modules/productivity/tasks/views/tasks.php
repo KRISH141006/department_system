@@ -5,6 +5,7 @@ $page_title = 'Personal Task Manager';
 require_once __DIR__ . '/../../../../shared/layout/header.php';
 
 $user_id = $_SESSION['user_id'];
+$min_deadline = date('Y-m-d H:i');
 
 // Initial data fetching
 $total_sql = "SELECT COUNT(*) as count FROM tasks WHERE user_id = ?";
@@ -85,7 +86,6 @@ if ($total_tasks > 0 && $view === 'list') {
 }
 ?>
 
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <style>
     .task-item {
         background: var(--surface);
@@ -194,7 +194,7 @@ if ($total_tasks > 0 && $view === 'list') {
                     </div>
                     <div style="margin-bottom: 1.5rem;">
                         <label class="form-label">Deadline</label>
-                        <input type="text" name="deadline" id="deadlinePicker" class="form-control" placeholder="Optional deadline">
+                        <input type="text" name="deadline" id="deadlinePicker" class="form-control" min="<?= $min_deadline ?>" placeholder="Optional deadline">
                     </div>
                 </div>
 
@@ -301,19 +301,7 @@ if ($total_tasks > 0 && $view === 'list') {
     <?php endif; ?>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    if (document.getElementById('deadlinePicker')) {
-        flatpickr("#deadlinePicker", {
-            enableTime: true,
-            dateFormat: "Y-m-d H:i",
-            minDate: "today",
-            time_24hr: true
-        });
-    }
-});
-
 function toggleNewCategory() {
     const select = document.getElementById('categorySelect');
     const newGroup = document.getElementById('newCategoryGroup');

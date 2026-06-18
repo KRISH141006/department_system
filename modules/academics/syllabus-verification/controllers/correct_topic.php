@@ -22,7 +22,13 @@ try {
     $conn->begin_transaction();
 
     // 1. Fetch Session Info
-    $sessStmt = $conn->prepare("SELECT class_subject_id, session_date FROM verification_sessions WHERE id = ? AND faculty_id = ?");
+    $sessStmt = $conn->prepare("
+        SELECT vs.class_subject_id, vs.session_date, cs.subject_id, s.type
+        FROM verification_sessions vs
+        JOIN class_subjects cs ON vs.class_subject_id = cs.id
+        JOIN subjects s ON cs.subject_id = s.id
+        WHERE vs.id = ? AND vs.faculty_id = ?
+    ");
     $sessStmt->bind_param("ii", $session_id, $faculty_id);
     $sessStmt->execute();
     $sess = $sessStmt->get_result()->fetch_assoc();
@@ -32,17 +38,42 @@ try {
     }
 
     // 2. Insert into lecture_records (The official source of truth)
+    $target_class_subject_ids = [(int) $sess['class_subject_id']];
+    if ($sess['type'] === 'elective') {
+        $csStmt = $conn->prepare("
+            SELECT cs.id
+            FROM faculty_subjects fs
+            JOIN class_subjects cs ON fs.class_subject_id = cs.id
+            WHERE fs.faculty_id = ? AND cs.subject_id = ?
+        ");
+        $csStmt->bind_param("ii", $faculty_id, $sess['subject_id']);
+        $csStmt->execute();
+        $csRows = $csStmt->get_result()->fetch_all(MYSQLI_ASSOC);
+        $target_class_subject_ids = array_map(function($row) {
+            return (int) $row['id'];
+        }, $csRows);
+        if (empty($target_class_subject_ids)) {
+            $target_class_subject_ids = [(int) $sess['class_subject_id']];
+        }
+    }
+
     $stmt = $conn->prepare("
         INSERT INTO lecture_records (faculty_id, class_subject_id, topic_id, lecture_date)
         VALUES (?, ?, ?, ?)
         ON DUPLICATE KEY UPDATE created_at = NOW()
     ");
-    $stmt->bind_param("iiis", $faculty_id, $sess['class_subject_id'], $topic_id, $sess['session_date']);
-    
-    if ($stmt->execute()) {
-        $_SESSION['msg_success'] = "Topic has been officially verified and logged in the syllabus records.";
+
+    foreach (array_unique($target_class_subject_ids) as $target_class_subject_id) {
+        $stmt->bind_param("iiis", $faculty_id, $target_class_subject_id, $topic_id, $sess['session_date']);
+        if (!$stmt->execute()) {
+            throw new Exception($conn->error);
+        }
+    }
+
+    if ($sess['type'] === 'elective') {
+        $_SESSION['msg_success'] = "Topic has been verified for all enrolled elective classes.";
     } else {
-        throw new Exception($conn->error);
+        $_SESSION['msg_success'] = "Topic has been officially verified and logged in the syllabus records.";
     }
 
     $conn->commit();

@@ -214,9 +214,13 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                         <td style="text-align: right;">
                             <div style="display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap;">
                                 <a href="<?= $base_path ?>/academics/units?subject_id=<?php echo $sub['subject_id']; ?>&class_id=<?php echo $class_ids[0]; ?>" class="btn btn-secondary btn-sm">Units</a>
-                                <?php foreach ($class_subject_ids as $index => $csid): ?>
-                                    <a href="<?= $base_path ?>/academics/select_student?class_id=<?php echo $csid; ?>" class="btn btn-primary btn-sm" style="font-size: 0.75rem;">Verify <?= $class_names[$index] ?></a>
-                                <?php endforeach; ?>
+                                <?php if ($isElective): ?>
+                                    <a href="<?= $base_path ?>/academics/select_student?subject_id=<?php echo $sub['subject_id']; ?>&scope=elective" class="btn btn-primary btn-sm" style="font-size: 0.75rem;">Verify Elective Students</a>
+                                <?php else: ?>
+                                    <?php foreach ($class_subject_ids as $index => $csid): ?>
+                                        <a href="<?= $base_path ?>/academics/select_student?class_id=<?php echo $csid; ?>" class="btn btn-primary btn-sm" style="font-size: 0.75rem;">Verify <?= $class_names[$index] ?></a>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
                             </div>
                         </td>
                     </tr>

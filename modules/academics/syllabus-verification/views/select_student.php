@@ -8,22 +8,47 @@ if (!has_permission('view_faculty_dashboard')) {
 }
 
 $faculty_id = (int) $_SESSION['user_id'];
-$class_subject_id = (int) ($_GET['class_id'] ?? 0); 
+$scope = $_GET['scope'] ?? 'class';
+$subject_id = (int) ($_GET['subject_id'] ?? 0);
+$class_subject_id = (int) ($_GET['class_id'] ?? 0);
+$is_elective_scope = ($scope === 'elective' && $subject_id > 0);
+$today = date('Y-m-d');
 
-if (!$class_subject_id) {
+if (!$is_elective_scope && !$class_subject_id) {
     header("Location: $base_path/academics/faculty_dashboard");
     exit();
 }
 
 // 1. Fetch Subject and Class Info
-$stmt = $conn->prepare("
-    SELECT s.id as subject_id, s.name as subject_name, c.name as class_name, c.semester, c.id as class_id 
-    FROM class_subjects cs 
-    JOIN subjects s ON cs.subject_id = s.id 
-    JOIN classes c ON cs.class_id = c.id 
-    WHERE cs.id = ?
-");
-$stmt->bind_param("i", $class_subject_id);
+if ($is_elective_scope) {
+    $stmt = $conn->prepare("
+        SELECT
+            s.id as subject_id,
+            s.name as subject_name,
+            s.type,
+            GROUP_CONCAT(DISTINCT c.name ORDER BY c.name SEPARATOR ', ') as class_name,
+            GROUP_CONCAT(DISTINCT c.semester ORDER BY c.semester SEPARATOR ', ') as semester,
+            MIN(cs.id) as class_subject_id,
+            0 as class_id
+        FROM faculty_subjects fs
+        JOIN class_subjects cs ON fs.class_subject_id = cs.id
+        JOIN subjects s ON cs.subject_id = s.id
+        JOIN classes c ON cs.class_id = c.id
+        WHERE fs.faculty_id = ? AND s.id = ? AND s.type = 'elective'
+        GROUP BY s.id, s.name, s.type
+    ");
+    $stmt->bind_param("ii", $faculty_id, $subject_id);
+} else {
+    $stmt = $conn->prepare("
+        SELECT s.id as subject_id, s.name as subject_name, s.type, c.name as class_name, c.semester, c.id as class_id, cs.id as class_subject_id
+        FROM class_subjects cs
+        JOIN faculty_subjects fs ON fs.class_subject_id = cs.id AND fs.faculty_id = ?
+        JOIN subjects s ON cs.subject_id = s.id
+        JOIN classes c ON cs.class_id = c.id
+        WHERE cs.id = ?
+    ");
+    $stmt->bind_param("ii", $faculty_id, $class_subject_id);
+}
 $stmt->execute();
 $info = $stmt->get_result()->fetch_assoc();
 
@@ -32,14 +57,29 @@ if (!$info) {
     exit();
 }
 
-$today = date('Y-m-d');
+$class_subject_id = (int) $info['class_subject_id'];
 
 // 2. Check if a session exists for today
-$sessStmt = $conn->prepare("SELECT id FROM verification_sessions WHERE class_subject_id = ? AND session_date = ?");
-$sessStmt->bind_param("is", $class_subject_id, $today);
+if ($is_elective_scope) {
+    $sessStmt = $conn->prepare("
+        SELECT vs.id, vs.class_subject_id
+        FROM verification_sessions vs
+        JOIN class_subjects cs ON vs.class_subject_id = cs.id
+        WHERE vs.faculty_id = ? AND cs.subject_id = ? AND vs.session_date = ?
+        ORDER BY vs.id ASC
+        LIMIT 1
+    ");
+    $sessStmt->bind_param("iis", $faculty_id, $subject_id, $today);
+} else {
+    $sessStmt = $conn->prepare("SELECT id, class_subject_id FROM verification_sessions WHERE faculty_id = ? AND class_subject_id = ? AND session_date = ?");
+    $sessStmt->bind_param("iis", $faculty_id, $class_subject_id, $today);
+}
 $sessStmt->execute();
 $session = $sessStmt->get_result()->fetch_assoc();
 $session_id = $session['id'] ?? 0;
+if ($session_id && !empty($session['class_subject_id'])) {
+    $class_subject_id = (int) $session['class_subject_id'];
+}
 
 $assignments = [];
 if ($session_id) {
@@ -64,7 +104,11 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
             <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem;">Syllabus Verification</h1>
             <p style="color: var(--text-2);">
                 Subject: <strong><?= htmlspecialchars($info['subject_name']) ?></strong> | 
-                Class: <strong><?= htmlspecialchars($info['class_name']) ?> (Sem <?= $info['semester'] ?>)</strong>
+                <?php if ($is_elective_scope): ?>
+                    Elective Pool: <strong>All enrolled students</strong> | Classes: <strong><?= htmlspecialchars($info['class_name']) ?></strong>
+                <?php else: ?>
+                    Class: <strong><?= htmlspecialchars($info['class_name']) ?> (Sem <?= $info['semester'] ?>)</strong>
+                <?php endif; ?>
             </p>
         </div>
         <a href="<?= $base_path ?>/academics/faculty_dashboard" class="btn btn-secondary">Back to Dashboard</a>
@@ -73,7 +117,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
     <div class="card" style="margin-bottom: 2rem; border-left: 5px solid var(--primary);">
         <h3 style="margin-bottom: 1rem;">Initiate Verification (Bottom-Up)</h3>
         <p style="font-size: 14px; color: var(--text-2); line-height: 1.6;">
-            Assign 5 random students (PAC selection) to report the syllabus progress for today. 
+            Assign 5 random students (PAC selection) <?= $is_elective_scope ? 'from all enrolled elective students' : 'from this class' ?> to report the syllabus progress for today.
             Students will be notified to enter lecture details and select covered topics.
         </p>
         
@@ -81,6 +125,10 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
             <form action="<?= $base_path ?>/api/academics/assign_feedback" method="POST" style="margin-top: 1.5rem;">
                 <input type="hidden" name="class_subject_id" value="<?= $class_subject_id ?>">
                 <input type="hidden" name="class_id" value="<?= $info['class_id'] ?>">
+                <?php if ($is_elective_scope): ?>
+                    <input type="hidden" name="scope" value="elective">
+                    <input type="hidden" name="subject_id" value="<?= $info['subject_id'] ?>">
+                <?php endif; ?>
                 <input type="hidden" name="random" value="1">
                 <button type="submit" class="btn btn-primary">Assign 5 Random Students</button>
             </form>
@@ -123,6 +171,10 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                             <form action="<?= $base_path ?>/api/academics/skip_feedback" method="POST" onsubmit="return confirm('Skip this student and assign another randomly?')">
                                 <input type="hidden" name="assignment_id" value="<?= $a['id'] ?>">
                                 <input type="hidden" name="class_subject_id" value="<?= $class_subject_id ?>">
+                                <?php if ($is_elective_scope): ?>
+                                    <input type="hidden" name="scope" value="elective">
+                                    <input type="hidden" name="subject_id" value="<?= $info['subject_id'] ?>">
+                                <?php endif; ?>
                                 <button type="submit" class="btn btn-sm btn-secondary">Skip / Reassign</button>
                             </form>
                         </td>
