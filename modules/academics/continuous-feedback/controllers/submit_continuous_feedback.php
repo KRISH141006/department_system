@@ -1,11 +1,14 @@
 <?php
 require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
+require_once __DIR__ . '/../../../../shared/helpers/notifications.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header("Location: $base_path/academics/continuous_feedback");
     exit();
 }
+
+ensure_notifications_table($conn);
 
 if (!has_permission('view_student_dashboard')) {
     header("Location: $base_path/dashboard");
@@ -51,6 +54,34 @@ try {
     $stmt->bind_param("iis", $faculty_id, $subject_val, $feedback_text);
 
     if ($stmt->execute()) {
+        $subject_label = 'general feedback';
+        if ($subject_val) {
+            $subjectStmt = $conn->prepare("SELECT name FROM subjects WHERE id = ? LIMIT 1");
+            $subjectStmt->bind_param("i", $subject_val);
+            $subjectStmt->execute();
+            $subject_label = $subjectStmt->get_result()->fetch_assoc()['name'] ?? $subject_label;
+        }
+
+        create_notification(
+            $conn,
+            $faculty_id,
+            'anonymous_feedback',
+            'New anonymous feedback',
+            "A student submitted anonymous feedback for $subject_label.",
+            "$base_path/academics/feedback_history",
+            null
+        );
+
+        notify_role(
+            $conn,
+            'admin',
+            'anonymous_feedback_admin',
+            'Anonymous feedback received',
+            "A new anonymous feedback entry was submitted for $subject_label.",
+            "$base_path/academics/admin_feedback_panel",
+            null
+        );
+
         $_SESSION['msg_success'] = "Thank you! Your anonymous feedback has been submitted.";
     } else {
         throw new Exception("Execute error: " . $stmt->error);

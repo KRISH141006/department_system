@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
+require_once __DIR__ . '/../../../../shared/helpers/notifications.php';
 
 if (!has_permission('view_faculty_dashboard')) {
     header("Location: $base_path/dashboard");
@@ -18,6 +19,8 @@ if (!$assignment_id) {
     exit();
 }
 
+ensure_notifications_table($conn);
+
 try {
     $conn->begin_transaction();
 
@@ -32,7 +35,7 @@ try {
         
         // 2. Get context for this session
         $getSess = $conn->prepare("
-            SELECT vs.faculty_id, cs.class_id, cs.subject_id, s.type
+            SELECT vs.faculty_id, cs.class_id, cs.subject_id, s.type, s.name as subject_name
             FROM verification_sessions vs
             JOIN class_subjects cs ON vs.class_subject_id = cs.id
             JOIN subjects s ON cs.subject_id = s.id
@@ -48,6 +51,7 @@ try {
 
         $class_id = (int) $session['class_id'];
         $subject_id = (int) $session['subject_id'];
+        $subject_name = $session['subject_name'] ?? 'your subject';
         $is_elective = ($session['type'] === 'elective' || $scope === 'elective');
 
         // 3. Find a new student who isn't already assigned to this session
@@ -81,6 +85,15 @@ try {
             $updVA = $conn->prepare("UPDATE verification_assignments SET student_id = ? WHERE id = ?");
             $updVA->bind_param("ii", $newS['user_id'], $assignment_id);
             $updVA->execute();
+            create_notification(
+                $conn,
+                (int) $newS['user_id'],
+                'syllabus_verification',
+                'Syllabus verification reassigned',
+                "You were selected to report today's syllabus progress for $subject_name.",
+                "$base_path/academics/lecture_feedback?session_id=$session_id",
+                $faculty_id
+            );
             $_SESSION['msg_success'] = "Student reassigned successfully.";
         } else {
             $_SESSION['msg_error'] = $is_elective ? "No other enrolled elective students available to assign." : "No other students available in this class to assign.";

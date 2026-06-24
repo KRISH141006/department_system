@@ -31,14 +31,17 @@ $page_title = "Joining: " . $meeting['subject_name'];
 require_once __DIR__ . '/../../../../shared/layout/header.php';
 ?>
 
-<div class="wrapper" style="padding: 2rem; max-width: 900px; margin: 0 auto; text-align: center;">
-    <div style="margin-bottom: 2rem;">
-        <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem; color: var(--text); margin: 0;">🎥 Virtual Classroom</h1>
-        <p style="color: var(--text-2); margin: 10px 0 0 0; font-size: 1.1rem;">Subject: <strong><?= htmlspecialchars($meeting['subject_name']) ?></strong> | Faculty: <strong><?= htmlspecialchars($meeting['faculty_name']) ?></strong></p>
-    </div>
+<div class="wrapper" style="max-width: 900px; margin: 0 auto;">
+    <section class="ux-workspace-hero" style="grid-template-columns: 1fr;">
+        <div class="ux-workspace-hero-main">
+            <span class="ux-kicker">Virtual Classroom</span>
+            <h1 class="ux-hero-title"><?= htmlspecialchars($meeting['subject_name']) ?></h1>
+            <p class="ux-hero-copy">Faculty: <strong><?= htmlspecialchars($meeting['faculty_name']) ?></strong></p>
+        </div>
+    </section>
 
-    <div class="card" style="padding: 4rem 2rem; max-width: 600px; margin: 0 auto; border: 2px solid var(--accent); box-shadow: 0 10px 30px rgba(79, 70, 229, 0.1);">
-        <div style="font-size: 4rem; margin-bottom: 1rem;">📹</div>
+    <div class="ux-empty-panel" style="max-width: 620px; margin: 0 auto;">
+        <span class="ux-feature-mark">LC</span>
         <h2 style="font-size: 1.8rem; margin-bottom: 1rem; color: var(--text);">Class is Live!</h2>
         <p style="color: var(--text-2); margin-bottom: 2.5rem; font-size: 1.1rem;">Your faculty has started the session via Google Meet. Click the button below to join the virtual classroom.</p>
         

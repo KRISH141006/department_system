@@ -1,11 +1,14 @@
 <?php
 require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
+require_once __DIR__ . '/../../../../shared/helpers/notifications.php';
 
 if (!has_permission('view_student_dashboard')) {
     header("Location: $base_path/dashboard");
     exit();
 }
+
+ensure_notifications_table($conn);
 
 $student_id = (int) $_SESSION['user_id'];
 $session_id = (int) ($_POST['session_id'] ?? 0);
@@ -31,12 +34,35 @@ try {
         throw new Exception("Assignment not found or already submitted.");
     }
 
+    $sessionStmt = $conn->prepare("
+        SELECT vs.faculty_id, s.name as subject_name
+        FROM verification_sessions vs
+        JOIN class_subjects cs ON vs.class_subject_id = cs.id
+        JOIN subjects s ON cs.subject_id = s.id
+        WHERE vs.id = ?
+        LIMIT 1
+    ");
+    $sessionStmt->bind_param("i", $session_id);
+    $sessionStmt->execute();
+    $sessionDetails = $sessionStmt->get_result()->fetch_assoc();
+    $faculty_id = (int) ($sessionDetails['faculty_id'] ?? 0);
+    $subject_name = $sessionDetails['subject_name'] ?? 'your subject';
+
     if ($status === 'absent') {
         // Handle Absent Flow: Update status and we'll let faculty reassign later
         $upd = $conn->prepare("UPDATE verification_assignments SET status = 'absent' WHERE session_id = ? AND student_id = ?");
         $upd->bind_param("ii", $session_id, $student_id);
         $upd->execute();
         $_SESSION['msg_success'] = "You have been marked absent for this lecture.";
+        create_notification(
+            $conn,
+            $faculty_id,
+            'syllabus_absent',
+            'Syllabus verifier unavailable',
+            "A selected student marked themselves absent for $subject_name. You can reassign another student.",
+            "$base_path/academics/syllabus_verification",
+            null
+        );
     } else {
         // Handle Submission Flow
         if (empty($topic_ids)) {
@@ -57,6 +83,15 @@ try {
         $upd->execute();
 
         $_SESSION['msg_success'] = "Syllabus report submitted successfully. Thank you for your feedback.";
+        create_notification(
+            $conn,
+            $faculty_id,
+            'syllabus_submitted',
+            'Syllabus report received',
+            "A selected student submitted today's syllabus report for $subject_name.",
+            "$base_path/academics/syllabus_verification",
+            null
+        );
     }
 
     $conn->commit();

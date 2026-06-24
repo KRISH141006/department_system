@@ -29,37 +29,29 @@ $faculty_members = $fac_query->fetch_all(MYSQLI_ASSOC);
         -webkit-appearance: none;
         -moz-appearance: none;
         appearance: none;
-        background-image: none !important;
+        background-image: var(--select-arrow-icon) !important;
+        background-repeat: no-repeat !important;
+        background-position: right 1rem center !important;
+        background-size: 1.1rem 1.1rem !important;
         padding-right: 3rem;
     }
 
     .feedback-select::after {
-        content: "";
-        position: absolute;
-        right: 1.15rem;
-        top: 50%;
-        width: 0.65rem;
-        height: 0.65rem;
-        border-right: 2px solid var(--text-3);
-        border-bottom: 2px solid var(--text-3);
-        pointer-events: none;
-        transform: translateY(-65%) rotate(45deg);
-        transition: var(--transition);
-    }
-
-    .feedback-select:focus-within::after {
-        border-color: var(--accent);
+        content: none;
     }
 </style>
 
 <div class="wrapper">
     <div class="anonymous-feedback-shell">
-        <div class="section-header" style="margin-top: 0; text-align: center; display: block;">
-            <h1 class="page-title">Anonymous Feedback Box</h1>
-            <p class="page-subtitle">Your identity will remain completely anonymous. Help us improve by providing honest feedback.</p>
-        </div>
+        <section class="ux-workspace-hero" style="grid-template-columns: 1fr;">
+            <div class="ux-workspace-hero-main">
+                <span class="ux-kicker">Private Feedback</span>
+                <h1 class="ux-hero-title">Anonymous Feedback Box</h1>
+                <p class="ux-hero-copy">Your identity remains anonymous. Select the faculty member, optionally choose a subject, and share precise feedback.</p>
+            </div>
+        </section>
 
-        <div class="card card-accent-orange">
+        <div class="ux-form-panel">
             <form action="<?= $base_path ?>/api/academics/submit_continuous_feedback" method="POST">
                 <div style="margin-bottom: 1.5rem;">
                     <label class="form-label">Select Faculty Member</label>
@@ -87,15 +79,12 @@ $faculty_members = $fac_query->fetch_all(MYSQLI_ASSOC);
                     <textarea name="feedback_text" class="form-control" required placeholder="Describe your experience or suggest improvements..." style="min-height: 180px; resize: vertical;"></textarea>
                 </div>
 
-                <div style="margin-top: 2.5rem;">
+                <div class="card-actions">
                     <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 1rem;">Submit Confidential Feedback</button>
                 </div>
             </form>
         </div>
         
-        <div style="margin-top: 2rem; text-align: center; color: var(--text-3); font-size: 0.8rem;">
-            🛡️ Encrypted & Anonymous Submission System
-        </div>
     </div>
 </div>
 

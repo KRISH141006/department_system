@@ -2,7 +2,6 @@
 require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
 
-// Only allow reviewers (faculty, expert, admin)
 if (!has_permission('review_requests')) {
     header("Location: $base_path/dashboard");
     exit;
@@ -14,7 +13,6 @@ if (!$student_id) {
     exit;
 }
 
-// Fetch student user and academic data
 $uStmt = $conn->prepare("
     SELECT u.name, u.email, c.name as class_name, c.semester, c.branch, s.roll_no, s.target_role
     FROM users u
@@ -31,7 +29,6 @@ if (!$user_data) {
     exit;
 }
 
-// Fetch student profile data
 $pStmt = $conn->prepare("
     SELECT bio, github_url, leetcode_url, linkedin_url, portfolio_url, skills, hobbies, community_score
     FROM profiles WHERE user_id = ?
@@ -40,87 +37,123 @@ $pStmt->bind_param("i", $student_id);
 $pStmt->execute();
 $profile_data = $pStmt->get_result()->fetch_assoc() ?? [];
 
+$links = [
+    'LinkedIn' => $profile_data['linkedin_url'] ?? '',
+    'GitHub' => $profile_data['github_url'] ?? '',
+    'LeetCode' => $profile_data['leetcode_url'] ?? '',
+    'Portfolio' => $profile_data['portfolio_url'] ?? '',
+];
+$skills = array_values(array_filter(array_map('trim', explode(',', $profile_data['skills'] ?? ''))));
+
 $page_title = "Viewing Student Profile: " . htmlspecialchars($user_data['name']);
 include __DIR__ . '/../../../../shared/layout/header.php';
 ?>
 
-<div class="wrapper" style="padding: 2rem;">
-    <div style="max-width: 800px; margin: 0 auto;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-            <div>
-                <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem; margin-bottom: 0.5rem;"><?= htmlspecialchars($user_data['name']) ?></h1>
-                <p style="color: var(--text-2);">Student Profile Summary | Score: <strong><?= number_format($profile_data['community_score'] ?? 0) ?></strong></p>
-            </div>
-            <a href="<?= $base_path ?>/community/reviewer_dashboard" class="btn btn-secondary">Back to Dashboard</a>
-        </div>
-
-        <div class="grid-2">
-            <!-- ACADEMIC INFO -->
-            <div class="card" style="margin-bottom: 1.5rem;">
-                <h3 style="margin-bottom: 1rem; color: var(--accent);">Academic Information</h3>
-                <p style="margin-bottom: 0.5rem;"><strong>Roll No:</strong> <?= htmlspecialchars($user_data['roll_no'] ?? 'N/A') ?></p>
-                <p style="margin-bottom: 0.5rem;"><strong>Class:</strong> <?= htmlspecialchars($user_data['class_name'] ?? 'N/A') ?></p>
-                <p style="margin-bottom: 0.5rem;"><strong>Semester:</strong> <?= htmlspecialchars($user_data['semester'] ?? 'N/A') ?></p>
-                <p style="margin-bottom: 0.5rem;"><strong>Branch:</strong> <?= htmlspecialchars($user_data['branch'] ?? 'N/A') ?></p>
-            </div>
-
-            <!-- LINKS & SOCIAL -->
-            <div class="card" style="margin-bottom: 1.5rem;">
-                <h3 style="margin-bottom: 1rem; color: var(--accent);">Profiles & Links</h3>
-                <?php if ($profile_data['linkedin_url']): ?>
-                    <p style="margin-bottom: 0.5rem;">🔗 <a href="<?= htmlspecialchars($profile_data['linkedin_url']) ?>" target="_blank">LinkedIn</a></p>
-                <?php endif; ?>
-                <?php if ($profile_data['github_url']): ?>
-                    <p style="margin-bottom: 0.5rem;">🐙 <a href="<?= htmlspecialchars($profile_data['github_url']) ?>" target="_blank">GitHub</a></p>
-                <?php endif; ?>
-                <?php if ($profile_data['leetcode_url']): ?>
-                    <p style="margin-bottom: 0.5rem;">💻 <a href="<?= htmlspecialchars($profile_data['leetcode_url']) ?>" target="_blank">LeetCode</a></p>
-                <?php endif; ?>
-                <?php if ($profile_data['portfolio_url']): ?>
-                    <p style="margin-bottom: 0.5rem;">🌐 <a href="<?= htmlspecialchars($profile_data['portfolio_url']) ?>" target="_blank">Portfolio</a></p>
-                <?php endif; ?>
-                <?php if (!$profile_data['linkedin_url'] && !$profile_data['github_url']): ?>
-                    <p style="color: var(--text-2);">No links provided.</p>
-                <?php endif; ?>
+<div class="wrapper">
+    <section class="ux-workspace-hero">
+        <div class="ux-workspace-hero-main">
+            <span class="ux-kicker">Reviewer View</span>
+            <h1 class="ux-hero-title"><?= htmlspecialchars($user_data['name']) ?></h1>
+            <p class="ux-hero-copy">Review the student profile, academic context, public links, and skill summary before evaluating a request.</p>
+            <div class="ux-hero-actions">
+                <a href="<?= $base_path ?>/community/reviewer_dashboard" class="btn btn-secondary">Back to Reviews</a>
             </div>
         </div>
+        <aside class="ux-workspace-hero-side">
+            <span class="ux-subtle-note">Profile snapshot</span>
+            <div class="ux-stat-grid">
+                <div class="ux-stat-card is-good"><strong><?= number_format((int)($profile_data['community_score'] ?? 0)) ?></strong><span>Community Score</span></div>
+                <div class="ux-stat-card"><strong><?= count($skills) ?></strong><span>Skills</span></div>
+                <div class="ux-stat-card"><strong><?= htmlspecialchars($user_data['semester'] ?? 'N/A') ?></strong><span>Semester</span></div>
+            </div>
+        </aside>
+    </section>
 
-        <!-- SKILLS & TARGET ROLE -->
-        <div class="card" style="margin-bottom: 1.5rem;">
-            <h3 style="margin-bottom: 1rem; color: var(--accent);">Skills & Goals</h3>
-            <p style="margin-bottom: 1rem;"><strong>Target Career Role:</strong> <?= htmlspecialchars($user_data['target_role'] ?? 'Not Specified') ?></p>
-            <div>
-                <strong>Technical Skills:</strong>
-                <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">
-                    <?php 
-                    $skills = explode(',', $profile_data['skills'] ?? '');
-                    foreach($skills as $skill): 
-                        $skill = trim($skill);
-                        if($skill):
-                    ?>
-                        <span class="badge badge-success"><?= htmlspecialchars($skill) ?></span>
-                    <?php 
-                        endif;
-                    endforeach; 
-                    if(empty(array_filter($skills))) echo "None listed.";
-                    ?>
+    <div class="ux-service-board">
+        <section class="ux-section-card">
+            <div class="ux-section-heading">
+                <div>
+                    <h2>Academic Information</h2>
+                    <p>Class and identity details used during review.</p>
                 </div>
             </div>
-        </div>
+            <div class="ux-record-list">
+                <div class="ux-record-row"><strong>Roll No</strong><span><?= htmlspecialchars($user_data['roll_no'] ?? 'N/A') ?></span></div>
+                <div class="ux-record-row"><strong>Class</strong><span><?= htmlspecialchars($user_data['class_name'] ?? 'N/A') ?></span></div>
+                <div class="ux-record-row"><strong>Branch</strong><span><?= htmlspecialchars($user_data['branch'] ?? 'N/A') ?></span></div>
+                <div class="ux-record-row"><strong>Email</strong><span><?= htmlspecialchars($user_data['email'] ?? 'N/A') ?></span></div>
+            </div>
+        </section>
 
-        <!-- BIO & HOBBIES -->
-        <div class="card">
-            <h3 style="margin-bottom: 1rem; color: var(--accent);">About Me</h3>
-            <div style="margin-bottom: 1.5rem;">
-                <strong>Bio:</strong>
-                <p style="margin-top: 8px; line-height: 1.6; color: var(--text-2);"><?= nl2br(htmlspecialchars($profile_data['bio'] ?? 'No bio provided.')) ?></p>
+        <section class="ux-section-card">
+            <div class="ux-section-heading">
+                <div>
+                    <h2>Profiles & Links</h2>
+                    <p>External work samples provided by the student.</p>
+                </div>
             </div>
+            <div class="ux-record-list">
+                <?php $hasLink = false; ?>
+                <?php foreach ($links as $label => $url): ?>
+                    <?php if (!$url) continue; $hasLink = true; ?>
+                    <a href="<?= htmlspecialchars($url) ?>" target="_blank" class="ux-record-row" style="text-decoration: none;">
+                        <strong><?= htmlspecialchars($label) ?></strong>
+                        <span class="btn btn-secondary btn-sm">Open</span>
+                    </a>
+                <?php endforeach; ?>
+                <?php if (!$hasLink): ?>
+                    <div class="ux-empty-panel">
+                        <span class="ux-feature-mark">LN</span>
+                        <strong>No links provided</strong>
+                        <span>The student has not added public profile links yet.</span>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </section>
+    </div>
+
+    <section class="ux-section-card">
+        <div class="ux-section-heading">
             <div>
-                <strong>Hobbies & Extracurriculars:</strong>
-                <p style="margin-top: 8px; color: var(--text-2);"><?= nl2br(htmlspecialchars($profile_data['hobbies'] ?? 'None provided.')) ?></p>
+                <h2>Skills & Goals</h2>
+                <p>Use this section to understand the student’s direction before giving feedback.</p>
             </div>
         </div>
-    </div>
+        <div class="ux-record-row">
+            <div>
+                <strong>Target Career Role</strong>
+                <small><?= htmlspecialchars($user_data['target_role'] ?? 'Not specified') ?></small>
+                <span class="ux-meta-line">
+                    <?php if (empty($skills)): ?>
+                        <span class="badge">No skills listed</span>
+                    <?php else: ?>
+                        <?php foreach ($skills as $skill): ?>
+                            <span class="badge badge-success"><?= htmlspecialchars($skill) ?></span>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </span>
+            </div>
+        </div>
+    </section>
+
+    <section class="ux-section-card">
+        <div class="ux-section-heading">
+            <div>
+                <h2>About</h2>
+                <p>Personal summary and extracurricular context.</p>
+            </div>
+        </div>
+        <div class="ux-service-board">
+            <div class="ux-panel" style="padding: 1rem;">
+                <strong>Bio</strong>
+                <p style="color: var(--text-2); margin-top: 0.5rem;"><?= nl2br(htmlspecialchars($profile_data['bio'] ?? 'No bio provided.')) ?></p>
+            </div>
+            <div class="ux-panel" style="padding: 1rem;">
+                <strong>Hobbies & Extracurriculars</strong>
+                <p style="color: var(--text-2); margin-top: 0.5rem;"><?= nl2br(htmlspecialchars($profile_data['hobbies'] ?? 'None provided.')) ?></p>
+            </div>
+        </div>
+    </section>
 </div>
 
 <?php require_once __DIR__ . '/../../../../shared/layout/footer.php'; ?>

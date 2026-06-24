@@ -9,7 +9,6 @@ if (!has_permission('view_faculty_dashboard')) {
 
 $faculty_id = (int) $_SESSION['user_id'];
 
-// 1. Fetch recent verification sessions
 $stmt = $conn->prepare("
     SELECT vs.*, s.name as subject_name, s.type, c.name as class_name,
            (SELECT GROUP_CONCAT(DISTINCT c2.name ORDER BY c2.name SEPARATOR ', ')
@@ -31,126 +30,136 @@ $stmt->bind_param("i", $faculty_id);
 $stmt->execute();
 $sessions = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
+$total_reports = array_sum(array_map(function($session) {
+    return (int) $session['response_count'];
+}, $sessions));
+
 $page_title = "Progress Review & Verification";
 require_once __DIR__ . '/../../../../shared/layout/header.php';
 ?>
 
-<div class="wrapper" style="padding: 2rem;">
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem;">
-        <div>
-            <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem;">Review Student Reports</h1>
-            <p style="color: var(--text-2);">See which topics students reported as covered and verify them.</p>
+<div class="wrapper">
+    <section class="ux-workspace-hero">
+        <div class="ux-workspace-hero-main">
+            <span class="ux-kicker">Syllabus Verification</span>
+            <h1 class="ux-hero-title">Review Student Reports</h1>
+            <p class="ux-hero-copy">Review student-reported covered topics, compare confidence, and log verified lecture records.</p>
+            <div class="ux-hero-actions">
+                <a href="<?= $base_path ?>/academics/faculty_dashboard" class="btn btn-secondary">Faculty Hub</a>
+            </div>
         </div>
-        <a href="<?= $base_path ?>/academics/faculty_dashboard" class="btn btn-secondary">Back to Dashboard</a>
-    </div>
+        <aside class="ux-workspace-hero-side">
+            <span class="ux-subtle-note">Verification snapshot</span>
+            <div class="ux-stat-grid">
+                <div class="ux-stat-card"><strong><?= count($sessions) ?></strong><span>Sessions</span></div>
+                <div class="ux-stat-card"><strong><?= $total_reports ?></strong><span>Reports</span></div>
+            </div>
+        </aside>
+    </section>
 
     <?php if (isset($_SESSION['msg_success'])): ?>
-        <div class="alert alert-success" style="margin-bottom: 2rem;"><?= $_SESSION['msg_success']; unset($_SESSION['msg_success']); ?></div>
+        <div class="alert alert-success"><?= htmlspecialchars($_SESSION['msg_success']); unset($_SESSION['msg_success']); ?></div>
     <?php endif; ?>
 
     <?php if (empty($sessions)): ?>
-        <div class="card" style="text-align: center; padding: 4rem;">
-            <p style="color: var(--text-3);">No verification sessions found. Start by assigning students from the "Verify" button on your dashboard.</p>
+        <div class="ux-empty-panel">
+            <span class="ux-feature-mark">SV</span>
+            <strong>No verification sessions found</strong>
+            <span>Start from the Verify action in Faculty Hub to assign students.</span>
         </div>
     <?php else: ?>
-        <?php foreach ($sessions as $sess): 
-            // Fetch aggregated topic submissions for this session
-            $topQuery = $conn->prepare("
-                SELECT t.id, t.name, u.unit_no, COUNT(sts.id) as vote_count
-                FROM topics t
-                JOIN units u ON t.unit_id = u.id
-                LEFT JOIN student_topic_submissions sts ON t.id = sts.topic_id AND sts.session_id = ?
-                WHERE u.subject_id = (SELECT subject_id FROM class_subjects WHERE id = ?)
-                GROUP BY t.id
-                HAVING vote_count > 0
-                ORDER BY u.unit_no, t.id
-            ");
-            $topQuery->bind_param("ii", $sess['id'], $sess['class_subject_id']);
-            $topQuery->execute();
-            $topic_reports = $topQuery->get_result()->fetch_all(MYSQLI_ASSOC);
-        ?>
-            <div class="card" style="margin-bottom: 2rem; padding: 0; overflow: hidden;">
-                <div style="padding: 1.5rem; background: var(--bg-2); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <h3 style="margin-bottom: 4px;"><?= htmlspecialchars($sess['subject_name']) ?></h3>
-                        <div style="font-size: 13px; color: var(--text-2);">
-                            <?php if ($sess['type'] === 'elective'): ?>
-                                Elective Pool: <strong>All enrolled students</strong>
-                                <?php if (!empty($sess['elective_class_names'])): ?>
-                                    | Classes: <strong><?= htmlspecialchars($sess['elective_class_names']) ?></strong>
+        <div class="ux-record-list">
+            <?php foreach ($sessions as $sess): ?>
+                <?php
+                $topQuery = $conn->prepare("
+                    SELECT t.id, t.name, u.unit_no, COUNT(sts.id) as vote_count
+                    FROM topics t
+                    JOIN units u ON t.unit_id = u.id
+                    LEFT JOIN student_topic_submissions sts ON t.id = sts.topic_id AND sts.session_id = ?
+                    WHERE u.subject_id = (SELECT subject_id FROM class_subjects WHERE id = ?)
+                    GROUP BY t.id
+                    HAVING vote_count > 0
+                    ORDER BY u.unit_no, t.id
+                ");
+                $topQuery->bind_param("ii", $sess['id'], $sess['class_subject_id']);
+                $topQuery->execute();
+                $topic_reports = $topQuery->get_result()->fetch_all(MYSQLI_ASSOC);
+                ?>
+                <section class="ux-section-card">
+                    <div class="ux-section-heading">
+                        <div>
+                            <h2><?= htmlspecialchars($sess['subject_name']) ?></h2>
+                            <p>
+                                <?php if ($sess['type'] === 'elective'): ?>
+                                    Elective pool: all enrolled students<?= !empty($sess['elective_class_names']) ? ' | Classes: ' . htmlspecialchars($sess['elective_class_names']) : '' ?>
+                                <?php else: ?>
+                                    Class: <?= htmlspecialchars($sess['class_name']) ?>
                                 <?php endif; ?>
-                            <?php else: ?>
-                                Class: <strong><?= htmlspecialchars($sess['class_name']) ?></strong>
-                            <?php endif; ?>
-                            |
-                            Date: <strong><?= date('d M, Y', strtotime($sess['session_date'])) ?></strong>
+                                | Date: <?= date('d M Y', strtotime($sess['session_date'])) ?>
+                            </p>
                         </div>
+                        <span class="badge badge-primary"><?= (int) $sess['response_count'] ?> / <?= (int) $sess['assigned_count'] ?> Reports</span>
                     </div>
-                    <div style="text-align: right;">
-                        <div style="font-size: 12px; font-weight: 700; color: var(--text-3); text-transform: uppercase;">Student Participation</div>
-                        <div style="font-size: 1.25rem; font-weight: 600; color: var(--primary);">
-                            <?= $sess['response_count'] ?> / <?= $sess['assigned_count'] ?> Reports
-                        </div>
-                    </div>
-                </div>
 
-                <div style="padding: 1.5rem;">
                     <?php if (empty($topic_reports)): ?>
-                        <p style="color: var(--text-3); font-style: italic; text-align: center; padding: 1rem;">Waiting for student responses...</p>
+                        <div class="ux-empty-panel" style="min-height: 140px;">
+                            <span class="ux-feature-mark">WT</span>
+                            <strong>Waiting for student responses</strong>
+                            <span>Reported topics will appear here once students submit.</span>
+                        </div>
                     <?php else: ?>
-                        <table style="width: 100%; border-collapse: collapse;">
-                            <thead>
-                                <tr style="text-align: left; font-size: 12px; color: var(--text-3); text-transform: uppercase;">
-                                    <th style="padding: 0.5rem 0;">Unit</th>
-                                    <th style="padding: 0.5rem 0;">Topic Reported by Students</th>
-                                    <th style="padding: 0.5rem 0; text-align: center;">Confidence</th>
-                                    <th style="padding: 0.5rem 0; text-align: right;">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($topic_reports as $tr): 
-                                    // Check if already verified in lecture_records
-                                    $checkV = $conn->prepare("SELECT 1 FROM lecture_records WHERE class_subject_id = ? AND topic_id = ? AND lecture_date = ?");
-                                    $checkV->bind_param("iis", $sess['class_subject_id'], $tr['id'], $sess['session_date']);
-                                    $checkV->execute();
-                                    $is_verified = $checkV->get_result()->num_rows > 0;
-                                    
-                                    $confidence = ($sess['response_count'] > 0) ? ($tr['vote_count'] / $sess['response_count'] * 100) : 0;
-                                ?>
-                                    <tr style="border-bottom: 1px solid var(--border);">
-                                        <td style="padding: 1rem 0; width: 60px;">U<?= $tr['unit_no'] ?></td>
-                                        <td style="padding: 1rem 0;">
-                                            <div style="font-weight: 500;"><?= htmlspecialchars($tr['name']) ?></div>
-                                            <div style="font-size: 11px; color: var(--text-3);"><?= $tr['vote_count'] ?> student<?= $tr['vote_count'] > 1 ? 's' : '' ?> selected this</div>
-                                        </td>
-                                        <td style="padding: 1rem 0; text-align: center;">
-                                            <div style="display: inline-flex; align-items: center; gap: 8px;">
-                                                <div style="width: 60px; height: 6px; background: var(--bg-3); border-radius: 3px; overflow: hidden;">
-                                                    <div style="width: <?= $confidence ?>%; height: 100%; background: <?= $confidence > 50 ? 'var(--success)' : 'var(--warning)' ?>;"></div>
-                                                </div>
-                                                <span style="font-size: 12px; font-weight: 600;"><?= round($confidence) ?>%</span>
-                                            </div>
-                                        </td>
-                                        <td style="padding: 1rem 0; text-align: right;">
-                                            <?php if ($is_verified): ?>
-                                                <span class="badge badge-success">Verified</span>
-                                            <?php else: ?>
-                                                <form action="<?= $base_path ?>/api/academics/correct_topic" method="POST">
-                                                    <input type="hidden" name="session_id" value="<?= $sess['id'] ?>">
-                                                    <input type="hidden" name="topic_id" value="<?= $tr['id'] ?>">
-                                                    <input type="hidden" name="action" value="verify">
-                                                    <button type="submit" class="btn btn-sm btn-primary">Verify & Log</button>
-                                                </form>
-                                            <?php endif; ?>
-                                        </td>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Unit</th>
+                                        <th>Topic Reported</th>
+                                        <th style="text-align: center;">Confidence</th>
+                                        <th style="text-align: right;">Action</th>
                                     </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($topic_reports as $tr): ?>
+                                        <?php
+                                        $checkV = $conn->prepare("SELECT 1 FROM lecture_records WHERE class_subject_id = ? AND topic_id = ? AND lecture_date = ?");
+                                        $checkV->bind_param("iis", $sess['class_subject_id'], $tr['id'], $sess['session_date']);
+                                        $checkV->execute();
+                                        $is_verified = $checkV->get_result()->num_rows > 0;
+                                        $confidence = ($sess['response_count'] > 0) ? ($tr['vote_count'] / $sess['response_count'] * 100) : 0;
+                                        ?>
+                                        <tr>
+                                            <td>U<?= (int) $tr['unit_no'] ?></td>
+                                            <td>
+                                                <div style="font-weight: 750;"><?= htmlspecialchars($tr['name']) ?></div>
+                                                <div style="font-size: 0.78rem; color: var(--text-3);"><?= (int) $tr['vote_count'] ?> student<?= (int) $tr['vote_count'] === 1 ? '' : 's' ?> selected this</div>
+                                            </td>
+                                            <td style="text-align: center;">
+                                                <div style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                                                    <span class="ux-progress-bar"><span style="width: <?= round($confidence) ?>%; background: <?= $confidence > 50 ? 'var(--success)' : 'var(--warning)' ?>;"></span></span>
+                                                    <strong><?= round($confidence) ?>%</strong>
+                                                </div>
+                                            </td>
+                                            <td style="text-align: right;">
+                                                <?php if ($is_verified): ?>
+                                                    <span class="badge badge-success">Verified</span>
+                                                <?php else: ?>
+                                                    <form action="<?= $base_path ?>/api/academics/correct_topic" method="POST">
+                                                        <input type="hidden" name="session_id" value="<?= (int) $sess['id'] ?>">
+                                                        <input type="hidden" name="topic_id" value="<?= (int) $tr['id'] ?>">
+                                                        <input type="hidden" name="action" value="verify">
+                                                        <button type="submit" class="btn btn-sm btn-primary">Verify & Log</button>
+                                                    </form>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
                     <?php endif; ?>
-                </div>
-            </div>
-        <?php endforeach; ?>
+                </section>
+            <?php endforeach; ?>
+        </div>
     <?php endif; ?>
 </div>
 

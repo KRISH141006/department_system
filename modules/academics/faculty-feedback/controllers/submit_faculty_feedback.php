@@ -1,11 +1,14 @@
 <?php
 require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
+require_once __DIR__ . '/../../../../shared/helpers/notifications.php';
 
 if (!has_permission('view_student_dashboard')) {
     header("Location: $base_path/dashboard");
     exit();
 }
+
+ensure_notifications_table($conn);
 
 $student_id = (int) $_SESSION['user_id'];
 $form_id    = (int) ($_POST['form_id'] ?? 0);
@@ -21,10 +24,17 @@ try {
     $conn->begin_transaction();
 
     // 1. Verify form is active
-    $check = $conn->prepare("SELECT status FROM feedback_forms WHERE id = ?");
+    $check = $conn->prepare("
+        SELECT ff.status, ff.faculty_id, ff.title, s.name as subject_name
+        FROM feedback_forms ff
+        JOIN class_subjects cs ON cs.id = ff.class_subject_id
+        JOIN subjects s ON s.id = cs.subject_id
+        WHERE ff.id = ?
+    ");
     $check->bind_param("i", $form_id);
     $check->execute();
-    if ($check->get_result()->fetch_assoc()['status'] !== 'active') {
+    $form = $check->get_result()->fetch_assoc();
+    if (!$form || $form['status'] !== 'active') {
         throw new Exception("This feedback form is no longer active.");
     }
 
@@ -52,6 +62,16 @@ try {
         $stmt->bind_param("iiiis", $form_id, $q_id, $student_id, $rating, $answer_text);
         $stmt->execute();
     }
+
+    create_notification(
+        $conn,
+        (int) $form['faculty_id'],
+        'faculty_feedback_response',
+        'Feedback response received',
+        "A student submitted anonymous feedback for " . $form['title'] . " (" . $form['subject_name'] . ").",
+        "$base_path/academics/feedback_results?form_id=$form_id",
+        null
+    );
 
     $conn->commit();
     $_SESSION['msg_success'] = "Your evaluation has been submitted anonymously. Thank you!";

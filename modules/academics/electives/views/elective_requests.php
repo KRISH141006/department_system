@@ -30,19 +30,31 @@ $query = "
     ORDER BY MIN(ecr.created_at) DESC
 ";
 $requests = $conn->query($query)->fetch_all(MYSQLI_ASSOC);
+$pending_count = count(array_filter($requests, function($request) {
+    return ($request['status'] ?? '') === 'pending';
+}));
 
 $page_title = "Elective Unlock Requests";
 require_once __DIR__ . '/../../../../shared/layout/header.php';
 ?>
 
 <div class="wrapper">
-    <div class="section-header" style="margin-top: 0;">
-        <div>
-            <h1 class="page-title">Elective Control</h1>
-            <p class="page-subtitle">Review and authorize faculty requests to modify elective enrollments.</p>
+    <section class="ux-workspace-hero">
+        <div class="ux-workspace-hero-main">
+            <span class="ux-kicker">Administration Queue</span>
+            <h1 class="ux-hero-title">Elective Control</h1>
+            <p class="ux-hero-copy">Review faculty requests to unlock elective enrollment changes and process them with clear status tracking.</p>
         </div>
-    </div>
+        <aside class="ux-workspace-hero-side">
+            <span class="ux-subtle-note">Request snapshot</span>
+            <div class="ux-stat-grid">
+                <div class="ux-stat-card"><strong><?= count($requests) ?></strong><span>Total</span></div>
+                <div class="ux-stat-card <?= $pending_count > 0 ? 'is-warm' : 'is-good' ?>"><strong><?= $pending_count ?></strong><span>Pending</span></div>
+            </div>
+        </aside>
+    </section>
 
+    <section class="ux-section-card ux-compact-table-card">
     <div class="table-container">
         <table>
             <thead>
@@ -58,7 +70,6 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                 <?php if (empty($requests)): ?>
                     <tr>
                         <td colspan="5" style="padding: 4rem; text-align: center; color: var(--text-3);">
-                            <div style="font-size: 2rem; margin-bottom: 1rem;">🍃</div>
                             No active unlock requests in the queue.
                         </td>
                     </tr>
@@ -105,6 +116,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
             </tbody>
         </table>
     </div>
+    </section>
 </div>
 
 <?php require_once __DIR__ . '/../../../../shared/layout/footer.php'; ?>

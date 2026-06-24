@@ -69,6 +69,7 @@ return [
     '/api/community/submit_review' => 'modules/community/skill-review/controllers/submit_review.php',
     '/api/community/submit_request' => 'modules/community/skill-review/controllers/submit_request.php',
     '/api/community/accept_request' => 'modules/community/skill-review/controllers/accept_request.php',
+    '/api/notifications/mark_read' => 'modules/notifications/controllers/mark_read.php',
     '/api/community/save_profile' => 'modules/community/profile/controllers/save_profile.php',
     '/api/productivity/submit_assignment' => 'modules/academics/assignments/controllers/submit_assignment.php',
     '/api/productivity/delete_task' => 'modules/productivity/tasks/controllers/delete_task.php',

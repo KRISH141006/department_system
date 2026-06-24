@@ -29,14 +29,23 @@ while ($row = $rp_query->fetch_assoc()) {
 ?>
 
 <div class="wrapper">
-    <div class="section-header" style="margin-top: 0;">
-        <div>
-            <h1 class="page-title">Rights Management</h1>
-            <p class="page-subtitle">Configure granular access controls and dynamic permissions for all system roles.</p>
+    <section class="ux-workspace-hero">
+        <div class="ux-workspace-hero-main">
+            <span class="ux-kicker">Administration</span>
+            <h1 class="ux-hero-title">Rights Management</h1>
+            <p class="ux-hero-copy">Configure granular access controls for every system role. Keep changes deliberate because they affect active workflows immediately.</p>
         </div>
-    </div>
+        <aside class="ux-workspace-hero-side">
+            <span class="ux-subtle-note">Access snapshot</span>
+            <div class="ux-stat-grid">
+                <div class="ux-stat-card"><strong><?= count($all_perms) ?></strong><span>Permissions</span></div>
+                <div class="ux-stat-card"><strong><?= count($roles) ?></strong><span>Roles</span></div>
+            </div>
+        </aside>
+    </section>
 
     <form action="<?= $base_path ?>/api/admin/save_permissions" method="POST">
+        <section class="ux-section-card ux-compact-table-card">
         <div class="table-container">
             <table>
                 <thead>
@@ -70,9 +79,10 @@ while ($row = $rp_query->fetch_assoc()) {
                 </tbody>
             </table>
         </div>
+        </section>
 
-        <div style="margin-top: 2.5rem; display: flex; justify-content: flex-end; gap: 1rem; align-items: center;">
-            <p style="font-size: 0.85rem; color: var(--text-3); margin-right: auto;">⚠️ Changes take effect immediately for all logged-in users.</p>
+        <div class="ux-submit-row">
+            <p style="font-size: 0.85rem; color: var(--text-3); margin-right: auto;">Changes take effect immediately for all logged-in users.</p>
             <a href="<?= $base_path ?>/dashboard" class="btn btn-secondary">Discard Changes</a>
             <button type="submit" class="btn btn-primary" style="padding-left: 2.5rem; padding-right: 2.5rem;">Save Permissions</button>
         </div>

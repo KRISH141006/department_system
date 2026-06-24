@@ -12,10 +12,16 @@ $base_path = str_replace($doc_root, '', $proj_root);
 $base_path = '/' . ltrim(str_replace('\\', '/', $base_path), '/');
 $base_path = rtrim($base_path, '/');
 
-// Fetch Avatar
+// Fetch avatar and notifications
 $user_avatar = 'male';
+$notifications = [];
+$unread_notifications = 0;
+$has_notifications = false;
+
 if ($user_id) {
     require_once __DIR__ . '/../../shared/config/db.php';
+    require_once __DIR__ . '/../../shared/helpers/notifications.php';
+
     $stmt = $conn->prepare("SELECT avatar FROM users WHERE id = ?");
     if ($stmt) {
         $stmt->bind_param("i", $user_id);
@@ -25,31 +31,11 @@ if ($user_id) {
             $user_avatar = $res->fetch_assoc()['avatar'] ?? 'male';
         }
     }
-}
 
-// Check for live meetings (Student feature)
-$has_live = false;
-$live_meetings = null;
-if ($is_student) {
-    $s_sql = "SELECT class_id FROM students WHERE user_id = ?";
-    $s_stmt = $conn->prepare($s_sql);
-    $s_stmt->bind_param("i", $user_id);
-    $s_stmt->execute();
-    $s_user = $s_stmt->get_result()->fetch_assoc();
-    
-    if ($s_user && !empty($s_user['class_id'])) {
-        $m_sql = "SELECT ls.*, u.name as faculty_name, COALESCE(t.name, s.name) as topic 
-                  FROM live_sessions ls 
-                  JOIN users u ON ls.faculty_id = u.id 
-                  LEFT JOIN topics t ON ls.topic_id = t.id
-                  LEFT JOIN subjects s ON ls.subject_id = s.id
-                  WHERE ls.class_id = ? AND ls.status = 'live' 
-                  ORDER BY ls.started_at DESC";
-        $m_stmt = $conn->prepare($m_sql);
-        $m_stmt->bind_param("i", $s_user['class_id']);
-        $m_stmt->execute();
-        $live_meetings = $m_stmt->get_result();
-        $has_live = $live_meetings->num_rows > 0;
+    if (ensure_notifications_table($conn)) {
+        $notifications = get_user_notifications($conn, (int) $user_id, 10);
+        $unread_notifications = get_unread_notification_count($conn, (int) $user_id);
+        $has_notifications = $unread_notifications > 0;
     }
 }
 
@@ -106,13 +92,84 @@ function render_avatar($avatar, $male_svg, $female_svg, $base_path) {
     if ($avatar === 'female') return $female_svg;
     return '<img src="' . $base_path . '/' . htmlspecialchars($avatar) . '" alt="Avatar" style="width:100%; height:100%; object-fit:cover;">';
 }
+
+$ux_services = [];
+$ux_service_groups = [];
+function add_ux_service(&$services, &$groups, $group, $label, $href, $keywords = '', $mark = '') {
+    $item = [
+        'group' => $group,
+        'label' => $label,
+        'href' => $href,
+        'keywords' => $keywords,
+        'mark' => $mark ?: strtoupper(substr($label, 0, 1))
+    ];
+    $services[] = $item;
+    if (!isset($groups[$group])) {
+        $groups[$group] = [];
+    }
+    $groups[$group][] = $item;
+}
+
+if ($user_id) {
+    add_ux_service($ux_services, $ux_service_groups, 'Home', 'Dashboard', "$base_path/dashboard", 'home overview landing today', 'D');
+    add_ux_service($ux_services, $ux_service_groups, 'Account', 'Profile', "$base_path/community/profile", 'account avatar personal details profile settings', 'P');
+
+    if ($role === 'student') {
+        add_ux_service($ux_services, $ux_service_groups, 'Academics', 'Academics Dashboard', "$base_path/academics/student_dashboard", 'subjects class dashboard student academics', 'A');
+        add_ux_service($ux_services, $ux_service_groups, 'Academics', 'Assigned Tasks', "$base_path/academics/assigned_tasks", 'assignments homework submissions tasks academic work', 'AT');
+        add_ux_service($ux_services, $ux_service_groups, 'Academics', 'Select Electives', "$base_path/academics/select_electives", 'elective selection enrollment subjects', 'EL');
+        add_ux_service($ux_services, $ux_service_groups, 'Academics', 'Syllabus Progress', "$base_path/academics/student_progress", 'verification syllabus progress reports history', 'SP');
+        add_ux_service($ux_services, $ux_service_groups, 'Feedback', 'Anonymous Feedback', "$base_path/academics/continuous_feedback", 'anonymous feedback faculty subject suggestion', 'AF');
+        add_ux_service($ux_services, $ux_service_groups, 'Community', 'Skill Review', "$base_path/community/request", 'community skill review request', 'SR');
+        add_ux_service($ux_services, $ux_service_groups, 'Community', 'Leaderboard', "$base_path/community/leaderboard", 'community score ranking leaderboard', 'LB');
+        add_ux_service($ux_services, $ux_service_groups, 'Productivity', 'Productivity Center', "$base_path/productivity/index", 'personal tasks assigned tasks productivity', 'PR');
+        add_ux_service($ux_services, $ux_service_groups, 'Productivity', 'Personal Tasks', "$base_path/productivity/tasks", 'todo private task deadline priority', 'PT');
+    } elseif ($role === 'faculty') {
+        add_ux_service($ux_services, $ux_service_groups, 'Teaching', 'Faculty Hub', "$base_path/academics/faculty_dashboard", 'faculty dashboard teaching overview', 'FH');
+        add_ux_service($ux_services, $ux_service_groups, 'Teaching', 'Create Subject', "$base_path/academics/create_subject", 'subject syllabus units topics elective core', 'CS');
+        add_ux_service($ux_services, $ux_service_groups, 'Teaching', 'Assign Task', "$base_path/academics/assign_task", 'assignment task deadline resource students', 'AT');
+        add_ux_service($ux_services, $ux_service_groups, 'Teaching', 'Assignment Submissions', "$base_path/academics/submissions", 'submissions grading review assignment', 'AS');
+        add_ux_service($ux_services, $ux_service_groups, 'Teaching', 'Assignment History', "$base_path/academics/assigned_tasks_history", 'assigned task history previous assignments', 'AH');
+        add_ux_service($ux_services, $ux_service_groups, 'Teaching', 'Syllabus Verification', "$base_path/academics/syllabus_verification", 'verify syllabus student reports progress', 'SV');
+        add_ux_service($ux_services, $ux_service_groups, 'Teaching', 'Host Live Class', "$base_path/academics/host_meeting", 'live class meeting video host', 'LC');
+        add_ux_service($ux_services, $ux_service_groups, 'Feedback', 'Create Feedback', "$base_path/academics/create_feedback", 'faculty feedback form questions rating', 'CF');
+        add_ux_service($ux_services, $ux_service_groups, 'Feedback', 'Feedback History', "$base_path/academics/feedback_history", 'student feedback results anonymous history', 'FH');
+        add_ux_service($ux_services, $ux_service_groups, 'Class Work', 'Class Hub', "$base_path/academics/manage_class", 'class roster coordinator students manage', 'CH');
+        add_ux_service($ux_services, $ux_service_groups, 'Productivity', 'Personal Tasks', "$base_path/productivity/tasks", 'todo private task deadline priority', 'PT');
+        if (has_permission('review_requests')) {
+            add_ux_service($ux_services, $ux_service_groups, 'Community', 'Review Dashboard', "$base_path/community/reviewer_dashboard", 'skill review requests community', 'RD');
+        }
+    } elseif ($role === 'expert') {
+        add_ux_service($ux_services, $ux_service_groups, 'Community', 'Review Dashboard', "$base_path/community/reviewer_dashboard", 'skill review requests expert', 'RD');
+    } elseif ($role === 'admin') {
+        add_ux_service($ux_services, $ux_service_groups, 'Administration', 'Academics Hub', "$base_path/academics/manage_subjects", 'subjects academics classes syllabus', 'AH');
+        add_ux_service($ux_services, $ux_service_groups, 'Administration', 'Class Hub', "$base_path/academics/manage_class", 'class students roster manage', 'CH');
+        add_ux_service($ux_services, $ux_service_groups, 'Administration', 'Rights Management', "$base_path/admin/manage_permissions", 'permissions roles access rights', 'RM');
+        add_ux_service($ux_services, $ux_service_groups, 'Administration', 'Class Coordinators', "$base_path/admin/manage_cc", 'faculty class coordinator assign', 'CC');
+        add_ux_service($ux_services, $ux_service_groups, 'Administration', 'Elective Requests', "$base_path/admin/elective_requests", 'elective unlock requests approve reject', 'ER');
+        add_ux_service($ux_services, $ux_service_groups, 'Administration', 'Semester Hub', "$base_path/admin/semester", 'semester end management admin', 'SH');
+        add_ux_service($ux_services, $ux_service_groups, 'Feedback', 'Feedback Panel', "$base_path/academics/admin_feedback_panel", 'anonymous feedback admin panel', 'FP');
+        if (has_permission('review_requests')) {
+            add_ux_service($ux_services, $ux_service_groups, 'Community', 'Review Dashboard', "$base_path/community/reviewer_dashboard", 'skill review requests community', 'RD');
+        }
+    }
+}
+
+$current_path = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '';
+$app_path = $base_path !== '' ? preg_replace('#^' . preg_quote($base_path, '#') . '#', '', $current_path) : $current_path;
+$app_path = '/' . trim($app_path, '/');
+$area_label = 'Workspace';
+if (strpos($app_path, '/academics') === 0) $area_label = 'Academics';
+elseif (strpos($app_path, '/community') === 0) $area_label = 'Community';
+elseif (strpos($app_path, '/productivity') === 0) $area_label = 'Productivity';
+elseif (strpos($app_path, '/admin') === 0) $area_label = 'Administration';
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars($page_title) ?> — Department System</title>
+    <title><?= htmlspecialchars($page_title) ?> - Department System</title>
     
     <!-- Theme Guard -->
     <script>
@@ -125,7 +182,7 @@ function render_avatar($avatar, $male_svg, $female_svg, $base_path) {
     <link rel="stylesheet" href="<?= $base_path ?>/assets/css/style.css?v=<?= filemtime(__DIR__ . '/../../assets/css/style.css') ?>">
     <link rel="stylesheet" href="<?= $base_path ?>/assets/css/professional.css?v=<?= filemtime(__DIR__ . '/../../assets/css/professional.css') ?>">
 </head>
-<body class="<?= $is_student ? 'student-portal' : '' ?>">
+<body class="<?= $is_student ? 'student-portal' : '' ?>" data-role="<?= htmlspecialchars($role) ?>" data-area="<?= htmlspecialchars(strtolower($area_label)) ?>" data-base-path="<?= htmlspecialchars($base_path) ?>">
 
 <?php if ($show_nav && $user_id): ?>
 <div id="gcScrim" class="gc-scrim" onclick="closeSidebar()"></div>
@@ -142,67 +199,50 @@ function render_avatar($avatar, $male_svg, $female_svg, $base_path) {
         <span style="font-weight: 500; font-size: 20px; color: var(--text-2); margin-left: 8px;">Menu</span>
     </div>
     <div class="sidebar-content">
-        <a href="<?= $base_path ?>/dashboard" class="sidebar-link <?= strpos($_SERVER['PHP_SELF'], 'modules/dashboard/views/index.php') !== false ? 'active' : '' ?>">
-            <i>🏠</i> Dashboard
-        </a>
-        
-        <?php if ($role === 'student'): ?>
-            <a href="<?= $base_path ?>/productivity/index" class="sidebar-link <?= strpos($_SERVER['PHP_SELF'], 'productivity') !== false ? 'active' : '' ?>">
-                <i><?= $productivity_icon ?></i> Productivity
-            </a>
-            <a href="<?= $base_path ?>/academics/student_dashboard" class="sidebar-link <?= strpos($_SERVER['PHP_SELF'], 'student_dashboard.php') !== false ? 'active' : '' ?>">
-                <i><?= $academic_icon ?></i> Academics
-            </a>
-            <a href="<?= $base_path ?>/community/request" class="sidebar-link <?= strpos($_SERVER['PHP_SELF'], 'community') !== false ? 'active' : '' ?>">
-                <i><?= $community_icon ?></i> Community
-            </a>
-            <a href="<?= $base_path ?>/academics/continuous_feedback" class="sidebar-link <?= strpos($_SERVER['PHP_SELF'], 'continuous_feedback.php') !== false ? 'active' : '' ?>">
-                <i>💬</i> Anonymous Feedback
-            </a>
-        <?php elseif ($role === 'faculty'): ?>
-            <a href="<?= $base_path ?>/academics/faculty_dashboard" class="sidebar-link <?= strpos($_SERVER['PHP_SELF'], 'faculty_dashboard.php') !== false ? 'active' : '' ?>">
-                <i><?= $academic_icon ?></i> Faculty Hub
-            </a>
-            <?php if (has_permission('review_requests')): ?>
-                <a href="<?= $base_path ?>/community/reviewer_dashboard" class="sidebar-link <?= strpos($_SERVER['PHP_SELF'], 'reviewer_dashboard.php') !== false ? 'active' : '' ?>">
-                    <i>📋</i> Review Dashboard
-                </a>
-            <?php endif; ?>
-            <a href="<?= $base_path ?>/productivity/tasks" class="sidebar-link <?= strpos($_SERVER['PHP_SELF'], 'productivity') !== false ? 'active' : '' ?>">
-                <i><?= $productivity_icon ?></i> Productivity
-            </a>
-        <?php elseif ($role === 'expert'): ?>
-            <a href="<?= $base_path ?>/community/reviewer_dashboard" class="sidebar-link <?= strpos($_SERVER['PHP_SELF'], 'reviewer_dashboard.php') !== false ? 'active' : '' ?>">
-                <i>📋</i> Review Dashboard
-            </a>
-        <?php elseif ($role === 'admin'): ?>
-            <a href="<?= $base_path ?>/academics/manage_subjects" class="sidebar-link <?= strpos($_SERVER['PHP_SELF'], 'manage_subjects.php') !== false ? 'active' : '' ?>">
-                <i><?= $academic_icon ?></i> Manage Academics
-            </a>
-            <?php if (has_permission('review_requests')): ?>
-                <a href="<?= $base_path ?>/community/reviewer_dashboard" class="sidebar-link <?= strpos($_SERVER['PHP_SELF'], 'reviewer_dashboard.php') !== false ? 'active' : '' ?>">
-                    <i>📋</i> Review Dashboard
-                </a>
-            <?php endif; ?>
-            <a href="<?= $base_path ?>/admin/manage_permissions" class="sidebar-link <?= strpos($_SERVER['PHP_SELF'], 'manage_permissions.php') !== false ? 'active' : '' ?>">
-                <i>🔐</i> Rights Management
-            </a>
-            <a href="<?= $base_path ?>/admin/manage_cc" class="sidebar-link <?= strpos($_SERVER['PHP_SELF'], 'manage_cc.php') !== false ? 'active' : '' ?>">
-                <i>👥</i> Class Coordinators
-            </a>
-            <a href="<?= $base_path ?>/admin/elective_requests" class="sidebar-link <?= strpos($_SERVER['PHP_SELF'], 'elective_requests.php') !== false ? 'active' : '' ?>">
-                <i>🗳️</i> Elective Requests
-            </a>
-            <a href="<?= $base_path ?>/academics/admin_feedback_panel" class="sidebar-link <?= strpos($_SERVER['PHP_SELF'], 'admin_feedback_panel.php') !== false ? 'active' : '' ?>">
-                <i>💬</i> Feedback Panel
-            </a>
-            <a href="<?= $base_path ?>/academics/manage_class" class="sidebar-link <?= strpos($_SERVER['PHP_SELF'], 'class-management') !== false ? 'active' : '' ?>">
-                <i>🏫</i> Class Hub
-            </a>
-            <a href="<?= $base_path ?>/admin/semester" class="sidebar-link <?= strpos($_SERVER['PHP_SELF'], 'semester') !== false ? 'active' : '' ?>">
-                <i>📅</i> Semester Hub
-            </a>
-        <?php endif; ?>
+        <button type="button" class="ux-sidebar-search" data-open-command-palette>
+            <span>Search services</span>
+            <kbd>Ctrl K</kbd>
+        </button>
+
+        <?php $group_index = 0; ?>
+        <?php foreach ($ux_service_groups as $group => $items): ?>
+            <?php
+                $group_slug = trim(strtolower(preg_replace('/[^a-z0-9]+/i', '-', (string) $group)), '-');
+                $group_slug = $group_slug !== '' ? $group_slug : 'service-group';
+                $group_key = $group_slug . '-' . $group_index++;
+                $group_active = false;
+
+                foreach ($items as $item) {
+                    if (rtrim($current_path, '/') === rtrim($item['href'], '/')) {
+                        $group_active = true;
+                        break;
+                    }
+                }
+            ?>
+            <div class="ux-service-group <?= $group_active ? 'is-open is-current' : '' ?>" data-sidebar-group="<?= htmlspecialchars($group_key) ?>">
+                <button
+                    type="button"
+                    class="ux-service-group-toggle"
+                    aria-expanded="<?= $group_active ? 'true' : 'false' ?>"
+                    aria-controls="sidebar-group-<?= htmlspecialchars($group_key) ?>"
+                    data-sidebar-group-toggle
+                >
+                    <span class="ux-service-group-name"><?= htmlspecialchars($group) ?></span>
+                    <span class="ux-service-group-count"><?= count($items) ?></span>
+                    <span class="ux-service-group-arrow" aria-hidden="true"></span>
+                </button>
+                <div class="ux-service-group-panel" id="sidebar-group-<?= htmlspecialchars($group_key) ?>" <?= $group_active ? '' : 'hidden' ?>>
+                    <div class="ux-service-group-panel-inner">
+                        <?php foreach ($items as $item): ?>
+                            <?php $is_active = rtrim($current_path, '/') === rtrim($item['href'], '/'); ?>
+                            <a href="<?= htmlspecialchars($item['href']) ?>" class="sidebar-link <?= $is_active ? 'active' : '' ?>">
+                                <i><?= htmlspecialchars($item['mark']) ?></i> <?= htmlspecialchars($item['label']) ?>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+            </div>
+        <?php endforeach; ?>
 
         <div style="margin: 8px 0; border-top: 1px solid var(--border);"></div>
         
@@ -242,25 +282,55 @@ function render_avatar($avatar, $male_svg, $female_svg, $base_path) {
     
     <nav class="header-nav" style="display: flex; align-items: center; gap: 1rem; position: relative;">
         <?php if ($user_id): ?>
-            <div class="nav-icon-link notification-trigger <?= $has_live ? 'ringing' : '' ?>" title="Notifications" onclick="toggleNotifications()">
-                <?= $notification_icon ?>
-                <?php if ($has_live): ?>
-                    <span class="notification-ping"></span>
-                <?php endif; ?>
-
-                <?php if ($has_live): ?>
-                    <div id="notif-dropdown" class="card" style="display: none; position: absolute; top: 50px; right: 0; width: 300px; z-index: 1001; padding: 1.5rem; box-shadow: var(--shadow-lg); background: var(--surface); text-align: left;">
-                        <h4 style="margin: 0 0 1rem 0; font-size: 0.9rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; color: var(--text);">Live Class Alerts</h4>
-                        <?php while($m = $live_meetings->fetch_assoc()): ?>
-                            <div style="padding: 0.75rem 0; border-bottom: 1px solid var(--border); margin-bottom: 0.5rem;">
-                                <p style="margin: 0; font-weight: 700; color: var(--error); font-size: 0.7rem; text-transform: uppercase;">🔴 LIVE NOW</p>
-                                <p style="margin: 0.25rem 0; font-size: 0.85rem; color: var(--text);"><strong><?= htmlspecialchars($m['topic']) ?></strong></p>
-                                <p style="margin: 0; font-size: 0.75rem; color: var(--text-2);">By <?= htmlspecialchars($m['faculty_name']) ?></p>
-                                <a href="<?= $base_path ?>/academics/join_class?room=<?= htmlspecialchars($m['room_code']) ?>" class="btn btn-sm btn-primary" style="width: 100%; margin-top: 0.75rem;">Join Classroom</a>
-                            </div>
-                        <?php endwhile; ?>
+            <button type="button" class="ux-command-trigger" data-open-command-palette aria-label="Search services">
+                <span>Search services</span>
+                <kbd>Ctrl K</kbd>
+            </button>
+            <div class="notification-shell">
+                <button type="button" class="nav-icon-link notification-trigger <?= $has_notifications ? 'ringing has-unread' : '' ?>" title="Notifications" aria-label="Notifications" aria-expanded="false" onclick="toggleNotifications(event)">
+                    <?= $notification_icon ?>
+                    <?php if ($has_notifications): ?>
+                        <span class="notification-ping"></span>
+                        <span class="notification-count"><?= $unread_notifications > 9 ? '9+' : (int) $unread_notifications ?></span>
+                    <?php endif; ?>
+                </button>
+                <div id="notif-dropdown" class="notification-panel" hidden data-mark-url="<?= $base_path ?>/api/notifications/mark_read">
+                    <div class="notification-panel-header">
+                        <div>
+                            <h4>Notifications</h4>
+                            <p><?= $unread_notifications > 0 ? $unread_notifications . ' unread update' . ($unread_notifications > 1 ? 's' : '') : 'All caught up' ?></p>
+                        </div>
+                        <?php if ($unread_notifications > 0): ?>
+                            <button type="button" class="notification-mark-all" data-notification-mark-all>Mark all read</button>
+                        <?php endif; ?>
                     </div>
-                <?php endif; ?>
+
+                    <?php if (empty($notifications)): ?>
+                        <div class="notification-empty">
+                            <strong>No notifications yet</strong>
+                            <span>Important academic and community updates will appear here.</span>
+                        </div>
+                    <?php else: ?>
+                        <div class="notification-list">
+                            <?php foreach ($notifications as $notification): ?>
+                                <?php
+                                    $notification_link = $notification['link_url'] ?: "$base_path/dashboard";
+                                    $is_unread = ((int) $notification['is_read'] === 0);
+                                ?>
+                                <a href="<?= htmlspecialchars($notification_link) ?>"
+                                   class="notification-item <?= $is_unread ? 'is-unread' : '' ?>"
+                                   data-notification-id="<?= (int) $notification['id'] ?>">
+                                    <span class="notification-dot"></span>
+                                    <span class="notification-content">
+                                        <strong><?= htmlspecialchars($notification['title']) ?></strong>
+                                        <span><?= htmlspecialchars($notification['message']) ?></span>
+                                        <time><?= date('d M, h:i A', strtotime($notification['created_at'])) ?></time>
+                                    </span>
+                                </a>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
             </div>
 
             <a href="<?= $base_path ?>/community/profile" class="avatar-trigger" title="Profile" aria-label="Open profile">
@@ -274,6 +344,27 @@ function render_avatar($avatar, $male_svg, $female_svg, $base_path) {
     </nav>
   </div>
 </header>
+
+<?php if ($show_nav && $user_id): ?>
+<script>
+window.AppUX = {
+    basePath: <?= json_encode($base_path) ?>,
+    role: <?= json_encode($role) ?>,
+    services: <?= json_encode($ux_services, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>
+};
+</script>
+<div class="ux-breadcrumb-bar">
+    <div class="ux-breadcrumb-inner">
+        <a href="<?= $base_path ?>/dashboard">Dashboard</a>
+        <?php if ($area_label !== 'Workspace'): ?>
+            <span>/</span>
+            <span><?= htmlspecialchars($area_label) ?></span>
+        <?php endif; ?>
+        <span>/</span>
+        <strong><?= htmlspecialchars($page_title) ?></strong>
+    </div>
+</div>
+<?php endif; ?>
 
 <script>
 function openSidebar() {
@@ -306,11 +397,27 @@ function toggleTheme() {
     }, 150);
 }
 
-function toggleNotifications() {
+function toggleNotifications(event) {
+    if (event) event.stopPropagation();
     const dropdown = document.getElementById('notif-dropdown');
+    const trigger = document.querySelector('.notification-trigger');
     if (dropdown) {
-        dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+        const willOpen = dropdown.hidden;
+        dropdown.hidden = !willOpen;
+        if (trigger) trigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
     }
+}
+
+function markNotification(payload) {
+    const dropdown = document.getElementById('notif-dropdown');
+    const endpoint = dropdown ? dropdown.dataset.markUrl : '';
+    if (!endpoint) return Promise.resolve();
+
+    return fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(payload)
+    }).catch(() => {});
 }
 
 // Close menus on click outside
@@ -318,7 +425,40 @@ window.addEventListener('click', (e) => {
     const notifTrigger = document.querySelector('.notification-trigger');
     const notifMenu = document.getElementById('notif-dropdown');
     if (notifTrigger && !notifTrigger.contains(e.target) && notifMenu && !notifMenu.contains(e.target)) {
-        notifMenu.style.display = 'none';
+        notifMenu.hidden = true;
+        notifTrigger.setAttribute('aria-expanded', 'false');
+    }
+});
+
+window.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.notification-item[data-notification-id]').forEach((item) => {
+        item.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+
+            const target = item.getAttribute('href') || '#';
+            const id = item.dataset.notificationId;
+            markNotification({ id }).finally(() => {
+                window.location.href = target;
+            });
+        });
+    });
+
+    const markAll = document.querySelector('[data-notification-mark-all]');
+    if (markAll) {
+        markAll.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+
+            markNotification({ all: '1' }).finally(() => {
+                document.querySelectorAll('.notification-item.is-unread').forEach((item) => item.classList.remove('is-unread'));
+                document.querySelectorAll('.notification-ping, .notification-count').forEach((item) => item.remove());
+                document.querySelector('.notification-trigger')?.classList.remove('has-unread', 'ringing');
+                const headerText = document.querySelector('.notification-panel-header p');
+                if (headerText) headerText.textContent = 'All caught up';
+                markAll.remove();
+            });
+        });
     }
 });
 </script>

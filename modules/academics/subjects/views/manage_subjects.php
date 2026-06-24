@@ -29,33 +29,53 @@ $subjects = $conn->query($query)->fetch_all(MYSQLI_ASSOC);
 
 // Fetch classes for stats
 $class_stats = $conn->query("SELECT semester, COUNT(*) as count FROM classes GROUP BY semester")->fetch_all(MYSQLI_ASSOC);
+$elective_count = count(array_filter($subjects, function($subject) {
+    return ($subject['type'] ?? '') === 'elective';
+}));
+$core_count = count($subjects) - $elective_count;
 ?>
 
 <div class="wrapper">
-    <div class="section-header" style="margin-top: 0;">
-        <div>
-            <h1 class="page-title">Academics Hub</h1>
-            <p class="page-subtitle">Oversee the department curriculum, subject distribution, and class structures.</p>
-        </div>
-        <div style="display: flex; gap: 0.75rem;">
-            <a href="<?= $base_path ?>/academics/create_subject" class="btn btn-primary">+ New Subject</a>
-        </div>
-    </div>
-
-    <!-- Quick Stats -->
-    <div class="grid-3" style="margin-bottom: 3rem;">
-        <div class="card card-accent-blue">
-            <h4 style="margin: 0; font-size: 0.8rem; text-transform: uppercase; color: var(--text-3);">Total Subjects</h4>
-            <div style="font-size: 2rem; font-weight: 800; margin-top: 0.5rem;"><?= count($subjects) ?></div>
-        </div>
-        <?php foreach ($class_stats as $stat): ?>
-            <div class="card">
-                <h4 style="margin: 0; font-size: 0.8rem; text-transform: uppercase; color: var(--text-3);">Semester <?= $stat['semester'] ?></h4>
-                <div style="font-size: 2rem; font-weight: 800; margin-top: 0.5rem;"><?= $stat['count'] ?> <span style="font-size: 0.9rem; font-weight: 400; color: var(--text-3);">Classes</span></div>
+    <section class="ux-workspace-hero">
+        <div class="ux-workspace-hero-main">
+            <span class="ux-kicker">Administration</span>
+            <h1 class="ux-hero-title">Academics Hub</h1>
+            <p class="ux-hero-copy">Oversee curriculum, subjects, elective distribution, and class structures from one focused control surface.</p>
+            <div class="ux-hero-actions">
+                <a href="<?= $base_path ?>/academics/create_subject" class="btn btn-primary">New Subject</a>
+                <a href="<?= $base_path ?>/academics/manage_class" class="btn btn-secondary">Class Hub</a>
             </div>
-        <?php endforeach; ?>
-    </div>
+        </div>
+        <aside class="ux-workspace-hero-side">
+            <span class="ux-subtle-note">Curriculum snapshot</span>
+            <div class="ux-stat-grid">
+                <div class="ux-stat-card"><strong><?= count($subjects) ?></strong><span>Total Subjects</span></div>
+                <div class="ux-stat-card"><strong><?= $core_count ?></strong><span>Core</span></div>
+                <div class="ux-stat-card"><strong><?= $elective_count ?></strong><span>Elective</span></div>
+            </div>
+        </aside>
+    </section>
 
+    <?php if (!empty($class_stats)): ?>
+        <section class="ux-section-card">
+            <div class="ux-section-heading">
+                <div>
+                    <h2>Class Distribution</h2>
+                    <p>Semester-wise class count for quick academic planning.</p>
+                </div>
+            </div>
+            <div class="ux-stat-grid">
+                <?php foreach ($class_stats as $stat): ?>
+                    <div class="ux-stat-card">
+                        <strong><?= (int) $stat['count'] ?></strong>
+                        <span>Semester <?= htmlspecialchars($stat['semester']) ?> Classes</span>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </section>
+    <?php endif; ?>
+
+    <section class="ux-section-card ux-compact-table-card">
     <div class="table-container">
         <table>
             <thead>
@@ -115,6 +135,7 @@ $class_stats = $conn->query("SELECT semester, COUNT(*) as count FROM classes GRO
             </tbody>
         </table>
     </div>
+    </section>
 </div>
 
 <?php require_once __DIR__ . '/../../../../shared/layout/footer.php'; ?>

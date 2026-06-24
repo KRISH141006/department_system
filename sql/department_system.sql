@@ -296,6 +296,25 @@ CREATE TABLE continuous_feedback (
         FOREIGN KEY (subject_id) REFERENCES subjects(id)      ON DELETE SET NULL
 );
 
+CREATE TABLE notifications (
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    user_id    INT NOT NULL,
+    actor_id   INT NULL,
+    type       VARCHAR(60) NOT NULL,
+    title      VARCHAR(160) NOT NULL,
+    message    TEXT NOT NULL,
+    link_url   VARCHAR(255) NULL,
+    is_read    TINYINT(1) NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    read_at    TIMESTAMP NULL,
+    INDEX idx_notifications_user_read_created (user_id, is_read, created_at),
+    INDEX idx_notifications_actor (actor_id),
+    CONSTRAINT fk_notifications_user
+        FOREIGN KEY (user_id)  REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_notifications_actor
+        FOREIGN KEY (actor_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
 
 -- ============================================================
 -- DOMAIN 6: SYLLABUS VERIFICATION (Bottom-Up)

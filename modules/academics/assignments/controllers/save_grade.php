@@ -1,11 +1,14 @@
 <?php
 require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
+require_once __DIR__ . '/../../../../shared/helpers/notifications.php';
 
 if (!has_permission('view_faculty_dashboard')) {
     header("Location: $base_path/dashboard");
     exit();
 }
+
+ensure_notifications_table($conn);
 
 $submission_id = (int) ($_POST['submission_id'] ?? 0);
 $assignment_id = (int) ($_POST['assignment_id'] ?? 0);
@@ -24,6 +27,29 @@ try {
     $stmt->bind_param("ssi", $grade, $feedback, $submission_id);
     
     if ($stmt->execute()) {
+        $infoStmt = $conn->prepare("
+            SELECT sub.student_id, a.title
+            FROM submissions sub
+            JOIN assignments a ON a.id = sub.assignment_id
+            WHERE sub.id = ?
+            LIMIT 1
+        ");
+        $infoStmt->bind_param("i", $submission_id);
+        $infoStmt->execute();
+        $submission = $infoStmt->get_result()->fetch_assoc();
+
+        if ($submission) {
+            create_notification(
+                $conn,
+                (int) $submission['student_id'],
+                'assignment_graded',
+                'Assignment graded',
+                "Your submission for " . $submission['title'] . " was graded: $grade.",
+                "$base_path/academics/view_assigned_task?id=$assignment_id",
+                (int) $_SESSION['user_id']
+            );
+        }
+
         $_SESSION['msg_success'] = "Grade and feedback saved successfully.";
     } else {
         throw new Exception($conn->error);

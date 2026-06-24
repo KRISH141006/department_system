@@ -100,16 +100,22 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
 ?>
 
 <div class="wrapper">
-    <div class="section-header" style="margin-top: 0;">
-        <div>
-            <h1 class="page-title">Class Management Hub</h1>
+    <section class="ux-workspace-hero">
+        <div class="ux-workspace-hero-main">
+            <span class="ux-kicker"><?= $role === 'admin' ? 'Administration' : 'Class Coordinator' ?></span>
+            <h1 class="ux-hero-title">Class Management Hub</h1>
             <?php if ($class_id): ?>
-                <p class="page-subtitle">Managing: <strong><?= htmlspecialchars($cc_class_name) ?></strong> | Sem <?= $cc_semester ?> | <?= htmlspecialchars($cc_branch) ?></p>
+                <p class="ux-hero-copy">Managing <?= htmlspecialchars($cc_class_name) ?>, Semester <?= htmlspecialchars($cc_semester) ?>, <?= htmlspecialchars($cc_branch) ?>.</p>
             <?php else: ?>
-                <p class="page-subtitle">Select a class to manage students and view rosters.</p>
+                <p class="ux-hero-copy">Select a class to manage students, rosters, and progress reports.</p>
             <?php endif; ?>
         </div>
-        <div style="display: flex; gap: 0.75rem;">
+        <aside class="ux-workspace-hero-side">
+            <span class="ux-subtle-note">Roster snapshot</span>
+            <div class="ux-stat-grid">
+                <div class="ux-stat-card"><strong><?= count($students) ?></strong><span>Students</span></div>
+                <div class="ux-stat-card"><strong><?= $class_id ? htmlspecialchars($cc_semester) : '-' ?></strong><span>Semester</span></div>
+            </div>
             <?php if ($role === 'admin'): ?>
                 <form action="" method="GET" style="display: flex; gap: 0.5rem; align-items: center;">
                     <select name="class_id" class="form-control" onchange="this.form.submit()" style="min-width: 200px;">
@@ -122,8 +128,8 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
                     </select>
                 </form>
             <?php endif; ?>
-        </div>
-    </div>
+        </aside>
+    </section>
 
     <?php if ($class_id): ?>
         <div class="grid-2" style="grid-template-columns: 1fr 1.5fr; align-items: start;">
@@ -217,10 +223,10 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
             </div>
         </div>
     <?php else: ?>
-        <div class="card" style="text-align: center; padding: 5rem 2rem;">
+        <div class="ux-empty-panel">
             <div style="font-size: 4rem; margin-bottom: 2rem;">👥</div>
-            <h2 class="card-title">Class Hub Access</h2>
-            <p class="card-desc" style="max-width: 500px; margin: 0 auto 2rem auto;">Please select a class from the switcher above to manage student assignments and view academic rosters.</p>
+            <strong>Class Hub Access</strong>
+            <span>Please select a class from the switcher above to manage student assignments and view academic rosters.</span>
         </div>
     <?php endif; ?>
 </div>

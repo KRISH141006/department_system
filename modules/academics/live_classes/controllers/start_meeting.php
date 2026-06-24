@@ -1,12 +1,15 @@
 <?php
 require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
+require_once __DIR__ . '/../../../../shared/helpers/notifications.php';
 require_once __DIR__ . '/../../../../vendor/autoload.php';
 
 if (!has_permission('view_faculty_dashboard')) {
     header("Location: $base_path/dashboard");
     exit();
 }
+
+ensure_notifications_table($conn);
 
 $faculty_id = (int) $_SESSION['user_id'];
 $class_id = (int) ($_POST['class_id'] ?? 0);
@@ -94,6 +97,40 @@ $t_id = $topic_id ?: null; // Handle optional topic
 $insStmt->bind_param("iiiis", $faculty_id, $class_id, $subject_id, $t_id, $meet_link);
 
 if ($insStmt->execute()) {
+    $topic_lookup_id = $topic_id ?: 0;
+    $metaStmt = $conn->prepare("
+        SELECT s.name as subject_name, t.name as topic_name, u.name as faculty_name
+        FROM subjects s
+        JOIN users u ON u.id = ?
+        LEFT JOIN topics t ON t.id = ?
+        WHERE s.id = ?
+        LIMIT 1
+    ");
+    $metaStmt->bind_param("iii", $faculty_id, $topic_lookup_id, $subject_id);
+    $metaStmt->execute();
+    $meta = $metaStmt->get_result()->fetch_assoc();
+    $topic_label = $meta['topic_name'] ?: ($meta['subject_name'] ?? 'your class');
+    $faculty_name = $meta['faculty_name'] ?? 'Your faculty';
+
+    $studentStmt = $conn->prepare("SELECT user_id FROM students WHERE class_id = ?");
+    $studentStmt->bind_param("i", $class_id);
+    $studentStmt->execute();
+    $studentRes = $studentStmt->get_result();
+    $student_ids = [];
+    while ($row = $studentRes->fetch_assoc()) {
+        $student_ids[] = (int) $row['user_id'];
+    }
+
+    create_notifications(
+        $conn,
+        $student_ids,
+        'live_class',
+        'Live class started',
+        "$faculty_name has started a live class for $topic_label.",
+        "$base_path/academics/join_class?room=" . rawurlencode($meet_link),
+        $faculty_id
+    );
+
     // Redirect to faculty live class view with the meet link urlencoded so they can open it
     header("Location: $base_path/academics/live_class?room=" . urlencode($meet_link));
 } else {

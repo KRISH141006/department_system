@@ -1,11 +1,14 @@
 <?php
 require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
+require_once __DIR__ . '/../../../../shared/helpers/notifications.php';
 
 if (!has_permission('view_faculty_dashboard')) {
     header("Location: $base_path/dashboard");
     exit();
 }
+
+ensure_notifications_table($conn);
 
 $faculty_id = (int) $_SESSION['user_id'];
 $form_id = (int) ($_POST['form_id'] ?? 0);
@@ -50,6 +53,20 @@ try {
                 $insQ->execute();
             }
         }
+
+        $context = notification_class_subject_context($conn, $class_subject_id);
+        $subject_name = $context['subject_name'] ?? 'your subject';
+        $student_ids = notification_student_ids_for_class_subject($conn, $class_subject_id);
+
+        create_notifications(
+            $conn,
+            $student_ids,
+            'faculty_feedback_form',
+            'Faculty feedback available',
+            "$title is open for $subject_name. Please submit your feedback.",
+            "$base_path/academics/faculty_feedback?form_id=$new_form_id",
+            $faculty_id
+        );
 
         $_SESSION['msg_success'] = "Feedback form published successfully.";
 

@@ -1,11 +1,14 @@
 <?php
 require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
+require_once __DIR__ . '/../../../../shared/helpers/notifications.php';
 
 if (!has_permission('view_faculty_dashboard')) {
     header("Location: $base_path/dashboard");
     exit();
 }
+
+ensure_notifications_table($conn);
 
 $faculty_id = (int) $_SESSION['user_id'];
 $today = date('Y-m-d');
@@ -13,6 +16,7 @@ $scope = $_POST['scope'] ?? 'class';
 $subject_id = (int) ($_POST['subject_id'] ?? 0);
 $class_subject_id = (int) ($_POST['class_subject_id'] ?? 0);
 $class_id = (int) ($_POST['class_id'] ?? 0);
+$subject_name = 'selected subject';
 $is_elective_scope = ($scope === 'elective' && $subject_id > 0);
 $redirect_url = $is_elective_scope
     ? "$base_path/academics/select_student?subject_id=$subject_id&scope=elective"
@@ -29,7 +33,7 @@ try {
 
     if ($is_elective_scope) {
         $ctxStmt = $conn->prepare("
-            SELECT MIN(cs.id) as class_subject_id
+            SELECT MIN(cs.id) as class_subject_id, MAX(s.name) as subject_name
             FROM faculty_subjects fs
             JOIN class_subjects cs ON fs.class_subject_id = cs.id
             JOIN subjects s ON cs.subject_id = s.id
@@ -43,6 +47,7 @@ try {
         if ($class_subject_id <= 0) {
             throw new Exception("Elective subject not found or not assigned to you.");
         }
+        $subject_name = $context['subject_name'] ?? $subject_name;
 
         $sessStmt = $conn->prepare("
             SELECT vs.id, vs.class_subject_id
@@ -55,9 +60,10 @@ try {
         $sessStmt->bind_param("iis", $faculty_id, $subject_id, $today);
     } else {
         $ctxStmt = $conn->prepare("
-            SELECT cs.class_id
+            SELECT cs.class_id, s.name as subject_name
             FROM faculty_subjects fs
             JOIN class_subjects cs ON fs.class_subject_id = cs.id
+            JOIN subjects s ON cs.subject_id = s.id
             WHERE fs.faculty_id = ? AND cs.id = ?
             LIMIT 1
         ");
@@ -70,6 +76,7 @@ try {
         }
 
         $class_id = (int) $context['class_id'];
+        $subject_name = $context['subject_name'] ?? $subject_name;
         $sessStmt = $conn->prepare("SELECT id, class_subject_id FROM verification_sessions WHERE faculty_id = ? AND class_subject_id = ? AND session_date = ?");
         $sessStmt->bind_param("iis", $faculty_id, $class_subject_id, $today);
     }
@@ -172,6 +179,16 @@ try {
         $insVA->bind_param("ii", $session_id, $sid);
         $insVA->execute();
     }
+
+    create_notifications(
+        $conn,
+        $selected_students,
+        'syllabus_verification',
+        'Syllabus verification assigned',
+        "You were selected to report today's syllabus progress for $subject_name.",
+        "$base_path/academics/lecture_feedback?session_id=$session_id",
+        $faculty_id
+    );
 
     $conn->commit();
     $_SESSION['msg_success'] = count($selected_students) . " students assigned successfully for bottom-up verification.";

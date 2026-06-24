@@ -33,27 +33,31 @@ $page_title = "Live: " . htmlspecialchars($session['subject_name']);
 require_once __DIR__ . '/../../../../shared/layout/header.php';
 ?>
 
-<div class="wrapper" style="padding: 2rem;">
+<div class="wrapper">
     <div style="max-width: 1200px; margin: 0 auto;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-            <div>
-                <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem;"><?= htmlspecialchars($session['subject_name']) ?></h1>
-                <p style="color: var(--text-2); margin-top: 5px;">
-                    Topic: <strong><?= htmlspecialchars($session['topic_name'] ?: 'General Discussion') ?></strong> | 
-                    Class: <strong><?= htmlspecialchars($session['class_name']) ?> (Sem <?= $session['semester'] ?>)</strong>
+        <section class="ux-workspace-hero">
+            <div class="ux-workspace-hero-main">
+                <span class="ux-kicker">Live Class</span>
+                <h1 class="ux-hero-title"><?= htmlspecialchars($session['subject_name']) ?></h1>
+                <p class="ux-hero-copy">
+                    Topic: <strong><?= htmlspecialchars($session['topic_name'] ?: 'General Discussion') ?></strong> |
+                    Class: <strong><?= htmlspecialchars($session['class_name']) ?> (Sem <?= htmlspecialchars($session['semester']) ?>)</strong>
                 </p>
             </div>
+            <aside class="ux-workspace-hero-side">
+                <span class="ux-subtle-note">Session controls</span>
             <form action="<?= $base_path ?>/api/academics/end_meeting" method="POST" onsubmit="return confirm('End this live session for everyone?')">
                 <input type="hidden" name="room_code" value="<?= $room_code ?>">
                 <button type="submit" class="btn btn-error">End Live Class</button>
             </form>
-        </div>
+            </aside>
+        </section>
 
         <div class="grid-2" style="grid-template-columns: 2fr 1fr; gap: 2rem;">
             <!-- Google Meet Integration -->
-            <div class="card" style="display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; border: 2px solid var(--accent); box-shadow: 0 10px 30px rgba(79, 70, 229, 0.1);">
+            <div class="ux-panel" style="display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; padding: 2rem;">
                 <div style="text-align: center;">
-                    <div style="font-size: 4rem; margin-bottom: 1rem;">📹</div>
+                    <span class="ux-feature-mark">LC</span>
                     <h2 style="font-family: 'DM Serif Display', serif; font-size: 2rem; margin-bottom: 0.5rem;">Class is Live!</h2>
                     <p style="color: var(--text-2); margin-bottom: 2rem;">Your Google Meet session is ready. Students have been notified.</p>
                     
@@ -71,7 +75,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
 
             <!-- Side Panel (Participants/Chat) -->
             <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-                <div class="card" style="flex: 1;">
+                <div class="ux-panel" style="flex: 1; padding: 1rem;">
                     <h3 style="margin-bottom: 1rem; font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 10px;">Students In Class</h3>
                     <div id="participantList" style="display: flex; flex-direction: column; gap: 12px; height: 300px; overflow-y: auto; padding-right: 10px;">
                         <p style="color: var(--text-3); font-size: 14px; font-style: italic;">Students will join via Google Meet.</p>

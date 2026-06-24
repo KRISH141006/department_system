@@ -19,7 +19,6 @@ if (!$is_elective_scope && !$class_subject_id) {
     exit();
 }
 
-// 1. Fetch Subject and Class Info
 if ($is_elective_scope) {
     $stmt = $conn->prepare("
         SELECT
@@ -59,7 +58,6 @@ if (!$info) {
 
 $class_subject_id = (int) $info['class_subject_id'];
 
-// 2. Check if a session exists for today
 if ($is_elective_scope) {
     $sessStmt = $conn->prepare("
         SELECT vs.id, vs.class_subject_id
@@ -83,10 +81,9 @@ if ($session_id && !empty($session['class_subject_id'])) {
 
 $assignments = [];
 if ($session_id) {
-    // Anonymous: do NOT fetch student names or roll numbers — faculty must not know who was selected
     $assStmt = $conn->prepare("
         SELECT va.id, va.status
-        FROM verification_assignments va 
+        FROM verification_assignments va
         WHERE va.session_id = ?
     ");
     $assStmt->bind_param("i", $session_id);
@@ -94,95 +91,120 @@ if ($session_id) {
     $assignments = $assStmt->get_result()->fetch_all(MYSQLI_ASSOC);
 }
 
+$submitted_count = count(array_filter($assignments, function($assignment) {
+    return ($assignment['status'] ?? '') === 'submitted';
+}));
+
 $page_title = "Syllabus Verification: " . $info['subject_name'];
 require_once __DIR__ . '/../../../../shared/layout/header.php';
 ?>
 
-<div class="wrapper" style="padding: 2rem;">
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem;">
-        <div>
-            <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem;">Syllabus Verification</h1>
-            <p style="color: var(--text-2);">
-                Subject: <strong><?= htmlspecialchars($info['subject_name']) ?></strong> | 
+<div class="wrapper">
+    <section class="ux-workspace-hero">
+        <div class="ux-workspace-hero-main">
+            <span class="ux-kicker">Syllabus Verification</span>
+            <h1 class="ux-hero-title"><?= htmlspecialchars($info['subject_name']) ?></h1>
+            <p class="ux-hero-copy">
                 <?php if ($is_elective_scope): ?>
-                    Elective Pool: <strong>All enrolled students</strong> | Classes: <strong><?= htmlspecialchars($info['class_name']) ?></strong>
+                    Elective pool for all enrolled students across <?= htmlspecialchars($info['class_name']) ?>.
                 <?php else: ?>
-                    Class: <strong><?= htmlspecialchars($info['class_name']) ?> (Sem <?= $info['semester'] ?>)</strong>
+                    Class <?= htmlspecialchars($info['class_name']) ?>, Semester <?= htmlspecialchars($info['semester']) ?>.
                 <?php endif; ?>
             </p>
+            <div class="ux-hero-actions">
+                <a href="<?= $base_path ?>/academics/faculty_dashboard" class="btn btn-secondary">Faculty Hub</a>
+                <a href="<?= $base_path ?>/academics/syllabus_verification" class="btn btn-secondary">Review Reports</a>
+            </div>
         </div>
-        <a href="<?= $base_path ?>/academics/faculty_dashboard" class="btn btn-secondary">Back to Dashboard</a>
-    </div>
+        <aside class="ux-workspace-hero-side">
+            <span class="ux-subtle-note">Today</span>
+            <div class="ux-stat-grid">
+                <div class="ux-stat-card"><strong><?= count($assignments) ?></strong><span>Assigned</span></div>
+                <div class="ux-stat-card <?= $submitted_count > 0 ? 'is-good' : '' ?>"><strong><?= $submitted_count ?></strong><span>Submitted</span></div>
+            </div>
+        </aside>
+    </section>
 
-    <div class="card" style="margin-bottom: 2rem; border-left: 5px solid var(--primary);">
-        <h3 style="margin-bottom: 1rem;">Initiate Verification (Bottom-Up)</h3>
-        <p style="font-size: 14px; color: var(--text-2); line-height: 1.6;">
-            Assign 5 random students (PAC selection) <?= $is_elective_scope ? 'from all enrolled elective students' : 'from this class' ?> to report the syllabus progress for today.
-            Students will be notified to enter lecture details and select covered topics.
-        </p>
-        
+    <section class="ux-section-card">
+        <div class="ux-section-heading">
+            <div>
+                <h2>Initiate Verification</h2>
+                <p>Assign 5 random students <?= $is_elective_scope ? 'from the elective pool' : 'from this class' ?> to report today's covered topics.</p>
+            </div>
+        </div>
+
         <?php if (!$session_id): ?>
-            <form action="<?= $base_path ?>/api/academics/assign_feedback" method="POST" style="margin-top: 1.5rem;">
+            <form action="<?= $base_path ?>/api/academics/assign_feedback" method="POST">
                 <input type="hidden" name="class_subject_id" value="<?= $class_subject_id ?>">
-                <input type="hidden" name="class_id" value="<?= $info['class_id'] ?>">
+                <input type="hidden" name="class_id" value="<?= (int) $info['class_id'] ?>">
                 <?php if ($is_elective_scope): ?>
                     <input type="hidden" name="scope" value="elective">
-                    <input type="hidden" name="subject_id" value="<?= $info['subject_id'] ?>">
+                    <input type="hidden" name="subject_id" value="<?= (int) $info['subject_id'] ?>">
                 <?php endif; ?>
                 <input type="hidden" name="random" value="1">
-                <button type="submit" class="btn btn-primary">Assign 5 Random Students</button>
+                <div class="card-actions">
+                    <button type="submit" class="btn btn-primary">Assign 5 Random Students</button>
+                </div>
             </form>
         <?php else: ?>
-            <div style="margin-top: 1.5rem; display: flex; align-items: center; gap: 10px; color: var(--success); font-weight: 600;">
-                <span style="font-size: 20px;">✅</span> Students have been assigned for today.
+            <div class="ux-attention-card">
+                <span class="ux-mark">OK</span>
+                <span>
+                    <strong>Students have been assigned for today</strong>
+                    <small>Names remain anonymous to preserve verification fairness.</small>
+                </span>
+                <span class="badge badge-success"><?= htmlspecialchars($today) ?></span>
             </div>
         <?php endif; ?>
-    </div>
+    </section>
 
     <?php if ($session_id): ?>
-    <div class="card" style="padding: 0; overflow: hidden;">
-        <div class="card-header" style="padding: 1.25rem; border-bottom: 1px solid var(--border); background: var(--bg-2); display: flex; justify-content: space-between; align-items: center;">
-            <h3 style="margin: 0; font-size: 1.1rem;">Assigned Students (<?= count($assignments) ?>)</h3>
-            <span class="badge badge-success"><?= $today ?></span>
-        </div>
-        
-        <table style="width: 100%; border-collapse: collapse; text-align: left;">
-            <thead style="background: var(--bg-2); border-bottom: 1px solid var(--border);">
-                <tr>
-                    <th style="padding: 1rem;">#</th>
-                    <th style="padding: 1rem; text-align: center;">Status</th>
-                    <th style="padding: 1rem; text-align: right;">Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($assignments as $idx => $a): ?>
-                    <tr style="border-bottom: 1px solid var(--border);">
-                        <td style="padding: 1rem; color: var(--text-2); font-style: italic;">Student <?= $idx + 1 ?></td>
-                        <td style="padding: 1rem; text-align: center;">
-                            <?php if ($a['status'] === 'submitted'): ?>
-                                <span class="badge badge-success">Submitted</span>
-                            <?php elseif ($a['status'] === 'absent'): ?>
-                                <span class="badge badge-secondary">Absent</span>
-                            <?php else: ?>
-                                <span class="badge badge-pending">Pending Response</span>
-                            <?php endif; ?>
-                        </td>
-                        <td style="padding: 1rem; text-align: right;">
-                            <form action="<?= $base_path ?>/api/academics/skip_feedback" method="POST" onsubmit="return confirm('Skip this student and assign another randomly?')">
-                                <input type="hidden" name="assignment_id" value="<?= $a['id'] ?>">
-                                <input type="hidden" name="class_subject_id" value="<?= $class_subject_id ?>">
-                                <?php if ($is_elective_scope): ?>
-                                    <input type="hidden" name="scope" value="elective">
-                                    <input type="hidden" name="subject_id" value="<?= $info['subject_id'] ?>">
-                                <?php endif; ?>
-                                <button type="submit" class="btn btn-sm btn-secondary">Skip / Reassign</button>
-                            </form>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-    </div>
+        <section class="ux-section-card ux-compact-table-card">
+            <div class="ux-section-heading">
+                <div>
+                    <h2>Assigned Anonymous Students</h2>
+                    <p>Track response status without exposing selected student identities.</p>
+                </div>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th style="text-align: center;">Status</th>
+                            <th style="text-align: right;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($assignments as $idx => $a): ?>
+                            <tr>
+                                <td>Student <?= $idx + 1 ?></td>
+                                <td style="text-align: center;">
+                                    <?php if ($a['status'] === 'submitted'): ?>
+                                        <span class="badge badge-success">Submitted</span>
+                                    <?php elseif ($a['status'] === 'absent'): ?>
+                                        <span class="badge badge-secondary">Absent</span>
+                                    <?php else: ?>
+                                        <span class="badge badge-warning">Pending Response</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td style="text-align: right;">
+                                    <form action="<?= $base_path ?>/api/academics/skip_feedback" method="POST" onsubmit="return confirm('Skip this student and assign another randomly?')">
+                                        <input type="hidden" name="assignment_id" value="<?= (int) $a['id'] ?>">
+                                        <input type="hidden" name="class_subject_id" value="<?= $class_subject_id ?>">
+                                        <?php if ($is_elective_scope): ?>
+                                            <input type="hidden" name="scope" value="elective">
+                                            <input type="hidden" name="subject_id" value="<?= (int) $info['subject_id'] ?>">
+                                        <?php endif; ?>
+                                        <button type="submit" class="btn btn-sm btn-secondary">Skip / Reassign</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </section>
     <?php endif; ?>
 </div>
 

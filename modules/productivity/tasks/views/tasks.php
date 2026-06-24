@@ -6,23 +6,22 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
 
 $user_id = $_SESSION['user_id'];
 $min_deadline = date('Y-m-d H:i');
+$view = isset($_GET['view']) ? $_GET['view'] : 'list';
 
-// Initial data fetching
 $total_sql = "SELECT COUNT(*) as count FROM tasks WHERE user_id = ?";
 $stmt = $conn->prepare($total_sql);
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
-$total_tasks = $stmt->get_result()->fetch_assoc()['count'];
+$total_tasks = (int) $stmt->get_result()->fetch_assoc()['count'];
 
-$view = isset($_GET['view']) ? $_GET['view'] : 'list';
-
-// Category management
-$cat_stmt = $conn->prepare("SELECT * FROM task_categories WHERE user_id = ?");
+$cat_stmt = $conn->prepare("SELECT * FROM task_categories WHERE user_id = ? ORDER BY name ASC");
 $cat_stmt->bind_param("i", $user_id);
 $cat_stmt->execute();
 $categories_result = $cat_stmt->get_result();
 $categories = [];
-while ($cat = $categories_result->fetch_assoc()) { $categories[] = $cat; }
+while ($cat = $categories_result->fetch_assoc()) {
+    $categories[] = $cat;
+}
 
 if (empty($categories)) {
     $defaults = ['Personal', 'Work', 'Study', 'Others'];
@@ -33,16 +32,19 @@ if (empty($categories)) {
     }
     $cat_stmt->execute();
     $categories_result = $cat_stmt->get_result();
-    while ($cat = $categories_result->fetch_assoc()) { $categories[] = $cat; }
+    while ($cat = $categories_result->fetch_assoc()) {
+        $categories[] = $cat;
+    }
 }
 
-// Priority management
 $prio_stmt = $conn->prepare("SELECT * FROM task_priorities WHERE user_id = ? ORDER BY sort_order ASC");
 $prio_stmt->bind_param("i", $user_id);
 $prio_stmt->execute();
 $priorities_result = $prio_stmt->get_result();
 $priorities = [];
-while ($prio = $priorities_result->fetch_assoc()) { $priorities[] = $prio; }
+while ($prio = $priorities_result->fetch_assoc()) {
+    $priorities[] = $prio;
+}
 
 if (empty($priorities)) {
     $defaults = [['Critical', '#ef4444', 1], ['Important', '#f59e0b', 2], ['Regular', '#10b981', 3]];
@@ -53,31 +55,64 @@ if (empty($priorities)) {
     }
     $prio_stmt->execute();
     $priorities_result = $prio_stmt->get_result();
-    while ($prio = $priorities_result->fetch_assoc()) { $priorities[] = $prio; }
+    while ($prio = $priorities_result->fetch_assoc()) {
+        $priorities[] = $prio;
+    }
 }
 
-// Fetch results for list view
+$filter_category = isset($_GET['category']) ? $_GET['category'] : 'all';
+$filter_priority = isset($_GET['priority']) ? $_GET['priority'] : 'all';
+$sort_by = isset($_GET['sort']) ? $_GET['sort'] : 'newest';
+$pending_count = 0;
+$completed_count = 0;
+$all_pending_count = 0;
+$all_completed_count = 0;
+$overdue_count = 0;
+$pending_result = null;
+$completed_result = null;
+
+$summary_stmt = $conn->prepare("
+    SELECT
+        SUM(CASE WHEN status != 'done' THEN 1 ELSE 0 END) as pending_count,
+        SUM(CASE WHEN status = 'done' THEN 1 ELSE 0 END) as completed_count,
+        SUM(CASE WHEN status != 'done' AND deadline IS NOT NULL AND deadline < NOW() THEN 1 ELSE 0 END) as overdue_count
+    FROM tasks
+    WHERE user_id = ?
+");
+$summary_stmt->bind_param("i", $user_id);
+$summary_stmt->execute();
+$summary = $summary_stmt->get_result()->fetch_assoc() ?: [];
+$all_pending_count = (int) ($summary['pending_count'] ?? 0);
+$all_completed_count = (int) ($summary['completed_count'] ?? 0);
+$overdue_count = (int) ($summary['overdue_count'] ?? 0);
+
 if ($total_tasks > 0 && $view === 'list') {
-    $filter_category = isset($_GET['category']) ? $_GET['category'] : 'all';
-    $filter_priority = isset($_GET['priority']) ? $_GET['priority'] : 'all';
-    $sort_by = isset($_GET['sort']) ? $_GET['sort'] : 'newest';
+    $where_clause = "WHERE t.user_id='" . (int) $user_id . "'";
+    if ($filter_category !== 'all') {
+        $where_clause .= " AND t.category_id = " . intval($filter_category);
+    }
+    if ($filter_priority !== 'all') {
+        $where_clause .= " AND t.priority_id = " . intval($filter_priority);
+    }
 
-    $where_clause = "WHERE t.user_id='$user_id'";
-    if ($filter_category !== 'all') $where_clause .= " AND t.category_id = " . intval($filter_category);
-    if ($filter_priority !== 'all') $where_clause .= " AND t.priority_id = " . intval($filter_priority);
-
-    if ($sort_by === 'oldest') $order_by = "ORDER BY t.created_at ASC";
-    elseif ($sort_by === 'priority') $order_by = "ORDER BY p.sort_order ASC, t.created_at DESC";
-    else $order_by = "ORDER BY t.created_at DESC";
+    if ($sort_by === 'oldest') {
+        $order_by = "ORDER BY t.created_at ASC";
+    } elseif ($sort_by === 'priority') {
+        $order_by = "ORDER BY p.sort_order ASC, t.created_at DESC";
+    } else {
+        $order_by = "ORDER BY t.created_at DESC";
+    }
 
     $pending_sql = "SELECT t.*, c.name as category_name, p.name as priority_name, p.color as priority_color
-                    FROM tasks t LEFT JOIN task_categories c ON t.category_id = c.id
+                    FROM tasks t
+                    LEFT JOIN task_categories c ON t.category_id = c.id
                     LEFT JOIN task_priorities p ON t.priority_id = p.id
                     $where_clause AND t.status != 'done' $order_by";
     $pending_result = mysqli_query($conn, $pending_sql);
 
     $completed_sql = "SELECT t.*, c.name as category_name, p.name as priority_name, p.color as priority_color
-                      FROM tasks t LEFT JOIN task_categories c ON t.category_id = c.id
+                      FROM tasks t
+                      LEFT JOIN task_categories c ON t.category_id = c.id
                       LEFT JOIN task_priorities p ON t.priority_id = p.id
                       $where_clause AND t.status = 'done' $order_by";
     $completed_result = mysqli_query($conn, $completed_sql);
@@ -86,217 +121,161 @@ if ($total_tasks > 0 && $view === 'list') {
 }
 ?>
 
-<style>
-    .task-item {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        padding: 1.25rem 1.5rem;
-        margin-bottom: 1rem;
-        transition: var(--transition);
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-    }
-    .task-item:hover { transform: translateY(-2px); border-color: var(--accent); box-shadow: var(--shadow-lg); }
-    .task-item.done { opacity: 0.6; background: var(--bg); border-style: dashed; }
-    .task-item.done .task-title { text-decoration: line-through; color: var(--text-3); }
-
-    .bulb-toggle {
-        width: 32px;
-        height: 32px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: var(--transition);
-    }
-    .bulb-toggle svg { width: 24px; height: 24px; fill: var(--text-3); }
-    .bulb-toggle.active svg { fill: var(--warning); filter: drop-shadow(0 0 5px rgba(245, 158, 11, 0.4)); }
-
-    .deadline-pill {
-        font-size: 0.75rem;
-        padding: 4px 10px;
-        border-radius: 20px;
-        background: var(--surface-2);
-        color: var(--text-2);
-        font-weight: 600;
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-    }
-    .deadline-pill.overdue { background: rgba(239, 68, 68, 0.1); color: var(--error); }
-
-    .priority-indicator {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-    }
-
-    .filter-bar {
-        display: flex;
-        gap: 1rem;
-        margin-bottom: 2rem;
-        padding: 1rem;
-        background: var(--surface);
-        border-radius: var(--radius);
-        border: 1px solid var(--border);
-        align-items: center;
-        overflow-x: auto;
-    }
-    .filter-link {
-        text-decoration: none;
-        color: var(--text-2);
-        font-size: 0.85rem;
-        font-weight: 600;
-        padding: 0.5rem 1rem;
-        border-radius: 20px;
-        white-space: nowrap;
-        transition: var(--transition);
-    }
-    .filter-link:hover { background: var(--surface-2); color: var(--accent); }
-    .filter-link.active { background: var(--accent-light); color: var(--accent); }
-
-    .empty-state {
-        text-align: center;
-        padding: 5rem 2rem;
-    }
-</style>
-
 <div class="wrapper">
-    <div class="section-header" style="margin-top: 0;">
-        <div>
+    <section class="ux-task-command">
+        <div class="ux-task-command-copy">
+            <span class="ux-command-label">Private Workspace</span>
             <h1 class="page-title">Personal Tasks</h1>
-            <p class="page-subtitle">Your private workbench for daily planning and creative ideas.</p>
+            <p class="page-subtitle">Plan private work, protect attention, and keep every commitment visible.</p>
+            <div class="ux-task-stats" aria-label="Task summary">
+                <span><strong><?= $total_tasks ?></strong>Total</span>
+                <span><strong><?= $all_pending_count ?></strong>Pending</span>
+                <span><strong><?= $all_completed_count ?></strong>Done</span>
+                <span class="<?= $overdue_count > 0 ? 'is-hot' : '' ?>"><strong><?= $overdue_count ?></strong>Overdue</span>
+            </div>
         </div>
-        <div style="display: flex; gap: 0.75rem;">
-            <a href="<?= $base_path ?>/productivity/index" class="btn btn-secondary">← Hub</a>
-            <a href="<?= $base_path ?>/productivity/tasks?view=add" class="btn btn-primary">+ New Task</a>
+        <div class="ux-task-command-actions">
+            <a href="<?= $base_path ?>/productivity/index" class="btn btn-secondary">Productivity Hub</a>
+            <a href="<?= $base_path ?>/productivity/tasks?view=add" class="btn btn-primary">New Task</a>
         </div>
-    </div>
+    </section>
 
-    <?php if ($total_tasks == 0 && $view !== 'add'): ?>
-        <div class="card empty-state">
-            <div style="font-size: 4rem; margin-bottom: 1.5rem;">✨</div>
-            <h2 class="card-title" style="font-size: 1.5rem;">Your workbench is empty</h2>
-            <p class="card-desc" style="margin-bottom: 2rem;">Start by adding your first task or creative project.</p>
-            <a href="<?= $base_path ?>/productivity/tasks?view=add" class="btn btn-primary">Drop a Task 📌</a>
+    <?php if ($total_tasks === 0 && $view !== 'add'): ?>
+        <div class="ux-empty-panel">
+            <span class="ux-feature-mark">PT</span>
+            <strong>Your task space is ready</strong>
+            <span>Create your first private task, set a deadline if needed, and keep it organized by category and priority.</span>
+            <a href="<?= $base_path ?>/productivity/tasks?view=add" class="btn btn-primary">Create First Task</a>
         </div>
 
     <?php elseif ($view === 'add'): ?>
-        <div class="card card-accent-blue" style="max-width: 800px; margin: 0 auto;">
-            <h2 class="card-title" style="margin-bottom: 2rem;">✍️ Create New Task</h2>
+        <div class="ux-form-panel ux-task-editor">
+            <div class="ux-form-panel-head">
+                <h2>Create a Personal Task</h2>
+                <p>Keep the objective specific. You can add a category, priority, and optional deadline.</p>
+            </div>
             <form method="POST" action="<?= $base_path ?>/api/productivity/add_task">
                 <div class="grid-2">
-                    <div style="margin-bottom: 1.5rem;">
+                    <div class="form-group">
                         <label class="form-label">Task Objective</label>
                         <input type="text" name="task" class="form-control" placeholder="What needs to be done?" required autofocus>
                     </div>
-                    <div style="margin-bottom: 1.5rem;">
+                    <div class="form-group">
                         <label class="form-label">Deadline</label>
                         <input type="text" name="deadline" id="deadlinePicker" class="form-control" min="<?= $min_deadline ?>" placeholder="Optional deadline">
                     </div>
                 </div>
 
                 <div class="grid-2">
-                    <div style="margin-bottom: 1.5rem;">
-                        <label class="form-label">Folder / Category</label>
+                    <div class="form-group">
+                        <label class="form-label">Category</label>
                         <select name="category_id" id="categorySelect" class="form-control" onchange="toggleNewCategory()">
-                            <option value="">-- Choose Category --</option>
+                            <option value="">Choose category</option>
                             <?php foreach ($categories as $cat): ?>
-                                <option value="<?php echo $cat['id']; ?>"><?php echo htmlspecialchars($cat['name']); ?></option>
+                                <option value="<?= (int) $cat['id'] ?>"><?= htmlspecialchars($cat['name']) ?></option>
                             <?php endforeach; ?>
-                            <option value="new">+ Create New Folder</option>
+                            <option value="new">Create new category</option>
                         </select>
                         <div id="newCategoryGroup" style="margin-top: 10px; display:none;">
-                            <input type="text" name="new_category" class="form-control" placeholder="Category name...">
+                            <input type="text" name="new_category" class="form-control" placeholder="Category name">
                         </div>
                     </div>
-                    <div style="margin-bottom: 2rem;">
-                        <label class="form-label">Priority Level</label>
+                    <div class="form-group">
+                        <label class="form-label">Priority</label>
                         <select name="priority_id" class="form-control">
                             <?php foreach ($priorities as $prio): ?>
-                                <option value="<?php echo $prio['id']; ?>"><?php echo htmlspecialchars($prio['name']); ?></option>
+                                <option value="<?= (int) $prio['id'] ?>"><?= htmlspecialchars($prio['name']) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
                 </div>
 
-                <div style="display: flex; justify-content: flex-end; gap: 1rem; border-top: 1px solid var(--border); padding-top: 2rem;">
+                <div class="card-actions" style="border-top: 1px solid var(--border); padding-top: 1.25rem;">
                     <a href="<?= $base_path ?>/productivity/tasks?view=list" class="btn btn-secondary">Discard</a>
-                    <button type="submit" class="btn btn-primary" style="padding-left: 2rem; padding-right: 2rem;">Save Task</button>
+                    <button type="submit" class="btn btn-primary">Save Task</button>
                 </div>
             </form>
         </div>
 
     <?php else: ?>
-        <div class="filter-bar">
-            <span style="font-size: 0.8rem; color: var(--text-3); font-weight: 700; text-transform: uppercase; margin-right: 0.5rem;">Filter:</span>
-            <a href="?category=all" class="filter-link <?php echo $filter_category == 'all' ? 'active' : ''; ?>">All Categories</a>
-            <?php foreach ($categories as $cat): ?>
-                <a href="?category=<?php echo $cat['id']; ?>" class="filter-link <?php echo $filter_category == $cat['id'] ? 'active' : ''; ?>">
-                    <?php echo htmlspecialchars($cat['name']); ?>
-                </a>
-            <?php endforeach; ?>
-            
-            <div style="margin-left: auto; display: flex; gap: 0.5rem; align-items: center;">
-                <span style="font-size: 0.8rem; color: var(--text-3); font-weight: 700; text-transform: uppercase;">Sort:</span>
-                <a href="?sort=newest" class="filter-link <?php echo $sort_by == 'newest' ? 'active' : ''; ?>">Newest</a>
-                <a href="?sort=priority" class="filter-link <?php echo $sort_by == 'priority' ? 'active' : ''; ?>">Priority</a>
+        <div class="ux-filter-shell ux-task-controls">
+            <div class="ux-filter-group">
+                <span class="ux-filter-label">Category</span>
+                <a href="?category=all&sort=<?= htmlspecialchars($sort_by) ?>" class="ux-chip-link <?= $filter_category === 'all' ? 'active' : '' ?>">All</a>
+                <?php foreach ($categories as $cat): ?>
+                    <a href="?category=<?= (int) $cat['id'] ?>&sort=<?= htmlspecialchars($sort_by) ?>" class="ux-chip-link <?= (string) $filter_category === (string) $cat['id'] ? 'active' : '' ?>">
+                        <?= htmlspecialchars($cat['name']) ?>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+            <div class="ux-filter-group">
+                <span class="ux-filter-label">Sort</span>
+                <a href="?category=<?= htmlspecialchars($filter_category) ?>&sort=newest" class="ux-chip-link <?= $sort_by === 'newest' ? 'active' : '' ?>">Newest</a>
+                <a href="?category=<?= htmlspecialchars($filter_category) ?>&sort=priority" class="ux-chip-link <?= $sort_by === 'priority' ? 'active' : '' ?>">Priority</a>
             </div>
         </div>
 
-        <div class="grid-2" style="align-items: start; gap: 2rem;">
-            <!-- Pending Tasks -->
-            <div>
-                <h3 class="section-title" style="font-size: 1rem; color: var(--text-3); margin-bottom: 1.5rem;">
-                    🌑 PENDING (<?= $pending_count ?>)
-                </h3>
-                <?php if ($pending_count === 0): ?>
-                    <p style="color: var(--text-3); font-style: italic;">No pending tasks.</p>
-                <?php endif; ?>
-                <?php while ($row = mysqli_fetch_assoc($pending_result)): 
-                    $is_overdue = $row['deadline'] && strtotime($row['deadline']) < time();
-                ?>
-                    <div class="task-item">
-                        <a href="<?= $base_path ?>/api/productivity/complete_task?id=<?php echo $row['id']; ?>" class="bulb-toggle" title="Mark Done">
-                            <svg viewBox="0 0 24 24"><path d="M9 21h6v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1l-.85.6V16h-4v-2.3l-.85-.6C8.67 12.05 8 10.58 8 9c0-2.21 1.79-4 4-4s4 1.79 4 4c0 1.58-.67 3.05-2.15 4.1z"/></svg>
-                        </a>
-                        <div style="flex: 1;">
-                            <div class="task-title" style="font-weight: 700; font-size: 1.05rem;"><?php echo htmlspecialchars($row['title']); ?></div>
-                            <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px;">
-                                <div class="priority-indicator" style="background: <?= $row['priority_color'] ?: 'var(--border)' ?>;"></div>
-                                <span class="badge badge-primary" style="font-size: 0.65rem; padding: 2px 8px;"><?php echo htmlspecialchars($row['category_name'] ?: 'General'); ?></span>
-                                <?php if($row['deadline']): ?>
-                                    <span class="deadline-pill <?= $is_overdue ? 'overdue' : '' ?>">
-                                        📅 <?= date('M d, H:i', strtotime($row['deadline'])) ?>
-                                    </span>
-                                <?php endif; ?>
+        <div class="ux-lane-grid">
+            <section class="ux-task-lane is-pending">
+                <div class="ux-task-lane-head">
+                    <h2>Pending Focus</h2>
+                    <span><?= $pending_count ?> task<?= $pending_count === 1 ? '' : 's' ?></span>
+                </div>
+                <div class="ux-task-list">
+                    <?php if ($pending_count === 0): ?>
+                        <div class="ux-empty-panel" style="min-height: 150px;">
+                            <strong>No pending tasks</strong>
+                            <span>Everything in this filter is complete.</span>
+                        </div>
+                    <?php endif; ?>
+                    <?php while ($pending_result && ($row = mysqli_fetch_assoc($pending_result))): ?>
+                        <?php $is_overdue = $row['deadline'] && strtotime($row['deadline']) < time(); ?>
+                        <div class="ux-task-card <?= $is_overdue ? 'is-overdue' : '' ?>">
+                            <a href="<?= $base_path ?>/api/productivity/complete_task?id=<?= (int) $row['id'] ?>" class="ux-task-toggle" title="Mark complete">Done</a>
+                            <div>
+                                <div class="ux-task-title"><?= htmlspecialchars($row['title']) ?></div>
+                                <div class="ux-task-meta">
+                                    <span class="ux-priority-dot" style="background: <?= htmlspecialchars($row['priority_color'] ?: 'var(--border)') ?>;"></span>
+                                    <span class="badge badge-primary"><?= htmlspecialchars($row['category_name'] ?: 'General') ?></span>
+                                    <?php if ($row['deadline']): ?>
+                                        <span class="ux-deadline-chip <?= $is_overdue ? 'overdue' : '' ?>">
+                                            <?= date('M d, H:i', strtotime($row['deadline'])) ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
                             </div>
+                            <a href="<?= $base_path ?>/api/productivity/delete_task?id=<?= (int) $row['id'] ?>" class="ux-task-delete" onclick="return confirm('Delete task?')" title="Delete task">Delete</a>
                         </div>
-                        <a href="<?= $base_path ?>/api/productivity/delete_task?id=<?php echo $row['id']; ?>" style="color: var(--error); opacity: 0.3; text-decoration: none; font-weight: 800;" onclick="return confirm('Delete task?')">✕</a>
-                    </div>
-                <?php endwhile; ?>
-            </div>
+                    <?php endwhile; ?>
+                </div>
+            </section>
 
-            <!-- Completed Tasks -->
-            <div>
-                <h3 class="section-title" style="font-size: 1rem; color: var(--success); margin-bottom: 1.5rem;">
-                    ☀️ COMPLETED (<?= $completed_count ?>)
-                </h3>
-                <?php while ($row = mysqli_fetch_assoc($completed_result)): ?>
-                    <div class="task-item done">
-                        <a href="<?= $base_path ?>/api/productivity/undo_task?id=<?php echo $row['id']; ?>" class="bulb-toggle active" title="Restore Task">
-                            <svg viewBox="0 0 24 24"><path d="M9 21h6v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/></svg>
-                        </a>
-                        <div style="flex: 1;">
-                            <div class="task-title" style="font-weight: 600;"><?php echo htmlspecialchars($row['title']); ?></div>
-                            <span class="badge" style="font-size: 0.65rem; margin-top: 4px;"><?php echo htmlspecialchars($row['category_name'] ?: 'General'); ?></span>
+            <section class="ux-task-lane is-complete">
+                <div class="ux-task-lane-head">
+                    <h2>Completed Work</h2>
+                    <span><?= $completed_count ?> task<?= $completed_count === 1 ? '' : 's' ?></span>
+                </div>
+                <div class="ux-task-list">
+                    <?php if ($completed_count === 0): ?>
+                        <div class="ux-empty-panel" style="min-height: 150px;">
+                            <strong>No completed tasks yet</strong>
+                            <span>Completed work will appear here for quick review.</span>
                         </div>
-                        <a href="<?= $base_path ?>/api/productivity/delete_task?id=<?php echo $row['id']; ?>" style="color: var(--text-3); text-decoration: none;" onclick="return confirm('Remove permanently?')">✕</a>
-                    </div>
-                <?php endwhile; ?>
-            </div>
+                    <?php endif; ?>
+                    <?php while ($completed_result && ($row = mysqli_fetch_assoc($completed_result))): ?>
+                        <div class="ux-task-card is-done">
+                            <a href="<?= $base_path ?>/api/productivity/undo_task?id=<?= (int) $row['id'] ?>" class="ux-task-toggle is-active" title="Restore task">Undo</a>
+                            <div>
+                                <div class="ux-task-title"><?= htmlspecialchars($row['title']) ?></div>
+                                <div class="ux-task-meta">
+                                    <span class="badge badge-success"><?= htmlspecialchars($row['category_name'] ?: 'General') ?></span>
+                                </div>
+                            </div>
+                            <a href="<?= $base_path ?>/api/productivity/delete_task?id=<?= (int) $row['id'] ?>" class="ux-task-delete" onclick="return confirm('Remove permanently?')" title="Delete task">Delete</a>
+                        </div>
+                    <?php endwhile; ?>
+                </div>
+            </section>
         </div>
     <?php endif; ?>
 </div>
@@ -305,12 +284,15 @@ if ($total_tasks > 0 && $view === 'list') {
 function toggleNewCategory() {
     const select = document.getElementById('categorySelect');
     const newGroup = document.getElementById('newCategoryGroup');
+    if (!select || !newGroup) return;
+
+    const input = newGroup.querySelector('input');
     if (select.value === 'new') {
         newGroup.style.display = 'block';
-        newGroup.querySelector('input').setAttribute('required', 'required');
+        input.setAttribute('required', 'required');
     } else {
         newGroup.style.display = 'none';
-        newGroup.querySelector('input').removeAttribute('required');
+        input.removeAttribute('required');
     }
 }
 </script>

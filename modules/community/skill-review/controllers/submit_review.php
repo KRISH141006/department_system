@@ -1,11 +1,14 @@
 <?php
 require_once __DIR__ . '/../../../../shared/middleware/auth.php';
 require_once __DIR__ . '/../../../../shared/config/db.php';
+require_once __DIR__ . '/../../../../shared/helpers/notifications.php';
 
 if (!has_permission('review_requests')) {
     header("Location: $base_path/dashboard");
     exit;
 }
+
+ensure_notifications_table($conn);
 
 $reviewer_id = (int) $_SESSION['user_id'];
 $request_id  = (int) ($_POST['request_id'] ?? 0);
@@ -36,10 +39,12 @@ try {
     $stmt->execute();
 
     // Get the student's ID for points and badges (Table name: review_requests)
-    $req_stmt = $conn->prepare("SELECT user_id FROM review_requests WHERE id = ?");
+    $req_stmt = $conn->prepare("SELECT user_id, skill FROM review_requests WHERE id = ?");
     $req_stmt->bind_param("i", $request_id);
     $req_stmt->execute();
-    $student_id = $req_stmt->get_result()->fetch_assoc()['user_id'] ?? 0;
+    $request_details = $req_stmt->get_result()->fetch_assoc();
+    $student_id = (int) ($request_details['user_id'] ?? 0);
+    $skill = $request_details['skill'] ?? 'your skill';
 
     if ($student_id) {
         // Award points delta (10% of marks)
@@ -102,6 +107,18 @@ try {
     $stmt2 = $conn->prepare("UPDATE review_requests SET status = 'completed' WHERE id = ?");
     $stmt2->bind_param("i", $request_id);
     $stmt2->execute();
+
+    if ($student_id) {
+        create_notification(
+            $conn,
+            $student_id,
+            'skill_review_completed',
+            'Skill review completed',
+            "Your $skill validation review is complete. Score: $marks/100.",
+            "$base_path/community/request",
+            $reviewer_id
+        );
+    }
 
     $conn->commit();
     $_SESSION['msg_success'] = "Review submitted successfully!";

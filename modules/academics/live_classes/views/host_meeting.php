@@ -38,7 +38,7 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
 
     .premium-select {
         width: 100%;
-        padding: 1rem 1.25rem;
+        padding: 1rem 2.75rem 1rem 1.25rem;
         border: 2px solid var(--border);
         border-radius: var(--radius-sm);
         background-color: var(--surface-2);
@@ -46,11 +46,6 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
         font-size: 1rem;
         font-weight: 600;
         transition: var(--transition);
-        appearance: none;
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7' /%3E%3C/svg%3E");
-        background-repeat: no-repeat;
-        background-position: right 1rem center;
-        background-size: 1.25rem;
         cursor: pointer;
         outline: none;
     }
@@ -79,7 +74,6 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
     [data-theme="dark"] .premium-select {
         background-color: var(--surface-2);
         border-color: var(--border);
-        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7' /%3E%3C/svg%3E");
     }
 
     [data-theme="dark"] .premium-select:hover,
@@ -90,9 +84,20 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
 </style>
 
 <div class="wrapper">
-    <div class="card host-meeting-card">
-        <h1 class="page-title" style="margin-bottom: 0.5rem;">Host Live Class</h1>
-        <p class="page-subtitle" style="margin-bottom: 2.5rem;">Launch a new video session. We'll generate a secure meeting link and notify your class immediately.</p>
+    <section class="ux-form-shell">
+        <aside class="ux-form-intro">
+            <span class="ux-kicker">Live Teaching</span>
+            <h1>Host Live Class</h1>
+            <p>Launch a video session, attach it to the right class-subject, and notify students immediately.</p>
+            <div class="ux-stat-grid" style="margin-top: 1rem;">
+                <div class="ux-stat-card"><strong><?= count($assignments) ?></strong><span>Targets</span></div>
+            </div>
+            <div class="ux-inline-actions">
+                <a href="<?= $base_path ?>/academics/faculty_dashboard" class="btn btn-secondary btn-sm">Faculty Hub</a>
+            </div>
+        </aside>
+
+        <div class="ux-form-panel">
 
         <form action="<?= $base_path ?>/api/academics/start_meeting" method="POST" id="hostForm">
 
@@ -128,10 +133,11 @@ require_once __DIR__ . '/../../../../shared/layout/header.php';
             </div>
 
             <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 3rem; padding: 1.25rem; font-size: 1.1rem; font-weight: 700; border-radius: var(--radius-sm);">
-                🚀 Launch Global Classroom
+                Launch Global Classroom
             </button>
         </form>
-    </div>
+        </div>
+    </section>
 </div>
 
 <script>

@@ -59,8 +59,8 @@ $page_title = "Profile Settings";
 include __DIR__ . '/../../../../shared/layout/header.php';
 ?>
 
-<div class="wrapper" style="padding: 2rem;">
-    <div style="max-width: 900px; margin: 0 auto;">
+<div class="wrapper ux-profile-workspace">
+    <div class="ux-form-panel ux-profile-form" style="max-width: 980px; margin: 0 auto;">
         <h1 class="page-title" style="font-family: 'DM Serif Display', serif; font-size: 2.5rem; margin-bottom: 0.5rem;">Complete Your Profile</h1>
         <p style="color: var(--text-2); margin-bottom: 2rem;">Please provide your professional and academic details to help us personalize your experience.</p>
 
@@ -68,19 +68,19 @@ include __DIR__ . '/../../../../shared/layout/header.php';
         <?php if ($error): ?><div class="alert alert-error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
         <?php if ($success): ?><div class="alert alert-success"><?= htmlspecialchars($success) ?></div><?php endif; ?>
 
-        <div class="card">
+        <div class="ux-panel" style="padding: 1rem;">
             <form action="<?= $base_path ?>/api/community/save_profile" method="POST" id="profileForm">
                 
                 <!-- SECTION: AVATAR SELECTION -->
-                <div style="margin-bottom: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 2rem; display: flex; align-items: center; gap: 2rem; flex-wrap: wrap;">
-                    <div style="width: 100px; height: 100px; border-radius: 50%; border: 3px solid var(--accent); overflow: hidden; display: flex; align-items: center; justify-content: center; background: var(--bg-2); color: var(--text);">
+                <div class="ux-profile-avatar-row">
+                    <div class="ux-avatar-stage">
                         <?= render_avatar($user_avatar, $male_svg, $female_svg, $base_path) ?>
                     </div>
                     <div>
                         <h3 style="margin-bottom: 0.5rem; font-size: 1.15rem; font-weight: 700; color: var(--text);">Profile Avatar</h3>
                         <p style="color: var(--text-3); font-size: 0.85rem; margin-bottom: 1rem;">Choose a default avatar or upload your own photo.</p>
                         
-                        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <div class="ux-inline-actions" style="margin-top: 0;">
                             <button type="button" class="btn btn-sm <?= $user_avatar === 'male' ? 'btn-primary' : 'btn-secondary' ?>" onclick="updateProfileAvatar('male')" style="display: flex; align-items: center; gap: 6px;">
                                 <span style="width: 16px; height: 16px; display: inline-block;"><?= $male_svg ?></span> Male
                             </button>

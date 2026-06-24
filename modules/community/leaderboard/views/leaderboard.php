@@ -5,7 +5,6 @@ require_once __DIR__ . '/../../../../shared/config/db.php';
 $page_title = "Community Leaderboard";
 require_once __DIR__ . '/../../../../shared/layout/header.php';
 
-// Fetch top 10 students by community score
 $leader_query = $conn->query("
     SELECT u.id, u.name, p.community_score, c.name as class_name, c.semester
     FROM users u
@@ -17,93 +16,107 @@ $leader_query = $conn->query("
     LIMIT 10
 ");
 $leaders = $leader_query->fetch_all(MYSQLI_ASSOC);
+$top_score = (int) ($leaders[0]['community_score'] ?? 0);
 ?>
 
-<div class="wrapper" style="padding: 2rem;">
-    <div style="max-width: 900px; margin: 0 auto;">
-        <div style="text-align: center; margin-bottom: 3rem;">
-            <h1 style="font-family: 'DM Serif Display', serif; font-size: 3rem; margin-bottom: 0.5rem;">Community Leaderboard</h1>
-            <p style="color: var(--text-2); font-size: 1.1rem;">Highlighting our top contributors and high performers.</p>
+<div class="wrapper">
+    <section class="ux-workspace-hero">
+        <div class="ux-workspace-hero-main">
+            <span class="ux-kicker">Community</span>
+            <h1 class="ux-hero-title">Leaderboard</h1>
+            <p class="ux-hero-copy">A clean ranking of students earning community score through reviews, participation, and verified contribution.</p>
+            <div class="ux-hero-actions">
+                <a href="<?= $base_path ?>/community/request" class="btn btn-primary">Skill Validation</a>
+                <button type="button" class="btn btn-secondary" data-open-command-palette>Search Services</button>
+            </div>
+        </div>
+        <aside class="ux-workspace-hero-side">
+            <span class="ux-subtle-note">Community snapshot</span>
+            <div class="ux-stat-grid">
+                <div class="ux-stat-card"><strong><?= count($leaders) ?></strong><span>Ranked</span></div>
+                <div class="ux-stat-card is-good"><strong><?= number_format($top_score) ?></strong><span>Top Score</span></div>
+            </div>
+        </aside>
+    </section>
+
+    <section class="ux-section-card ux-compact-table-card">
+        <div class="ux-section-heading">
+            <div>
+                <h2>Top Contributors</h2>
+                <p>Open a student profile for deeper review context.</p>
+            </div>
         </div>
 
-        <div class="card" style="padding: 0; overflow: hidden; border: 1px solid var(--border);">
-            <table style="width: 100%; border-collapse: collapse; text-align: left;">
-                <thead style="background: var(--bg-2); border-bottom: 1px solid var(--border);">
-                    <tr>
-                        <th style="padding: 1.25rem 2rem; color: var(--text-3); font-weight: 600; width: 80px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Rank</th>
-                        <th style="padding: 1.25rem; color: var(--text-3); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Student</th>
-                        <th style="padding: 1.25rem; color: var(--text-3); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Class</th>
-                        <th style="padding: 1.25rem; color: var(--text-3); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Badges</th>
-                        <th style="padding: 1.25rem 2rem; color: var(--text-3); font-weight: 600; text-align: right; font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Points</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php 
-                    $rank = 1;
-                    foreach ($leaders as $student): 
-                        // Fetch badges for this student (Updated table names)
-                        $badge_query = $conn->prepare("
-                            SELECT b.name as badge_name, b.icon 
-                            FROM user_badges ub 
-                            JOIN badges b ON ub.badge_id = b.id 
-                            WHERE ub.user_id = ? 
-                            LIMIT 3
-                        ");
-                        $badge_query->bind_param("i", $student['id']);
-                        $badge_query->execute();
-                        $badges = $badge_query->get_result()->fetch_all(MYSQLI_ASSOC);
-                    ?>
-                        <tr style="border-bottom: 1px solid var(--border); transition: background 0.2s;" onmouseover="this.style.background='var(--bg-2)'" onmouseout="this.style.background='transparent'">
-                            <td style="padding: 1.5rem 2rem; font-weight: 800; font-size: 1.1rem; color: var(--text-2);">
-                                <?php if ($rank === 1): ?>
-                                    <span style="color: #FFD700; font-size: 1.4rem;">🥇</span>
-                                <?php elseif ($rank === 2): ?>
-                                    <span style="color: #C0C0C0; font-size: 1.4rem;">🥈</span>
-                                <?php elseif ($rank === 3): ?>
-                                    <span style="color: #CD7F32; font-size: 1.4rem;">🥉</span>
-                                <?php else: ?>
-                                    <span style="color: var(--text-3); margin-left: 5px;">#<?= $rank ?></span>
-                                <?php endif; ?>
-                            </td>
-                            <td style="padding: 1.5rem;">
-                                <div style="display: flex; align-items: center; gap: 12px;">
-                                    <div style="width: 36px; height: 36px; background: var(--accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700; color: white; font-size: 0.9rem;">
-                                        <?= strtoupper(substr($student['name'], 0, 1)) ?>
-                                    </div>
-                                    <a href="<?= $base_path ?>/community/view_student?id=<?= $student['id'] ?>" style="text-decoration: none; color: var(--text); font-weight: 700; font-size: 1rem;">
-                                        <?= htmlspecialchars($student['name']) ?>
-                                    </a>
-                                </div>
-                            </td>
-                            <td style="padding: 1.5rem; color: var(--text-2); font-size: 0.9rem;">
-                                <div style="font-weight: 600;"><?= htmlspecialchars($student['class_name']) ?></div>
-                                <div style="font-size: 11px; color: var(--text-3);">Semester <?= $student['semester'] ?></div>
-                            </td>
-                            <td style="padding: 1.5rem;">
-                                <div style="display: flex; gap: 8px;">
-                                    <?php if (empty($badges)): ?>
-                                        <span style="color: var(--text-3); font-size: 11px; font-style: italic;">No badges</span>
-                                    <?php else: ?>
-                                        <?php foreach ($badges as $badge): ?>
-                                            <span title="<?= htmlspecialchars($badge['badge_name']) ?>" style="background: var(--bg-2); padding: 5px 8px; border-radius: 6px; color: var(--accent); font-size: 12px; border: 1px solid var(--border);">
-                                                <?= htmlspecialchars($badge['icon'] ?? '🏆') ?>
-                                            </span>
-                                        <?php endforeach; ?>
-                                    <?php endif; ?>
-                                </div>
-                            </td>
-                            <td style="padding: 1.5rem 2rem; text-align: right; font-weight: 800; color: var(--accent); font-size: 1.2rem;">
-                                <?= number_format($student['community_score']) ?>
-                            </td>
+        <?php if (empty($leaders)): ?>
+            <div class="ux-empty-panel">
+                <span class="ux-feature-mark">LB</span>
+                <strong>No leaderboard data yet</strong>
+                <span>Students will appear here once community scores are available.</span>
+            </div>
+        <?php else: ?>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Student</th>
+                            <th>Class</th>
+                            <th>Badges</th>
+                            <th style="text-align: right;">Points</th>
                         </tr>
-                    <?php 
-                        $rank++;
-                    endforeach; 
-                    ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($leaders as $index => $student): ?>
+                            <?php
+                            $rank = $index + 1;
+                            $badge_query = $conn->prepare("
+                                SELECT b.name as badge_name, b.icon
+                                FROM user_badges ub
+                                JOIN badges b ON ub.badge_id = b.id
+                                WHERE ub.user_id = ?
+                                LIMIT 3
+                            ");
+                            $badge_query->bind_param("i", $student['id']);
+                            $badge_query->execute();
+                            $badges = $badge_query->get_result()->fetch_all(MYSQLI_ASSOC);
+                            ?>
+                            <tr>
+                                <td><span class="badge <?= $rank <= 3 ? 'badge-primary' : '' ?>">#<?= $rank ?></span></td>
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                        <span class="ux-mark"><?= strtoupper(substr($student['name'], 0, 1)) ?></span>
+                                        <a href="<?= $base_path ?>/community/view_student?id=<?= (int) $student['id'] ?>" style="text-decoration: none; color: var(--text); font-weight: 850;">
+                                            <?= htmlspecialchars($student['name']) ?>
+                                        </a>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div style="font-weight: 700;"><?= htmlspecialchars($student['class_name']) ?></div>
+                                    <div style="font-size: 0.78rem; color: var(--text-3);">Semester <?= htmlspecialchars($student['semester']) ?></div>
+                                </td>
+                                <td>
+                                    <?php if (empty($badges)): ?>
+                                        <span class="badge">No badges</span>
+                                    <?php else: ?>
+                                        <span class="ux-meta-line">
+                                            <?php foreach ($badges as $badge): ?>
+                                                <span class="badge badge-success" title="<?= htmlspecialchars($badge['badge_name']) ?>">
+                                                    <?= htmlspecialchars($badge['badge_name']) ?>
+                                                </span>
+                                            <?php endforeach; ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </td>
+                                <td style="text-align: right; font-weight: 900; color: var(--accent); font-size: 1.08rem;">
+                                    <?= number_format((int) $student['community_score']) ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
+    </section>
 </div>
 
 <?php require_once __DIR__ . '/../../../../shared/layout/footer.php'; ?>

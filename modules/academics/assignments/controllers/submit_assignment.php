@@ -1,13 +1,21 @@
 <?php
 require_once __DIR__ . '/../../../../shared/config/db.php';
 require_once __DIR__ . '/../../../../shared/middleware/auth.php';
+require_once __DIR__ . '/../../../../shared/helpers/notifications.php';
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    ensure_notifications_table($conn);
     $student_id = $_SESSION['user_id'];
     $assignment_id = (int)$_POST['task_id'];
     
     // Fetch assignment details for validation
-    $stmt = $conn->prepare("SELECT allowed_formats, max_files FROM assignments WHERE id = ?");
+    $stmt = $conn->prepare("
+        SELECT a.allowed_formats, a.max_files, a.faculty_id, a.title, s.name as subject_name
+        FROM assignments a
+        JOIN class_subjects cs ON cs.id = a.class_subject_id
+        JOIN subjects s ON s.id = cs.subject_id
+        WHERE a.id = ?
+    ");
     $stmt->bind_param("i", $assignment_id);
     $stmt->execute();
     $assignment = $stmt->get_result()->fetch_assoc();
@@ -102,6 +110,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $ins_file->bind_param("iss", $submission_id, $uf['path'], $uf['name']);
             $ins_file->execute();
         }
+
+        $studentStmt = $conn->prepare("SELECT name FROM users WHERE id = ? LIMIT 1");
+        $studentStmt->bind_param("i", $student_id);
+        $studentStmt->execute();
+        $student_name = $studentStmt->get_result()->fetch_assoc()['name'] ?? 'A student';
+
+        create_notification(
+            $conn,
+            (int) $assignment['faculty_id'],
+            'assignment_submitted',
+            'Assignment submitted',
+            "$student_name submitted " . $assignment['title'] . ".",
+            "$base_path/academics/view_student_submissions?submission_id=$submission_id",
+            (int) $student_id
+        );
         
         $_SESSION['msg_success'] = "Assignment submitted successfully.";
     } else {

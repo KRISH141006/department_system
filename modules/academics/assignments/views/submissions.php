@@ -14,7 +14,6 @@ if (!$assignment_id) {
     exit();
 }
 
-// 1. Fetch Assignment & Class Info - Updated for normalized schema
 $stmt = $conn->prepare("
     SELECT a.*, s.name as subject_name, c.name as class_name, c.semester, c.id as class_id
     FROM assignments a
@@ -32,13 +31,11 @@ if (!$assignment) {
     exit();
 }
 
-// Fetch multiple resource files
 $res_stmt = $conn->prepare("SELECT * FROM assignment_resources WHERE assignment_id = ?");
 $res_stmt->bind_param("i", $assignment_id);
 $res_stmt->execute();
 $resources = $res_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-// Fallback for legacy resource files
 if (empty($resources) && !empty($assignment['resource_path'])) {
     $resources[] = [
         'file_path' => $assignment['resource_path'],
@@ -47,10 +44,8 @@ if (empty($resources) && !empty($assignment['resource_path'])) {
 }
 
 $class_id = $assignment['class_id'];
-
-// 2. Fetch all students in this class and their submission status
 $query = "
-    SELECT u.id as student_id, u.name as student_name, s_ext.roll_no, 
+    SELECT u.id as student_id, u.name as student_name, s_ext.roll_no,
            sub.id as submission_id, sub.submitted_at, sub.grade
     FROM users u
     JOIN students s_ext ON u.id = s_ext.user_id
@@ -63,95 +58,119 @@ $stmt2->bind_param("ii", $assignment_id, $class_id);
 $stmt2->execute();
 $students = $stmt2->get_result()->fetch_all(MYSQLI_ASSOC);
 
+$submitted_count = count(array_filter($students, function($student) {
+    return !empty($student['submission_id']);
+}));
+$missing_count = count($students) - $submitted_count;
+
 $page_title = "Submissions: " . htmlspecialchars($assignment['title']);
 require_once __DIR__ . '/../../../../shared/layout/header.php';
 ?>
 
-<div class="wrapper" style="padding: 2rem;">
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem;">
-        <div>
-            <h1 style="font-family: 'DM Serif Display', serif; font-size: 2.5rem;"><?= htmlspecialchars($assignment['title']) ?></h1>
-            <p style="color: var(--text-2);">
-                Subject: <strong><?= htmlspecialchars($assignment['subject_name']) ?></strong> | 
-                Class: <strong><?= htmlspecialchars($assignment['class_name']) ?> (Sem <?= $assignment['semester'] ?>)</strong>
-            </p>
+<div class="wrapper">
+    <section class="ux-workspace-hero">
+        <div class="ux-workspace-hero-main">
+            <span class="ux-kicker">Submission Review</span>
+            <h1 class="ux-hero-title"><?= htmlspecialchars($assignment['title']) ?></h1>
+            <p class="ux-hero-copy">Subject: <strong><?= htmlspecialchars($assignment['subject_name']) ?></strong> | Class: <strong><?= htmlspecialchars($assignment['class_name']) ?> (Sem <?= htmlspecialchars($assignment['semester']) ?>)</strong></p>
+            <div class="ux-hero-actions">
+                <a href="<?= $base_path ?>/academics/assigned_tasks_history" class="btn btn-secondary">Back to History</a>
+            </div>
         </div>
-        <a href="<?= $base_path ?>/academics/assigned_tasks_history" class="btn btn-secondary">Back to History</a>
-    </div>
+        <aside class="ux-workspace-hero-side">
+            <span class="ux-subtle-note">Submission snapshot</span>
+            <div class="ux-stat-grid">
+                <div class="ux-stat-card"><strong><?= count($students) ?></strong><span>Students</span></div>
+                <div class="ux-stat-card is-good"><strong><?= $submitted_count ?></strong><span>Submitted</span></div>
+                <div class="ux-stat-card <?= $missing_count > 0 ? 'is-warm' : 'is-good' ?>"><strong><?= $missing_count ?></strong><span>Missing</span></div>
+            </div>
+        </aside>
+    </section>
 
-    <div class="grid-2" style="margin-bottom: 2rem;">
-        <div class="card" style="border-left: 5px solid var(--accent);">
-            <h3 style="margin-bottom: 0.5rem;">Assignment Details</h3>
-            <p style="font-size: 14px; color: var(--text-2);"><?= nl2br(htmlspecialchars($assignment['description'])) ?></p>
+    <div class="ux-service-board">
+        <section class="ux-section-card">
+            <div class="ux-section-heading">
+                <div>
+                    <h2>Assignment Details</h2>
+                    <p><?= nl2br(htmlspecialchars($assignment['description'])) ?></p>
+                </div>
+            </div>
             <?php if (!empty($resources)): ?>
-                <div style="margin-top: 1rem; display: flex; flex-direction: column; gap: 8px;">
-                    <?php foreach ($resources as $res): 
+                <div class="ux-record-list">
+                    <?php foreach ($resources as $res): ?>
+                        <?php
                         $res_path = $res['file_path'] ?? $res['path'];
                         $res_name = $res['file_name'] ?? $res['name'];
-                    ?>
-                        <div style="padding: 10px; background: var(--bg-2); border-radius: 6px; display: flex; align-items: center; gap: 10px;">
-                            <span style="font-size: 20px;">📎</span>
-                            <a href="<?= $base_path ?>/<?= htmlspecialchars($res_path) ?>" target="_blank" style="font-size: 13px; font-weight: 600; color: var(--accent);"><?= htmlspecialchars($res_name) ?></a>
-                        </div>
+                        ?>
+                        <a href="<?= $base_path ?>/<?= htmlspecialchars($res_path) ?>" target="_blank" class="ux-record-row" style="text-decoration: none;">
+                            <strong><?= htmlspecialchars($res_name) ?></strong>
+                            <span class="btn btn-secondary btn-sm">Open</span>
+                        </a>
                     <?php endforeach; ?>
                 </div>
             <?php endif; ?>
-        </div>
-        <div class="card" style="border-left: 5px solid var(--primary);">
-            <h3 style="margin-bottom: 0.5rem;">Requirements</h3>
-            <div style="margin-bottom: 10px;">
-                <span style="font-size: 11px; color: var(--text-3); text-transform: uppercase; font-weight: 700;">Deadline</span>
-                <div style="font-weight: 600; margin-top: 4px;"><?= date('d M Y, h:i A', strtotime($assignment['deadline'])) ?></div>
+        </section>
+
+        <section class="ux-section-card">
+            <div class="ux-section-heading">
+                <div>
+                    <h2>Requirements</h2>
+                    <p>Deadline and accepted file formats.</p>
+                </div>
             </div>
-            <div>
-                <span style="font-size: 11px; color: var(--text-3); text-transform: uppercase; font-weight: 700;">Allowed Formats</span>
-                <div style="font-weight: 600; margin-top: 4px;"><?= htmlspecialchars($assignment['allowed_formats'] ?: 'Any') ?></div>
+            <div class="ux-stat-grid">
+                <div class="ux-stat-card"><strong><?= date('d M', strtotime($assignment['deadline'])) ?></strong><span><?= date('h:i A', strtotime($assignment['deadline'])) ?></span></div>
+                <div class="ux-stat-card"><strong><?= htmlspecialchars($assignment['allowed_formats'] ?: 'Any') ?></strong><span>Formats</span></div>
             </div>
-        </div>
+        </section>
     </div>
 
-    <div class="card" style="padding: 0; overflow: hidden;">
-        <table style="width: 100%; border-collapse: collapse; text-align: left;">
-            <thead style="background: var(--bg-2); border-bottom: 1px solid var(--border);">
-                <tr>
-                    <th style="padding: 1.25rem;">Roll No</th>
-                    <th style="padding: 1.25rem;">Student Name</th>
-                    <th style="padding: 1.25rem;">Status</th>
-                    <th style="padding: 1.25rem;">Submitted At</th>
-                    <th style="padding: 1.25rem;">Grade</th>
-                    <th style="padding: 1.25rem; text-align: right;">Action</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($students as $s): ?>
-                    <tr style="border-bottom: 1px solid var(--border);">
-                        <td style="padding: 1.25rem; font-family: monospace;"><?= htmlspecialchars($s['roll_no']) ?></td>
-                        <td style="padding: 1.25rem;"><strong><?= htmlspecialchars($s['student_name']) ?></strong></td>
-                        <td style="padding: 1.25rem;">
-                            <?php if ($s['submission_id']): ?>
-                                <span class="badge badge-success">Submitted</span>
-                            <?php else: ?>
-                                <span class="badge badge-pending">Missing</span>
-                            <?php endif; ?>
-                        </td>
-                        <td style="padding: 1.25rem; font-size: 13px; color: var(--text-2);">
-                            <?= $s['submitted_at'] ? date('d M, h:i A', strtotime($s['submitted_at'])) : '—' ?>
-                        </td>
-                        <td style="padding: 1.25rem;">
-                            <span style="font-weight: 700; color: var(--accent);"><?= $s['grade'] ?: 'Not Graded' ?></span>
-                        </td>
-                        <td style="padding: 1.25rem; text-align: right;">
-                            <?php if ($s['submission_id']): ?>
-                                <a href="<?= $base_path ?>/academics/view_student_submissions?submission_id=<?= $s['submission_id'] ?>" class="btn btn-sm btn-primary">Review & Grade</a>
-                            <?php else: ?>
-                                <button class="btn btn-sm btn-secondary" disabled>N/A</button>
-                            <?php endif; ?>
-                        </td>
+    <section class="ux-section-card ux-compact-table-card">
+        <div class="ux-section-heading">
+            <div>
+                <h2>Class Submission Status</h2>
+                <p>Review and grade submitted work from one table.</p>
+            </div>
+        </div>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Roll No</th>
+                        <th>Student Name</th>
+                        <th>Status</th>
+                        <th>Submitted At</th>
+                        <th>Grade</th>
+                        <th style="text-align: right;">Action</th>
                     </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
-    </div>
+                </thead>
+                <tbody>
+                    <?php foreach ($students as $s): ?>
+                        <tr>
+                            <td><code><?= htmlspecialchars($s['roll_no']) ?></code></td>
+                            <td><strong><?= htmlspecialchars($s['student_name']) ?></strong></td>
+                            <td>
+                                <?php if ($s['submission_id']): ?>
+                                    <span class="badge badge-success">Submitted</span>
+                                <?php else: ?>
+                                    <span class="badge badge-warning">Missing</span>
+                                <?php endif; ?>
+                            </td>
+                            <td><?= $s['submitted_at'] ? date('d M, h:i A', strtotime($s['submitted_at'])) : '-' ?></td>
+                            <td><strong style="color: var(--accent);"><?= htmlspecialchars($s['grade'] ?: 'Not Graded') ?></strong></td>
+                            <td style="text-align: right;">
+                                <?php if ($s['submission_id']): ?>
+                                    <a href="<?= $base_path ?>/academics/view_student_submissions?submission_id=<?= (int) $s['submission_id'] ?>" class="btn btn-sm btn-primary">Review & Grade</a>
+                                <?php else: ?>
+                                    <button class="btn btn-sm btn-secondary" disabled>N/A</button>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </section>
 </div>
 
 <?php require_once __DIR__ . '/../../../../shared/layout/footer.php'; ?>
